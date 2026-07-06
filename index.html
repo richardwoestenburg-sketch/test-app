@@ -254,6 +254,57 @@
   .speedo{background:linear-gradient(180deg, #0c130a, #0a1008 60%);}
   .gauge .value{transition:color .2s;}
 
+  /* ---------- View switching: one no-scroll drive screen + a 'Meer' page ---------- */
+  .viewnav{display:flex; gap:6px; margin-bottom:12px; position:sticky; top:0; z-index:20;
+    background:linear-gradient(180deg, var(--bg-deep) 72%, rgba(12,11,10,0)); padding:6px 0 8px;}
+  .viewnav-btn{flex:1; font-family:var(--display); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--chrome); background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; padding:11px 4px; cursor:pointer; transition:.15s;}
+  .viewnav-btn.is-active{color:var(--ivory); border-color:var(--rosso); box-shadow:inset 0 0 0 1px var(--rosso);}
+  .viewnav-full{flex:0 0 auto; width:52px; font-size:17px; color:var(--chrome); background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; cursor:pointer;}
+  .view[hidden]{display:none;}
+
+  /* ---------- Corsa extras: g-force pad + 0-100 timer ---------- */
+  .corsa-extras{display:none; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;}
+  body.mode-corsa .corsa-extras{display:grid;}
+  .gforce, .launch{background:var(--bg-panel); border:1px solid var(--line); border-left:2px solid var(--rosso); border-radius:3px; padding:10px;}
+  .gforce{display:flex; align-items:center; gap:10px;}
+  .gpad{position:relative; width:72px; height:72px; flex:0 0 auto; border-radius:50%; background:radial-gradient(circle, #14110d, #0a0806); border:1px solid var(--line-bright);}
+  .gring{position:absolute; border:1px solid rgba(196,30,42,.35); border-radius:50%; top:50%; left:50%; transform:translate(-50%,-50%);}
+  .gring.r1{width:34%; height:34%;} .gring.r2{width:68%; height:68%;}
+  .gcross-h, .gcross-v{position:absolute; background:rgba(236,229,211,.14);}
+  .gcross-h{top:50%; left:8%; right:8%; height:1px;} .gcross-v{left:50%; top:8%; bottom:8%; width:1px;}
+  .gdot{position:absolute; top:50%; left:50%; width:9px; height:9px; border-radius:50%; background:var(--rosso);
+    box-shadow:0 0 7px rgba(196,30,42,.9); transform:translate(-50%,-50%); transition:transform .1s ease-out;}
+  .gmeta .k, .launch .k{font-family:var(--mono); font-size:8.5px; color:var(--chrome); text-transform:uppercase; letter-spacing:.08em;}
+  .gmeta .v{font-family:var(--digital); font-size:22px; color:var(--ivory); line-height:1.1; margin-top:3px;}
+  .launch{display:flex; flex-direction:column; justify-content:center;}
+  .launch .v{font-family:var(--digital); font-size:30px; color:#8fdc6a; line-height:1; margin-top:3px; text-shadow:0 0 8px rgba(143,220,106,.4);}
+  .launch .v.armed{color:var(--amber-warn); text-shadow:none;}
+  .launch .best{font-family:var(--mono); font-size:9px; color:var(--chrome); margin-top:6px; letter-spacing:.04em;}
+
+  /* ---------- Flitser (speed-camera) alert + management ---------- */
+  .flitser-alert{margin-top:10px; text-align:center; font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:.06em;
+    color:#ffd27a; background:linear-gradient(180deg, #3a2a0c, #241a06); border:1px solid var(--amber-warn); border-radius:3px; padding:11px; animation:pulse 1s infinite;}
+  .flitser-alert[hidden]{display:none;}
+  .flitser-panel{margin-top:10px; background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; padding:4px 10px 10px;}
+  .flitser-panel .toggle-row{background:transparent; border:none; padding:8px 0 4px; margin:0;}
+  .flitser-panel .controls{margin-top:8px;}
+  .flitser-count{font-family:var(--mono); font-size:10px; color:var(--chrome); margin-top:9px; letter-spacing:.03em;}
+
+  /* ---------- Drive view fills exactly one screen: the camera flexes to fill
+       leftover space so every control stays visible without scrolling. ---------- */
+  html, body{overflow-x:hidden;}
+  .wrap{display:flex; flex-direction:column; min-height:100vh; min-height:100dvh;}
+  #viewDrive:not([hidden]){flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+  #viewDrive .cluster{aspect-ratio:auto; flex:1 1 auto; min-height:132px;}
+  #viewDrive .ask-panel.show{flex:0 0 auto;}
+  #viewMore{flex:1 1 auto;}
+  @media (max-height:720px){
+    .stats-strip{margin-top:8px;} .readouts{margin-top:8px;} .sensor-strip{margin-bottom:9px;}
+    .stat .v{font-size:19px;} .corsa-extras{margin-top:8px;}
+    header{padding-bottom:8px; margin-bottom:8px;}
+  }
+
   /* ---------- Accessibility & motion preferences ---------- */
   button:focus-visible, .switch input:focus-visible + .track, summary:focus-visible, input:focus-visible{
     outline:2px solid var(--amber-warn); outline-offset:2px;}
@@ -281,9 +332,13 @@
     </div>
   </header>
 
-  <div class="disclaimer">
-    <b>Prototype, geen gecertificeerd veiligheidssysteem.</b> Schattingen op basis van beeld, beweging, geluid en GPS — geen objectherkenning. Toerenteller is sfeer, geen echte RPM. Monteer je telefoon vast, blijf zelf verantwoordelijk voor afstand, koers en aandacht.
-  </div>
+  <nav class="viewnav">
+    <button class="viewnav-btn is-active" id="navDrive" type="button">Rijden</button>
+    <button class="viewnav-btn" id="navMore" type="button">Meer</button>
+    <button class="viewnav-full" id="fullscreenBtn" type="button" title="Volledig scherm">⛶</button>
+  </nav>
+
+  <section class="view" id="viewDrive">
 
   <div class="sensor-strip" id="sensorStrip" aria-label="Sensorstatus">
     <div class="sensor-chip off" id="chipCam"><span class="st"></span><span class="ic">📷</span><span class="nm">Camera</span></div>
@@ -366,6 +421,44 @@
     </div>
   </div>
 
+  <!-- Corsa-only performance instruments -->
+  <div class="corsa-extras" id="corsaExtras">
+    <div class="gforce">
+      <div class="gpad">
+        <div class="gring r1"></div><div class="gring r2"></div>
+        <div class="gcross-h"></div><div class="gcross-v"></div>
+        <div class="gdot" id="gDot"></div>
+      </div>
+      <div class="gmeta"><div class="k">G-kracht</div><div class="v" id="gPeak">0.0<span class="su">g piek</span></div></div>
+    </div>
+    <div class="launch">
+      <div class="k">0–100 km/u</div>
+      <div class="v" id="launchTime">--<span class="su">s</span></div>
+      <div class="best" id="launchBest">beste: --</div>
+    </div>
+  </div>
+
+  <div class="flitser-alert" id="flitserAlert" hidden>📸 FLITSER <span id="flitserDist"></span></div>
+
+  <div class="controls">
+    <button class="btn-primary" id="startBtn">Start kalibratie</button>
+    <button class="btn-ask" id="askBtn">🎤 Vraag stellen</button>
+  </div>
+  <div class="ask-panel" id="askPanel" aria-live="polite">
+    <div class="q" id="askQ"></div>
+    <div class="a" id="askA"></div>
+    <div class="ask-hint" id="askHint">Tik en vraag bijvoorbeeld: “Hoe hard rij ik?” · “Hoe is mijn volgafstand?” · “Hoe lang rij ik al?” · “Zet Corsa aan”.</div>
+  </div>
+
+  </section>
+
+  <!-- ================= MEER / INSTELLINGEN ================= -->
+  <section class="view" id="viewMore" hidden>
+
+  <div class="disclaimer">
+    <b>Prototype, geen gecertificeerd veiligheidssysteem.</b> Schattingen op basis van beeld, beweging, geluid en GPS — geen objectherkenning. Toerenteller is sfeer, geen echte RPM. Monteer je telefoon vast, blijf zelf verantwoordelijk voor afstand, koers en aandacht.
+  </div>
+
   <div class="mode-select">
     <div class="mode-head">
       <span class="mode-title">Rijmodus</span>
@@ -386,19 +479,23 @@
     </label>
   </div>
 
-  <div class="controls">
-    <button class="btn-primary" id="startBtn">Start kalibratie</button>
-    <button class="btn-secondary" id="testVoiceBtn">Test stem</button>
+  <div class="flitser-panel">
+    <div class="toggle-row">
+      <div class="txt"><b>Flitsermelder</b>waarschuwt bij zelf-opgeslagen flitserlocaties — lokaal, geen online database</div>
+      <label class="switch">
+        <input type="checkbox" id="flitserToggle" checked>
+        <span class="track"><span class="knob"></span></span>
+      </label>
+    </div>
+    <div class="controls">
+      <button class="btn-secondary" id="markFlitserBtn" style="flex:2">📍 Flitser hier markeren</button>
+      <button class="btn-secondary" id="clearFlitserBtn" style="flex:1">Wis alle</button>
+    </div>
+    <div class="flitser-count" id="flitserCount">0 flitsers opgeslagen</div>
   </div>
 
   <div class="controls">
-    <button class="btn-secondary btn-full" id="fullscreenBtn">⛶ Volledig scherm</button>
-    <button class="btn-ask" id="askBtn">🎤 Vraag stellen</button>
-  </div>
-  <div class="ask-panel" id="askPanel" aria-live="polite">
-    <div class="q" id="askQ"></div>
-    <div class="a" id="askA"></div>
-    <div class="ask-hint" id="askHint">Tik en vraag bijvoorbeeld: “Hoe hard rij ik?” · “Hoe is mijn volgafstand?” · “Hoe lang rij ik al?” · “Zet sportmodus uit”.</div>
+    <button class="btn-secondary" id="testVoiceBtn" style="flex:1">Test stem</button>
   </div>
 
   <div class="debug-toggle">
@@ -436,6 +533,8 @@
   </div>
 
   <footer>ALLE VERWERKING LOKAAL — GEEN UPLOAD, GEEN OPSLAG<br>gebaseerd op rand-, bewegings- en geluidsanalyse · geen objectherkenning</footer>
+
+  </section>
 </div>
 
 <script>
@@ -455,6 +554,36 @@
   const cabrioToggle = document.getElementById('cabrioToggle');
   const modeDesc = document.getElementById('modeDesc');
   const modeOpts = Array.from(document.querySelectorAll('.mode-opt'));
+  const corsaExtras = document.getElementById('corsaExtras');
+
+  // ---------- View switching (Rijden / Meer) ----------
+  const navDrive = document.getElementById('navDrive');
+  const navMore = document.getElementById('navMore');
+  const viewDrive = document.getElementById('viewDrive');
+  const viewMore = document.getElementById('viewMore');
+  function showView(v){
+    const drive = v !== 'more';
+    viewDrive.hidden = !drive;
+    viewMore.hidden = drive;
+    navDrive.classList.toggle('is-active', drive);
+    navMore.classList.toggle('is-active', !drive);
+    window.scrollTo(0, 0);
+  }
+  navDrive.addEventListener('click', () => showView('drive'));
+  navMore.addEventListener('click', () => showView('more'));
+
+  // Corsa performance instruments
+  const gDot = document.getElementById('gDot');
+  const gPeak = document.getElementById('gPeak');
+  const launchTimeEl = document.getElementById('launchTime');
+  const launchBestEl = document.getElementById('launchBest');
+  // Flitser (speed camera) alert
+  const flitserToggle = document.getElementById('flitserToggle');
+  const flitserAlert = document.getElementById('flitserAlert');
+  const flitserDist = document.getElementById('flitserDist');
+  const markFlitserBtn = document.getElementById('markFlitserBtn');
+  const clearFlitserBtn = document.getElementById('clearFlitserBtn');
+  const flitserCount = document.getElementById('flitserCount');
 
   // ---------- Driving mode: Strada (calm) · Sport · Corsa (extreme) ----------
   let drivingMode = 'sport';
@@ -473,6 +602,7 @@
     });
     modeDesc.textContent = MODE_INFO[m].desc;
     document.body.classList.toggle('mode-corsa', m === 'corsa');
+    // Corsa extras are shown via the body.mode-corsa CSS rule
     if(announce) logEvent(`Rijmodus: ${MODE_INFO[m].name}.`);
   }
   modeOpts.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode, true)));
@@ -583,7 +713,7 @@
 
   let laneOffsetSmoothed = 0;
   let cornerConfirmFrames = 0;
-  let lateralAccel = 0, rotationMag = 0;
+  let lateralAccel = 0, longitudinalAccel = 0, rotationMag = 0;
 
   // ---------- Tachometer geometry: 270deg sweep, 0..7 (x1000/min), redline 6-7 ----------
   const TACHO_START = 135, TACHO_END = 405; // degrees, svg space
@@ -678,6 +808,8 @@
         smoothedSpeedKmh = smoothedSpeedKmh*0.6 + Math.min(kmh, 320)*0.4;
         updateSpeedUI(smoothedSpeedKmh, accuracy);
       }
+      updatePerf(smoothedSpeedKmh);
+      checkFlitsers(latitude, longitude, smoothedSpeedKmh);
     }, (err) => {
       gpsStatus.classList.remove('locked');
       gpsStatus.innerHTML = `<span class="dot"></span>GPS FOUT: ${err.code === 1 ? 'geen toestemming' : 'signaal kwijt'}`;
@@ -792,7 +924,7 @@
       speechSynthesis.speak(u);
     }catch(e){}
     if(cabrioToggle.checked) flashCluster();
-    if(category !== 'test' && running){
+    if(category !== 'test' && category !== 'launch' && running){
       alertCount++;
       statAlerts.textContent = alertCount;
     }
@@ -856,6 +988,18 @@
     window.addEventListener('devicemotion', (e) => {
       const acc = e.accelerationIncludingGravity || e.acceleration || {};
       lateralAccel = acc && typeof acc.x === 'number' ? acc.x : 0;
+      longitudinalAccel = acc && typeof acc.y === 'number' ? acc.y : 0;
+      const lin = e.acceleration;
+      if(lin && typeof lin.x === 'number' && lin.x !== null){
+        gLatAccel = lin.x;
+        gLongAccel = (typeof lin.y === 'number' && lin.y !== null) ? lin.y : 0;
+      } else {
+        // No gravity-free reading: high-pass the tilt out so only dynamic g remains
+        gravX = gravX*0.92 + lateralAccel*0.08;
+        gravY = gravY*0.92 + longitudinalAccel*0.08;
+        gLatAccel = lateralAccel - gravX;
+        gLongAccel = longitudinalAccel - gravY;
+      }
       const rot = e.rotationRate || {};
       const a = rot.alpha||0, b = rot.beta||0, g = rot.gamma||0;
       rotationMag = Math.sqrt(a*a + b*b + g*g);
@@ -1007,6 +1151,8 @@
       const tachoValue = th.tachoIdle + smoothedLevel * (TACHO_MAX - th.tachoIdle); // mode idle + reactive sweep
       setNeedle(tachoValue);
 
+      if(drivingMode === 'corsa') updateGForce();
+
       dbgEdge.textContent = currentEdge.toFixed(2);
       dbgBaseline.textContent = base.toFixed(2);
       dbgGrowth.textContent = relativeGrowth.toFixed(2);
@@ -1068,6 +1214,8 @@
     startBtn.classList.add('stop');
     logEvent(`Rijcoach actief — rijmodus ${MODE_INFO[drivingMode].name}${cabrioToggle.checked ? ', cabrio-modus' : ''}.`);
     startStats();
+    resetGForce();
+    resetLaunch();
     loopHandle = setInterval(tick, 260);
   }
 
@@ -1082,6 +1230,9 @@
     micActive = false;
     micBadge.textContent = 'MIC UIT';
     stopStats();
+    resetGForce();
+    resetLaunch();
+    flitserAlert.hidden = true;
     setChip(chipCam, 'off');
     setChip(chipMic, 'off');
     setChip(chipMotion, 'off');
@@ -1103,6 +1254,85 @@
     logEvent('Rijcoach gestopt.');
   }
 
+  // ---------- Corsa: g-force meter ----------
+  // Prefer gravity-excluded linear acceleration; otherwise high-pass the
+  // gravity-included signal so the dot reflects dynamic g, not phone tilt.
+  let gLatAccel = 0, gLongAccel = 0, gravX = 0, gravY = 0, gPeakVal = 0;
+  function updateGForce(){
+    const latG = gLatAccel/9.81, longG = gLongAccel/9.81;
+    const maxG = 1.2, off = 30;
+    const x = Math.max(-1, Math.min(1, latG/maxG)) * off;
+    const y = Math.max(-1, Math.min(1, -longG/maxG)) * off;
+    gDot.style.transform = `translate(calc(-50% + ${x.toFixed(1)}px), calc(-50% + ${y.toFixed(1)}px))`;
+    const mag = Math.sqrt(latG*latG + longG*longG);
+    if(mag > gPeakVal) gPeakVal = mag;
+    gPeak.innerHTML = `${gPeakVal.toFixed(1)}<span class="su">g piek</span>`;
+  }
+  function resetGForce(){ gPeakVal = 0; gLatAccel = gLongAccel = gravX = gravY = 0;
+    gDot.style.transform = 'translate(-50%,-50%)'; gPeak.innerHTML = '0.0<span class="su">g piek</span>'; }
+
+  // ---------- Corsa: 0-100 km/u timer (GPS-based, indicative) ----------
+  let launchState = 'idle', launchT0 = 0, launchBestVal = null;
+  function setLaunchUI(text, armed){
+    launchTimeEl.innerHTML = text + '<span class="su">s</span>';
+    launchTimeEl.classList.toggle('armed', !!armed);
+    launchBestEl.textContent = 'beste: ' + (launchBestVal != null ? launchBestVal.toFixed(1) + ' s' : '--');
+  }
+  function resetLaunch(){ launchState = 'idle'; launchT0 = 0; setLaunchUI('--', false); }
+  function updatePerf(kmh){
+    const now = performance.now();
+    if(kmh < 3){ launchState = 'ready'; setLaunchUI('0.0', true); return; } // armed at standstill
+    if(launchState === 'ready' && kmh >= 5){ launchState = 'timing'; launchT0 = now; }
+    if(launchState === 'timing'){
+      if(kmh >= 100){
+        const t = (now - launchT0) / 1000;
+        launchState = 'done';
+        if(launchBestVal == null || t < launchBestVal) launchBestVal = t;
+        setLaunchUI(t.toFixed(1), false);
+        logEvent(`0–100 km/u in ${t.toFixed(1)} s.`);
+        speak(`Nul naar honderd in ${t.toFixed(1)} seconden.`, 'launch', 4000);
+      } else {
+        setLaunchUI(((now - launchT0) / 1000).toFixed(1), true);
+      }
+    }
+  }
+
+  // ---------- Flitser (speed-camera) alert — locally saved points, offline ----------
+  let flitsers = [];
+  try{ flitsers = JSON.parse(localStorage.getItem('rijcoach_flitsers') || '[]') || []; }catch(e){ flitsers = []; }
+  const flitserWarned = {};
+  function updateFlitserCount(){ flitserCount.textContent = `${flitsers.length} flitser${flitsers.length===1?'':'s'} opgeslagen`; }
+  function saveFlitsers(){ try{ localStorage.setItem('rijcoach_flitsers', JSON.stringify(flitsers)); }catch(e){} updateFlitserCount(); }
+  updateFlitserCount();
+  markFlitserBtn.addEventListener('click', () => {
+    if(lastFix){ flitsers.push({ lat: lastFix.lat, lon: lastFix.lon }); saveFlitsers(); logEvent('📍 Flitser gemarkeerd op je huidige locatie.'); }
+    else logEvent('Kan flitser niet markeren — nog geen GPS-locatie. Start eerst de rijcoach.');
+  });
+  clearFlitserBtn.addEventListener('click', () => {
+    flitsers = []; for(const k in flitserWarned) delete flitserWarned[k];
+    saveFlitsers(); flitserAlert.hidden = true; logEvent('Alle flitserlocaties gewist.');
+  });
+  function checkFlitsers(lat, lon, kmh){
+    if(!flitserToggle.checked || !flitsers.length){ flitserAlert.hidden = true; return; }
+    let nd = Infinity, ni = -1;
+    for(let i=0;i<flitsers.length;i++){
+      const d = haversineMeters(lat, lon, flitsers[i].lat, flitsers[i].lon);
+      if(d < nd){ nd = d; ni = i; }
+    }
+    if(nd < 350 && kmh > 15){
+      const rounded = Math.round(nd/10)*10;
+      flitserDist.textContent = `± ${rounded} m`;
+      flitserAlert.hidden = false;
+      const now = Date.now();
+      if(!flitserWarned[ni] || now - flitserWarned[ni] > 25000){
+        flitserWarned[ni] = now;
+        speak(`Let op, flitser op ongeveer ${rounded} meter.`, 'flitser', 8000);
+      }
+    } else {
+      flitserAlert.hidden = true;
+    }
+  }
+
   // ---------- Fullscreen ----------
   function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement; }
   function toggleFullscreen(){
@@ -1118,7 +1348,8 @@
   function syncFullscreenUI(){
     const on = !!fsElement();
     document.body.classList.toggle('fs', on);
-    fullscreenBtn.innerHTML = on ? '⛶ Verlaat scherm' : '⛶ Volledig scherm';
+    fullscreenBtn.textContent = on ? '⤡' : '⛶';
+    fullscreenBtn.title = on ? 'Verlaat volledig scherm' : 'Volledig scherm';
   }
   fullscreenBtn.addEventListener('click', toggleFullscreen);
   document.addEventListener('fullscreenchange', syncFullscreenUI);
