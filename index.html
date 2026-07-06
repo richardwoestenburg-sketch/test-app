@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<title>Rijcoach — 916 Spider Twin Spark</title>
+<style>
+  @import url('https://fonts.cdnfonts.com/css/jetbrains-mono-2');
+  @import url('https://fonts.cdnfonts.com/css/oswald');
+  @import url('https://fonts.cdnfonts.com/css/digital-7-mono-2');
+
+  :root{
+    --bg-deep: #0c0b0a;
+    --bg-panel: #16130f;
+    --line: #3a2f24;
+    --line-bright: #5a4632;
+    --chrome: #b8b2a4;
+    --ivory: #ece5d3;
+    --rosso: #c41e2a;
+    --rosso-dim: #6b1017;
+    --verde: #3f6b4a;
+    --amber-warn: #d69a3d;
+    --digital: 'Digital-7 Mono', 'JetBrains Mono', monospace;
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --display: 'Oswald', 'Arial Narrow', sans-serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg-deep);color:var(--ivory);font-family:var(--sans);}
+  body{min-height:100vh;padding-bottom:28px;
+    background-image:
+      radial-gradient(ellipse at 50% -10%, rgba(196,30,42,0.08), transparent 55%),
+      repeating-linear-gradient(180deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(255,255,255,0.006) 2px, rgba(255,255,255,0.006) 3px);
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:16px 14px 0;}
+
+  header{padding:2px 2px 14px; border-bottom:2px solid var(--rosso-dim); margin-bottom:14px; display:flex; align-items:flex-end; justify-content:space-between; gap:10px;}
+  .badge-block .eyebrow{font-family:var(--mono); font-size:9.5px; color:var(--chrome); letter-spacing:.18em; text-transform:uppercase; display:flex; align-items:center; gap:7px;}
+  .badge-block .eyebrow .sep{width:3px;height:3px;border-radius:50%;background:var(--rosso);}
+  h1{font-family:var(--display); font-size:23px; margin:4px 0 0; font-weight:600; letter-spacing:.01em; color:var(--ivory); text-transform:uppercase;}
+  h1 .model{color:var(--rosso); font-weight:700;}
+  .spec-plate{font-family:var(--mono); font-size:9px; color:#1a1a1a; text-align:center; line-height:1.5; letter-spacing:.1em;
+    background:var(--ivory); border:2px solid var(--chrome); border-radius:3px; padding:5px 9px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.15);
+  }
+  .spec-plate b{color:var(--rosso-dim); display:block; font-size:11px; letter-spacing:.14em; font-family:var(--display);}
+
+  .disclaimer{
+    font-family: var(--mono); font-size:9.5px; line-height:1.6; color:var(--chrome);
+    padding:0 2px 12px; margin-bottom:14px; border-bottom:1px solid var(--line); letter-spacing:.01em;
+  }
+  .disclaimer b{color:var(--chrome); font-weight:600;}
+  .disclaimer.small{margin-top:14px; margin-bottom:0; font-size:11px;}
+
+  .cluster{position:relative; width:100%; aspect-ratio:4/3; border-radius:4px; overflow:hidden;
+    background:#000; border:1px solid var(--line-bright);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.6), 0 0 0 6px var(--bg-panel), 0 0 0 7px var(--line-bright);
+    transition: box-shadow .2s ease;
+  }
+  .cluster.flash{box-shadow: inset 0 0 0 1px rgba(0,0,0,.6), 0 0 0 6px var(--rosso), 0 0 0 7px var(--rosso);}
+  .cluster video{width:100%;height:100%;object-fit:cover; filter: saturate(0.9) contrast(1.08) sepia(0.05);}
+  .cluster .msg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:26px; font-size:12.5px; color:var(--chrome); background:rgba(12,11,10,.9); line-height:1.6;}
+  .cluster .msg b{color:var(--ivory);}
+
+  .rec{position:absolute; top:9px; left:9px; display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:9.5px; color:var(--rosso); letter-spacing:.1em; z-index:3; background:rgba(0,0,0,.45); padding:3px 7px; border-radius:2px;}
+  .rec .d{width:6px;height:6px;border-radius:50%;background:var(--rosso); animation:pulse 1.5s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+  .calib-badge{position:absolute; top:9px; right:9px; font-family:var(--mono); font-size:9.5px; color:var(--amber-warn); letter-spacing:.08em; background:rgba(0,0,0,.5); padding:3px 8px; border-radius:2px; z-index:3;}
+
+  .reticle{position:absolute; inset:0; pointer-events:none; z-index:2;}
+  .reticle .tick{position:absolute; background:rgba(236,229,211,.3);}
+  .reticle .tick.tl{top:14px; left:14px; width:16px; height:2px;} .reticle .tick.tl2{top:14px; left:14px; width:2px; height:16px;}
+  .reticle .tick.tr{top:14px; right:14px; width:16px; height:2px;} .reticle .tick.tr2{top:14px; right:14px; width:2px; height:16px;}
+  .reticle .tick.bl{bottom:14px; left:14px; width:16px; height:2px;} .reticle .tick.bl2{bottom:14px; left:14px; width:2px; height:16px;}
+  .reticle .tick.br{bottom:14px; right:14px; width:16px; height:2px;} .reticle .tick.br2{bottom:14px; right:14px; width:2px; height:16px;}
+  .reticle .center-v{position:absolute; left:50%; top:60%; width:1px; height:34%; background:rgba(196,30,42,.35); transform:translateX(-50%);}
+
+  /* Twin gauge dock: artificial horizon (left) + sound-driven tachometer (right) */
+  .gauge-dock{position:absolute; bottom:12px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-end; z-index:3; pointer-events:none;}
+
+  .horizon{width:118px; height:118px; border-radius:50%; position:relative; overflow:hidden;
+    border:3px solid var(--chrome); box-shadow:0 0 0 1px #000, inset 0 0 8px rgba(0,0,0,.6); background:#0d0d0d;}
+  .horizon .plate{position:absolute; left:-45%; right:-45%; top:50%; height:230%;
+    background: linear-gradient(180deg, #24313a 0%, #24313a 49.5%, #3a2c1a 50.5%, #3a2c1a 100%);
+    transform-origin:center center; transition: transform .16s linear;}
+  .horizon .rung{position:absolute; left:50%; width:34%; height:1px; background:rgba(236,229,211,.45); transform:translateX(-50%);}
+  .horizon .redline{position:absolute; left:2px; right:2px; top:6px; height:2px; background:var(--rosso); opacity:.55;}
+  .horizon .marker{position:absolute; left:50%; top:50%; width:66%; height:2px; background:var(--ivory); transform:translate(-50%,-50%); box-shadow:0 0 4px rgba(236,229,211,.6); z-index:2;}
+  .horizon .marker::before,.horizon .marker::after{content:'';position:absolute; width:2px; height:9px; background:var(--rosso); top:-3.5px;}
+  .horizon .marker::before{left:0;} .horizon .marker::after{right:0;}
+  .horizon .dot{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:var(--rosso);transform:translate(-50%,-50%); z-index:2;}
+
+  /* Tachometer: sweep dial, sound-reactive needle, redline arc */
+  .tacho{width:118px; height:118px; border-radius:50%; position:relative;
+    border:3px solid var(--chrome); box-shadow:0 0 0 1px #000, inset 0 0 8px rgba(0,0,0,.6); background:#0d0d0d;}
+  .tacho svg{position:absolute; inset:0; width:100%; height:100%;}
+  .tacho .needle{position:absolute; left:50%; top:50%; width:2px; height:44%; background:var(--rosso);
+    transform-origin:50% 100%; transform:translate(-50%,-100%) rotate(-90deg); box-shadow:0 0 4px rgba(196,30,42,.7); transition:transform .09s ease-out; z-index:2;}
+  .tacho .hub{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:var(--chrome);transform:translate(-50%,-50%); z-index:3; box-shadow:0 0 0 2px #000;}
+  .tacho .rpm-label{position:absolute; bottom:11%; left:0; right:0; text-align:center; font-family:var(--mono); font-size:8.5px; color:var(--chrome); letter-spacing:.1em;}
+  .tacho .mic-badge{position:absolute; top:8px; left:0; right:0; text-align:center; font-family:var(--mono); font-size:7.5px; color:var(--amber-warn); letter-spacing:.08em;}
+
+  /* ---------- Digital GPS speedometer — period trip-computer LCD look ---------- */
+  .speedo{margin-top:12px; background:#0a1008; border:2px solid var(--line-bright); border-radius:4px;
+    padding:12px 16px; display:flex; align-items:center; justify-content:space-between;
+    box-shadow: inset 0 0 14px rgba(0,0,0,.7), inset 0 0 0 1px rgba(120,140,90,.15);
+  }
+  .speedo .digits{display:flex; align-items:baseline; gap:8px;}
+  .speedo .num{font-family:var(--digital); font-size:44px; line-height:1; color:#8fdc6a; letter-spacing:.02em;
+    text-shadow:0 0 6px rgba(143,220,106,.55), 0 0 14px rgba(143,220,106,.25);}
+  .speedo .num.stale{color:#4a6a3e; text-shadow:none;}
+  .speedo .unit{font-family:var(--mono); font-size:11px; color:#6f9a5a; letter-spacing:.12em; text-transform:uppercase;}
+  .speedo .gps-status{text-align:right; font-family:var(--mono); font-size:9px; color:var(--chrome); letter-spacing:.08em; line-height:1.7;}
+  .speedo .gps-status .dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--line-bright); margin-right:5px;}
+  .speedo .gps-status.locked .dot{background:#8fdc6a; box-shadow:0 0 5px rgba(143,220,106,.7);}
+  .speedo .gps-status.searching .dot{background:var(--amber-warn); animation:pulse 1s infinite;}
+
+  .readouts{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px;}
+  .gauge{background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; padding:10px 8px 9px; position:relative; overflow:hidden;}
+  .gauge::before{content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--line-bright);}
+  .gauge.state-ok::before{background:var(--verde);}
+  .gauge.state-warn::before{background:var(--amber-warn);}
+  .gauge.state-danger::before{background:var(--rosso);}
+  .gauge .label{font-family:var(--mono); font-size:9px; color:var(--chrome); text-transform:uppercase; letter-spacing:.09em;}
+  .gauge .value{font-family:var(--display); font-size:16px; font-weight:600; margin-top:5px; color:var(--ivory); letter-spacing:.01em; text-transform:uppercase;}
+  .gauge.state-ok .value{color:var(--verde);}
+  .gauge.state-warn .value{color:var(--amber-warn);}
+  .gauge.state-danger .value{color:var(--rosso);}
+  .gauge .bar{height:3px; background:var(--line); border-radius:2px; margin-top:7px; overflow:hidden;}
+  .gauge .bar-fill{height:100%; width:0%; background:var(--verde); transition:width .2s ease, background .2s ease;}
+  .gauge.state-warn .bar-fill{background:var(--amber-warn);}
+  .gauge.state-danger .bar-fill{background:var(--rosso);}
+
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; margin-top:10px; background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; padding:10px 12px;}
+  .toggle-row .txt{font-family:var(--mono); font-size:10.5px; color:var(--chrome); letter-spacing:.06em;}
+  .toggle-row .txt b{color:var(--ivory); font-family:var(--display); font-size:12.5px; letter-spacing:.03em; text-transform:uppercase; display:block; margin-bottom:2px;}
+  .switch{position:relative; width:46px; height:24px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch .track{position:absolute; inset:0; background:var(--line-bright); border-radius:12px; transition:background .15s; cursor:pointer;}
+  .switch .knob{position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--chrome); transition:transform .15s;}
+  .switch input:checked + .track{background:var(--rosso);}
+  .switch input:checked + .track .knob{transform:translateX(22px); background:var(--ivory);}
+
+  .controls{display:flex; gap:9px; margin-top:12px;}
+  button{font-family:var(--display); font-weight:600; font-size:14px; text-transform:uppercase; letter-spacing:.03em; border:none; border-radius:3px; padding:14px 16px; cursor:pointer; transition:transform .07s ease, filter .15s;}
+  button:active{transform:scale(0.97);}
+  .btn-primary{flex:2; background:var(--rosso); color:#1a0505;}
+  .btn-primary.stop{background:var(--chrome); color:#1a1a1a;}
+  .btn-secondary{flex:1; background:var(--bg-panel); color:var(--ivory); border:1px solid var(--line-bright);}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+
+  .calib-row{margin-top:10px; display:none; align-items:center; gap:10px; font-family:var(--mono); font-size:10.5px; color:var(--amber-warn);}
+  .calib-row.show{display:flex;}
+  .calib-track{flex:1; height:3px; background:var(--line); border-radius:2px; overflow:hidden;}
+  .calib-fill{height:100%; width:0%; background:var(--amber-warn); transition:width .1s linear;}
+
+  .log-section{margin-top:18px;}
+  .log-section h2{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--chrome); margin:0 0 8px;}
+  .log-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px; max-height:190px; overflow-y:auto;}
+  .log-list li{background:var(--bg-panel); border:1px solid var(--line); border-left:2px solid var(--line-bright); border-radius:2px; padding:8px 10px; font-size:12px; display:flex; justify-content:space-between; gap:10px; color:var(--ivory);}
+  .log-list li .t{font-family:var(--mono); color:var(--chrome); font-size:10px; white-space:nowrap;}
+
+  .debug-toggle{display:flex; align-items:center; gap:8px; margin-top:16px; font-size:11.5px; color:var(--chrome);}
+  .debug-toggle input{accent-color:var(--rosso);}
+  .debug-panel{margin-top:8px; background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; padding:10px 12px; font-family:var(--mono); font-size:10.5px; color:var(--chrome); display:none;}
+  .debug-panel.show{display:block;}
+  .debug-panel div{display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid var(--line);}
+  .debug-panel div:last-child{border-bottom:none;}
+
+  footer{margin-top:20px; font-size:10.5px; color:var(--chrome); text-align:center; line-height:1.7; padding:0 8px; font-family:var(--mono);}
+
+  /* ---------- Sensor status strip: at-a-glance readiness of each input ---------- */
+  .sensor-strip{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:14px;}
+  .sensor-chip{display:flex; flex-direction:column; align-items:center; gap:5px; padding:8px 4px 7px;
+    background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; position:relative;}
+  .sensor-chip .ic{font-size:15px; line-height:1; opacity:.4; filter:grayscale(1); transition:opacity .2s, filter .2s;}
+  .sensor-chip .nm{font-family:var(--mono); font-size:8px; letter-spacing:.06em; text-transform:uppercase; color:var(--chrome);}
+  .sensor-chip .st{position:absolute; top:6px; right:6px; width:6px; height:6px; border-radius:50%; background:var(--line-bright); transition:background .2s, box-shadow .2s;}
+  .sensor-chip.on .ic{opacity:1; filter:grayscale(0);}
+  .sensor-chip.on .st{background:var(--verde); box-shadow:0 0 5px rgba(63,107,74,.9);}
+  .sensor-chip.pending .ic{opacity:.8; filter:grayscale(.3);}
+  .sensor-chip.pending .st{background:var(--amber-warn); box-shadow:0 0 5px rgba(214,154,61,.7); animation:pulse 1s infinite;}
+  .sensor-chip.off .st{background:var(--rosso-dim);}
+  .sensor-chip.on .nm{color:var(--ivory);}
+
+  /* ---------- Session stats: trip duration, top speed, alert count ---------- */
+  .stats-strip{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
+  .stat{background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; padding:9px 8px; text-align:center;}
+  .stat .k{font-family:var(--mono); font-size:8.5px; color:var(--chrome); text-transform:uppercase; letter-spacing:.09em;}
+  .stat .v{font-family:var(--digital); font-size:22px; color:var(--ivory); line-height:1.1; margin-top:4px; letter-spacing:.03em;}
+  .stat .v .su{font-family:var(--mono); font-size:9px; color:var(--chrome); letter-spacing:.06em; margin-left:2px;}
+
+  /* ---------- Collapsible help: "how it works" without cluttering the cluster ---------- */
+  details.help{margin-top:14px; background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; overflow:hidden;}
+  details.help summary{list-style:none; cursor:pointer; padding:11px 13px; font-family:var(--display); font-size:12.5px;
+    text-transform:uppercase; letter-spacing:.03em; color:var(--ivory); display:flex; align-items:center; justify-content:space-between;}
+  details.help summary::-webkit-details-marker{display:none;}
+  details.help summary .chev{font-family:var(--mono); color:var(--rosso); transition:transform .2s;}
+  details.help[open] summary .chev{transform:rotate(90deg);}
+  details.help .body{padding:0 13px 13px; font-family:var(--mono); font-size:11px; line-height:1.7; color:var(--chrome);}
+  details.help .body b{color:var(--ivory); font-weight:600;}
+  details.help .body ul{margin:8px 0 0; padding-left:16px;}
+  details.help .body li{margin-bottom:6px;}
+
+  /* ---------- Accessibility & motion preferences ---------- */
+  button:focus-visible, .switch input:focus-visible + .track, summary:focus-visible, input:focus-visible{
+    outline:2px solid var(--amber-warn); outline-offset:2px;}
+  .speedo .num{transition:color .2s;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.05ms !important;}
+  }
+  @media (max-width:360px){
+    .sensor-chip .nm{font-size:7px;}
+    .stat .v{font-size:19px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="badge-block">
+      <div class="eyebrow">Prototype <span class="sep"></span> lokale analyse <span class="sep"></span> geen dataopslag</div>
+      <h1>Rij<span class="model">coach</span></h1>
+    </div>
+    <div class="spec-plate">
+      <b>916 SPIDER</b>
+      TWIN SPARK · 2.0i<br>1996
+    </div>
+  </header>
+
+  <div class="disclaimer">
+    <b>Prototype, geen gecertificeerd veiligheidssysteem.</b> Schattingen op basis van beeld, beweging, geluid en GPS — geen objectherkenning. Toerenteller is sfeer, geen echte RPM. Monteer je telefoon vast, blijf zelf verantwoordelijk voor afstand, koers en aandacht.
+  </div>
+
+  <div class="sensor-strip" id="sensorStrip" aria-label="Sensorstatus">
+    <div class="sensor-chip off" id="chipCam"><span class="st"></span><span class="ic">📷</span><span class="nm">Camera</span></div>
+    <div class="sensor-chip off" id="chipGps"><span class="st"></span><span class="ic">📡</span><span class="nm">GPS</span></div>
+    <div class="sensor-chip off" id="chipMic"><span class="st"></span><span class="ic">🎙️</span><span class="nm">Microfoon</span></div>
+    <div class="sensor-chip off" id="chipMotion"><span class="st"></span><span class="ic">🧭</span><span class="nm">Beweging</span></div>
+  </div>
+
+  <div class="cluster" id="cluster">
+    <video id="video" playsinline muted></video>
+    <div class="msg" id="msg"><span><b>Start kalibratie</b> om camera, sensoren, microfoon en GPS te activeren. Kalibreren duurt 3 seconden op een rustig stuk weg.</span></div>
+    <div class="rec" id="rec" style="display:none;"><span class="d"></span>LIVE</div>
+    <div class="calib-badge" id="calibBadge" style="display:none;">KALIBREREN</div>
+    <div class="reticle">
+      <div class="tick tl"></div><div class="tick tl2"></div>
+      <div class="tick tr"></div><div class="tick tr2"></div>
+      <div class="tick bl"></div><div class="tick bl2"></div>
+      <div class="tick br"></div><div class="tick br2"></div>
+      <div class="center-v"></div>
+    </div>
+    <div class="gauge-dock">
+      <div class="horizon" id="horizon">
+        <div class="plate" id="horizonPlate">
+          <div class="rung" style="top:38%;"></div>
+          <div class="rung" style="top:62%;"></div>
+        </div>
+        <div class="redline"></div>
+        <div class="marker"></div>
+        <div class="dot"></div>
+      </div>
+
+      <div class="tacho" id="tacho">
+        <svg viewBox="0 0 118 118">
+          <!-- Sweep from 135deg to 405deg (270deg arc), ticks 0..7 with redline zone 6-7 -->
+          <g id="tachoTicks" stroke="#b8b2a4" stroke-width="1.4"></g>
+          <path id="tachoRedArc" fill="none" stroke="#c41e2a" stroke-width="4" opacity="0.65"></path>
+        </svg>
+        <div class="needle" id="tachoNeedle"></div>
+        <div class="hub"></div>
+        <div class="mic-badge" id="micBadge">MIC UIT</div>
+        <div class="rpm-label" id="rpmLabel">x1000/min · sfeer</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="calib-row" id="calibRow">
+    <span>KALIBREREN</span>
+    <div class="calib-track"><div class="calib-fill" id="calibFill"></div></div>
+  </div>
+
+  <div class="speedo">
+    <div class="digits">
+      <span class="num" id="speedNum">--</span>
+      <span class="unit">km/u</span>
+    </div>
+    <div class="gps-status" id="gpsStatus"><span class="dot"></span>GPS INACTIEF</div>
+  </div>
+
+  <div class="stats-strip" aria-label="Sessiestatistieken">
+    <div class="stat"><div class="k">Ritduur</div><div class="v" id="statDuration">00:00</div></div>
+    <div class="stat"><div class="k">Top snelheid</div><div class="v" id="statTop">--<span class="su">km/u</span></div></div>
+    <div class="stat"><div class="k">Meldingen</div><div class="v" id="statAlerts">0</div></div>
+  </div>
+
+  <div class="readouts">
+    <div class="gauge state-ok" id="gaugeFollow">
+      <div class="label">Volgafstand</div>
+      <div class="value" id="valFollow">—</div>
+      <div class="bar"><div class="bar-fill" id="barFollow"></div></div>
+    </div>
+    <div class="gauge state-ok" id="gaugeLane">
+      <div class="label">Wegpositie</div>
+      <div class="value" id="valLane">—</div>
+      <div class="bar"><div class="bar-fill" id="barLane"></div></div>
+    </div>
+    <div class="gauge state-ok" id="gaugeCorner">
+      <div class="label">Bochtvoering</div>
+      <div class="value" id="valCorner">—</div>
+      <div class="bar"><div class="bar-fill" id="barCorner"></div></div>
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <div class="txt"><b>Sportmodus</b>hogere tolerantie voor bochten-g, strakkere lijngevoeligheid</div>
+    <label class="switch">
+      <input type="checkbox" id="sportToggle" checked>
+      <span class="track"><span class="knob"></span></span>
+    </label>
+  </div>
+
+  <div class="toggle-row">
+    <div class="txt"><b>Cabrio-modus</b>luidere, langzamere stem + visuele flits bij meldingen</div>
+    <label class="switch">
+      <input type="checkbox" id="cabrioToggle">
+      <span class="track"><span class="knob"></span></span>
+    </label>
+  </div>
+
+  <div class="controls">
+    <button class="btn-primary" id="startBtn">Start kalibratie</button>
+    <button class="btn-secondary" id="testVoiceBtn">Test stem</button>
+  </div>
+
+  <div class="debug-toggle">
+    <input type="checkbox" id="debugToggle"> <label for="debugToggle">Toon meetwaarden</label>
+  </div>
+  <div class="debug-panel" id="debugPanel">
+    <div><span>Randdichtheid ROI (huidig)</span><span id="dbgEdge">0.00</span></div>
+    <div><span>Randdichtheid ROI (basislijn)</span><span id="dbgBaseline">0.00</span></div>
+    <div><span>Toenamesnelheid volgafstand</span><span id="dbgGrowth">0.00</span></div>
+    <div><span>Wegpositie-offset</span><span id="dbgLane">0.00</span></div>
+    <div><span>Zijwaartse g-kracht</span><span id="dbgAccel">0.00</span></div>
+    <div><span>Rotatiesnelheid telefoon</span><span id="dbgRot">0.0</span></div>
+    <div><span>Geluidsniveau (RMS)</span><span id="dbgAudio">0.00</span></div>
+    <div><span>Bevestigde frames (alarm)</span><span id="dbgConfirm">0</span></div>
+  </div>
+
+  <details class="help">
+    <summary>Zo werkt het <span class="chev">›</span></summary>
+    <div class="body">
+      <b>Rijcoach</b> schat rijgedrag uit de sensoren van je telefoon — er is geen objectherkenning en niets wordt opgeslagen of geüpload.
+      <ul>
+        <li><b>Volgafstand</b> — uit de toename van beeldscherpte onderin het camerabeeld (een naderende auto voegt detail toe).</li>
+        <li><b>Wegpositie</b> — uit het zwaartepunt van verticale randen; laat zien of je gecentreerd rijdt.</li>
+        <li><b>Bochtvoering</b> — combineert beeldkromming met de zijwaartse g-kracht en draaisnelheid van de telefoon.</li>
+        <li><b>Snelheid</b> — direct van de GPS-chip; toont ±nauwkeurigheid en wordt grijs bij zwak signaal.</li>
+        <li><b>Toerenteller</b> — puur sfeer, reageert op motorgeluid via de microfoon (geen echte RPM).</li>
+      </ul>
+      <b>Tip:</b> monteer je telefoon stevig, kalibreer op een rustig recht stuk, en blijf zelf verantwoordelijk voor de weg.
+    </div>
+  </details>
+
+  <div class="log-section">
+    <h2>Logboek</h2>
+    <ul class="log-list" id="logList" aria-live="polite" aria-label="Meldingen logboek"></ul>
+  </div>
+
+  <footer>ALLE VERWERKING LOKAAL — GEEN UPLOAD, GEEN OPSLAG<br>gebaseerd op rand-, bewegings- en geluidsanalyse · geen objectherkenning</footer>
+</div>
+
+<script>
+(function(){
+  const video = document.getElementById('video');
+  const msg = document.getElementById('msg');
+  const rec = document.getElementById('rec');
+  const calibBadge = document.getElementById('calibBadge');
+  const startBtn = document.getElementById('startBtn');
+  const testVoiceBtn = document.getElementById('testVoiceBtn');
+  const logList = document.getElementById('logList');
+  const debugToggle = document.getElementById('debugToggle');
+  const debugPanel = document.getElementById('debugPanel');
+  const horizonPlate = document.getElementById('horizonPlate');
+  const calibRow = document.getElementById('calibRow');
+  const calibFill = document.getElementById('calibFill');
+  const sportToggle = document.getElementById('sportToggle');
+  const cabrioToggle = document.getElementById('cabrioToggle');
+  const cluster = document.getElementById('cluster');
+  const tachoNeedle = document.getElementById('tachoNeedle');
+  const micBadge = document.getElementById('micBadge');
+  const tachoTicks = document.getElementById('tachoTicks');
+  const tachoRedArc = document.getElementById('tachoRedArc');
+
+  const speedNum = document.getElementById('speedNum');
+  const gpsStatus = document.getElementById('gpsStatus');
+
+  const chipCam = document.getElementById('chipCam');
+  const chipGps = document.getElementById('chipGps');
+  const chipMic = document.getElementById('chipMic');
+  const chipMotion = document.getElementById('chipMotion');
+  const statDuration = document.getElementById('statDuration');
+  const statTop = document.getElementById('statTop');
+  const statAlerts = document.getElementById('statAlerts');
+
+  function setChip(el, state){ // state: 'on' | 'pending' | 'off'
+    el.classList.remove('on','pending','off');
+    el.classList.add(state);
+  }
+
+  // ---------- Session stats ----------
+  let sessionStart = 0, topSpeedKmh = 0, alertCount = 0, statsTimer = null;
+  function fmtDuration(ms){
+    const s = Math.floor(ms/1000);
+    const m = Math.floor(s/60), sec = s%60;
+    return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+  }
+  function startStats(){
+    sessionStart = Date.now(); topSpeedKmh = 0; alertCount = 0;
+    statTop.innerHTML = '--<span class="su">km/u</span>';
+    statAlerts.textContent = '0';
+    statDuration.textContent = '00:00';
+    statsTimer = setInterval(() => {
+      if(sessionStart) statDuration.textContent = fmtDuration(Date.now() - sessionStart);
+    }, 1000);
+  }
+  function stopStats(){
+    if(statsTimer){ clearInterval(statsTimer); statsTimer = null; }
+    sessionStart = 0;
+  }
+
+  const gaugeFollow = document.getElementById('gaugeFollow');
+  const gaugeLane = document.getElementById('gaugeLane');
+  const gaugeCorner = document.getElementById('gaugeCorner');
+  const valFollow = document.getElementById('valFollow');
+  const valLane = document.getElementById('valLane');
+  const valCorner = document.getElementById('valCorner');
+  const barFollow = document.getElementById('barFollow');
+  const barLane = document.getElementById('barLane');
+  const barCorner = document.getElementById('barCorner');
+
+  const dbgEdge = document.getElementById('dbgEdge');
+  const dbgBaseline = document.getElementById('dbgBaseline');
+  const dbgGrowth = document.getElementById('dbgGrowth');
+  const dbgLane = document.getElementById('dbgLane');
+  const dbgAccel = document.getElementById('dbgAccel');
+  const dbgRot = document.getElementById('dbgRot');
+  const dbgAudio = document.getElementById('dbgAudio');
+  const dbgConfirm = document.getElementById('dbgConfirm');
+
+  const W = 160, H = 120;
+  const procCanvas = document.createElement('canvas');
+  procCanvas.width = W; procCanvas.height = H;
+  const ctx = procCanvas.getContext('2d', { willReadFrequently: true });
+
+  let running = false, calibrating = false;
+  let stream = null, loopHandle = null, calibHandle = null;
+  const lastSpoken = {};
+  let voicesReady = false, dutchVoice = null;
+
+  let baselineEdge = null;
+  const calibSamples = [];
+  const CALIB_MS = 3000;
+  const CALIB_TICK = 100;
+
+  const edgeHistory = [];
+  let followConfirmFrames = 0;
+  let followState = 'ok';
+
+  let laneOffsetSmoothed = 0;
+  let cornerConfirmFrames = 0;
+  let lateralAccel = 0, rotationMag = 0;
+
+  // ---------- Tachometer geometry: 270deg sweep, 0..7 (x1000/min), redline 6-7 ----------
+  const TACHO_START = 135, TACHO_END = 405; // degrees, svg space
+  const TACHO_MAX = 7;
+  function tachoAngle(value){
+    const t = Math.max(0, Math.min(1, value / TACHO_MAX));
+    return TACHO_START + t * (TACHO_END - TACHO_START);
+  }
+  function polar(cx, cy, r, angleDeg){
+    const rad = (angleDeg - 90) * Math.PI/180;
+    return { x: cx + r*Math.cos(rad), y: cy + r*Math.sin(rad) };
+  }
+  function buildTachoFace(){
+    const cx=59, cy=59, rOuter=50, rInner=42;
+    let ticksHtml = '';
+    for(let i=0;i<=7;i++){
+      const ang = tachoAngle(i);
+      const p1 = polar(cx,cy,rOuter,ang);
+      const p2 = polar(cx,cy, i%1===0 ? rInner : rInner+4, ang);
+      ticksHtml += `<line x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" />`;
+    }
+    tachoTicks.innerHTML = ticksHtml;
+    const a1 = tachoAngle(6), a2 = tachoAngle(7);
+    const p1 = polar(cx,cy,rOuter+2,a1), p2 = polar(cx,cy,rOuter+2,a2);
+    const largeArc = 0;
+    tachoRedArc.setAttribute('d', `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${rOuter+2} ${rOuter+2} 0 ${largeArc} 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`);
+  }
+  buildTachoFace();
+  function setNeedle(value){
+    const ang = tachoAngle(value) - 180; // convert to CSS rotate baseline (needle points up at 0deg = -90 offset already handled)
+    tachoNeedle.style.transform = `translate(-50%,-100%) rotate(${tachoAngle(value)-180+45}deg)`;
+  }
+  setNeedle(0.6);
+
+  // ---------- GPS-based digital speedometer ----------
+  let geoWatchId = null;
+  let lastFix = null; // { lat, lon, t }
+  let smoothedSpeedKmh = 0;
+  let lastFixReceivedAt = 0;
+  const SPEED_STALE_MS = 4000;
+
+  function haversineMeters(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const toRad = d => d * Math.PI/180;
+    const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+    return R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function updateSpeedUI(kmh, accuracyM){
+    speedNum.textContent = Math.round(kmh).toString().padStart(2,'0');
+    speedNum.classList.remove('stale');
+    gpsStatus.classList.remove('searching');
+    gpsStatus.classList.add('locked');
+    gpsStatus.innerHTML = `<span class="dot"></span>GPS ACTIEF · ±${Math.round(accuracyM || 0)}m`;
+    setChip(chipGps, 'on');
+    if(kmh > topSpeedKmh){
+      topSpeedKmh = kmh;
+      statTop.innerHTML = `${Math.round(topSpeedKmh)}<span class="su">km/u</span>`;
+    }
+  }
+
+  function startGeolocation(){
+    if(!('geolocation' in navigator)){
+      gpsStatus.innerHTML = '<span class="dot"></span>GEEN GPS OP TOESTEL';
+      setChip(chipGps, 'off');
+      return;
+    }
+    gpsStatus.classList.add('searching');
+    gpsStatus.innerHTML = '<span class="dot"></span>GPS ZOEKT SIGNAAL…';
+    setChip(chipGps, 'pending');
+
+    geoWatchId = navigator.geolocation.watchPosition((pos) => {
+      const { latitude, longitude, speed, accuracy } = pos.coords;
+      const now = Date.now();
+      let kmh = null;
+
+      if(typeof speed === 'number' && speed !== null && !isNaN(speed)){
+        kmh = speed * 3.6; // m/s -> km/h, direct from GPS chipset
+      } else if(lastFix){
+        const dt = (now - lastFix.t) / 1000;
+        if(dt > 0.3){
+          const dist = haversineMeters(lastFix.lat, lastFix.lon, latitude, longitude);
+          kmh = (dist / dt) * 3.6;
+        }
+      }
+
+      lastFix = { lat: latitude, lon: longitude, t: now };
+      lastFixReceivedAt = now;
+
+      if(kmh !== null && !isNaN(kmh) && kmh >= 0){
+        smoothedSpeedKmh = smoothedSpeedKmh*0.6 + Math.min(kmh, 320)*0.4;
+        updateSpeedUI(smoothedSpeedKmh, accuracy);
+      }
+    }, (err) => {
+      gpsStatus.classList.remove('locked');
+      gpsStatus.innerHTML = `<span class="dot"></span>GPS FOUT: ${err.code === 1 ? 'geen toestemming' : 'signaal kwijt'}`;
+      setChip(chipGps, 'off');
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 8000
+    });
+  }
+
+  function stopGeolocation(){
+    if(geoWatchId !== null && 'geolocation' in navigator){
+      navigator.geolocation.clearWatch(geoWatchId);
+      geoWatchId = null;
+    }
+    lastFix = null;
+    smoothedSpeedKmh = 0;
+    speedNum.textContent = '--';
+    speedNum.classList.add('stale');
+    gpsStatus.classList.remove('locked','searching');
+    gpsStatus.innerHTML = '<span class="dot"></span>GPS INACTIEF';
+    setChip(chipGps, 'off');
+  }
+
+  // If no GPS fix has arrived recently, gray out the display so it never shows a frozen stale number silently
+  setInterval(() => {
+    if(running && lastFixReceivedAt && (Date.now() - lastFixReceivedAt) > SPEED_STALE_MS){
+      speedNum.classList.add('stale');
+      gpsStatus.classList.remove('locked');
+      gpsStatus.classList.add('searching');
+      gpsStatus.innerHTML = '<span class="dot"></span>GPS SIGNAAL ZWAK…';
+      setChip(chipGps, 'pending');
+    }
+  }, 1500);
+
+  // ---------- Microphone-driven ambient tachometer ----------
+  let audioCtx = null, analyser = null, micStream = null, micActive = false;
+  let smoothedLevel = 0;
+  async function initMic(){
+    try{
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(micStream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      micActive = true;
+      micBadge.textContent = 'MIC ACTIEF';
+      setChip(chipMic, 'on');
+      logEvent('Microfoon actief — sfeer-toerenteller reageert op motorgeluid.');
+    }catch(e){
+      micActive = false;
+      micBadge.textContent = 'MIC UIT';
+      setChip(chipMic, 'off');
+      logEvent('Geen microfoontoegang — toerenteller blijft op ruststand.');
+    }
+  }
+  function readAudioLevel(){
+    if(!micActive || !analyser) return 0;
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    // Focus on low-mid band roughly matching an inline-4 engine's fundamental drone
+    let sum = 0, count = 0;
+    const lo = Math.floor(data.length*0.03), hi = Math.floor(data.length*0.35);
+    for(let i=lo;i<hi;i++){ sum += data[i]; count++; }
+    const avg = count ? sum/count : 0;
+    return avg/255; // 0..1
+  }
+
+  function thresholds(){
+    const sport = sportToggle.checked;
+    return {
+      laneWarn: sport ? 0.11 : 0.13,
+      laneDanger: sport ? 0.20 : 0.24,
+      cornerLatAccel: sport ? 4.6 : 3.0,
+      cornerRotation: sport ? 130 : 90,
+      cornerConfirmFrames: sport ? 3 : 2
+    };
+  }
+
+  function loadVoices(){
+    const voices = speechSynthesis.getVoices();
+    if(voices.length){
+      dutchVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('nl')) || null;
+      voicesReady = true;
+    }
+  }
+  loadVoices();
+  if('onvoiceschanged' in speechSynthesis) speechSynthesis.onvoiceschanged = loadVoices;
+
+  function flashCluster(){
+    cluster.classList.add('flash');
+    setTimeout(() => cluster.classList.remove('flash'), 420);
+  }
+
+  function speak(text, category, cooldownMs){
+    const now = Date.now();
+    if(lastSpoken[category] && now - lastSpoken[category] < cooldownMs) return;
+    lastSpoken[category] = now;
+    try{
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'nl-NL';
+      if(dutchVoice) u.voice = dutchVoice;
+      if(cabrioToggle.checked){
+        u.volume = 1.0;
+        u.rate = 0.88;
+      } else {
+        u.volume = 0.9;
+        u.rate = 1.0;
+      }
+      speechSynthesis.speak(u);
+    }catch(e){}
+    if(cabrioToggle.checked) flashCluster();
+    if(category !== 'test' && running){
+      alertCount++;
+      statAlerts.textContent = alertCount;
+    }
+    logEvent(text);
+  }
+
+  function logEvent(text){
+    const li = document.createElement('li');
+    const now = new Date();
+    const t = now.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    li.innerHTML = `<span>${text}</span><span class="t">${t}</span>`;
+    logList.prepend(li);
+    while(logList.children.length > 14) logList.removeChild(logList.lastChild);
+  }
+
+  function setGauge(gaugeEl, valEl, barEl, level, text, barPct){
+    gaugeEl.classList.remove('state-ok','state-warn','state-danger');
+    gaugeEl.classList.add('state-' + level);
+    valEl.textContent = text;
+    barEl.style.width = Math.max(0, Math.min(100, barPct)) + '%';
+  }
+
+  function computeEdgeDensity(gray, x0, y0, x1, y1, w){
+    let sum = 0, count = 0;
+    for(let y = y0+1; y < y1-1; y++){
+      for(let x = x0+1; x < x1-1; x++){
+        const i = y*w + x;
+        const gx = gray[i-1-w] + 2*gray[i-1] + gray[i-1+w] - gray[i+1-w] - 2*gray[i+1] - gray[i+1+w];
+        const gy = gray[i-w-1] + 2*gray[i-w] + gray[i-w+1] - gray[i+w-1] - 2*gray[i+w] - gray[i+w+1];
+        const mag = Math.sqrt(gx*gx + gy*gy);
+        sum += mag;
+        count++;
+      }
+    }
+    return count ? sum / count : 0;
+  }
+
+  function toGray(data, w, h){
+    const gray = new Float32Array(w*h);
+    for(let i=0, p=0; i<data.length; i+=4, p++){
+      gray[p] = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+    }
+    return gray;
+  }
+
+  function laneCentroid(gray, w, yStart, yEnd, threshold){
+    let sumWX = 0, sumW = 0;
+    for(let y=yStart; y<yEnd; y++){
+      for(let x=1; x<w-1; x++){
+        const i = y*w+x;
+        const gx = Math.abs(gray[i-1] - gray[i+1]);
+        if(gx > threshold){
+          sumWX += x*gx;
+          sumW += gx;
+        }
+      }
+    }
+    return sumW > 0 ? sumWX/sumW : null;
+  }
+
+  function attachMotion(){
+    window.addEventListener('devicemotion', (e) => {
+      const acc = e.accelerationIncludingGravity || e.acceleration || {};
+      lateralAccel = acc && typeof acc.x === 'number' ? acc.x : 0;
+      const rot = e.rotationRate || {};
+      const a = rot.alpha||0, b = rot.beta||0, g = rot.gamma||0;
+      rotationMag = Math.sqrt(a*a + b*b + g*g);
+    });
+  }
+
+  async function requestMotionPermission(){
+    if(typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+      try{
+        const res = await DeviceMotionEvent.requestPermission();
+        if(res === 'granted'){ attachMotion(); setChip(chipMotion, 'on'); }
+        else setChip(chipMotion, 'off');
+      }catch(e){ setChip(chipMotion, 'off'); }
+    } else if('DeviceMotionEvent' in window){
+      attachMotion();
+      setChip(chipMotion, 'on');
+    } else {
+      setChip(chipMotion, 'off');
+    }
+  }
+
+  function runCalibration(){
+    return new Promise((resolve) => {
+      calibrating = true;
+      calibBadge.style.display = 'block';
+      calibRow.classList.add('show');
+      calibSamples.length = 0;
+      let elapsed = 0;
+
+      calibHandle = setInterval(() => {
+        try{
+          ctx.drawImage(video, 0, 0, W, H);
+          const imgData = ctx.getImageData(0,0,W,H).data;
+          const gray = toGray(imgData, W, H);
+          const x0 = Math.floor(W*0.30), x1 = Math.floor(W*0.70);
+          const y0 = Math.floor(H*0.55), y1 = H;
+          const edge = computeEdgeDensity(gray, x0, y0, x1, y1, W);
+          calibSamples.push(edge);
+        }catch(e){}
+
+        elapsed += CALIB_TICK;
+        calibFill.style.width = Math.min(100, (elapsed/CALIB_MS)*100) + '%';
+
+        if(elapsed >= CALIB_MS){
+          clearInterval(calibHandle);
+          calibrating = false;
+          calibBadge.style.display = 'none';
+          calibRow.classList.remove('show');
+          if(calibSamples.length){
+            const sorted = [...calibSamples].sort((a,b)=>a-b);
+            baselineEdge = sorted[Math.floor(sorted.length/2)];
+          } else {
+            baselineEdge = 12;
+          }
+          logEvent(`Kalibratie voltooid. Basislijn: ${baselineEdge.toFixed(1)}`);
+          resolve();
+        }
+      }, CALIB_TICK);
+    });
+  }
+
+  function tick(){
+    if(!running || calibrating) return;
+    const th = thresholds();
+    try{
+      ctx.drawImage(video, 0, 0, W, H);
+      const imgData = ctx.getImageData(0,0,W,H).data;
+      const gray = toGray(imgData, W, H);
+
+      const fx0 = Math.floor(W*0.30), fx1 = Math.floor(W*0.70);
+      const fy0 = Math.floor(H*0.55), fy1 = H;
+      const currentEdge = computeEdgeDensity(gray, fx0, fy0, fx1, fy1, W);
+
+      edgeHistory.push(currentEdge);
+      if(edgeHistory.length > 8) edgeHistory.shift();
+
+      const base = baselineEdge || 12;
+      const relativeGrowth = (currentEdge - base) / base;
+      const trendGrowth = edgeHistory.length >= 5
+        ? (edgeHistory[edgeHistory.length-1] - edgeHistory[0]) / Math.max(1, base)
+        : 0;
+
+      let targetFollowState = 'ok';
+      if(relativeGrowth > 0.85 && trendGrowth > 0.25) targetFollowState = 'danger';
+      else if(relativeGrowth > 0.45) targetFollowState = 'warn';
+
+      if(targetFollowState === followState){
+        followConfirmFrames = Math.min(followConfirmFrames + 1, 10);
+      } else if(targetFollowState === 'ok'){
+        followState = 'ok';
+        followConfirmFrames = 0;
+      } else {
+        followConfirmFrames++;
+        if(followConfirmFrames >= 3){
+          followState = targetFollowState;
+          followConfirmFrames = 0;
+        }
+      }
+
+      const followPct = Math.max(0, Math.min(100, relativeGrowth * 60));
+      const followLabelMap = { ok: 'Vrij', warn: 'Let op', danger: 'Te dichtbij' };
+      setGauge(gaugeFollow, valFollow, barFollow, followState, followLabelMap[followState], followPct);
+
+      const lowerC = laneCentroid(gray, W, Math.floor(H*0.80), H, 18);
+      const upperC = laneCentroid(gray, W, Math.floor(H*0.60), Math.floor(H*0.80), 18);
+      const frameCenter = W/2;
+
+      let offset = laneOffsetSmoothed;
+      if(lowerC !== null){
+        offset = (lowerC - frameCenter) / (W/2);
+      }
+      laneOffsetSmoothed = laneOffsetSmoothed*0.75 + offset*0.25;
+      const laneAbs = Math.abs(laneOffsetSmoothed);
+
+      let laneLevel = 'ok', laneLabel = 'Gecentreerd';
+      if(laneAbs > th.laneDanger){ laneLevel='danger'; laneLabel = laneOffsetSmoothed>0 ? 'Naar rechts' : 'Naar links'; }
+      else if(laneAbs > th.laneWarn){ laneLevel='warn'; laneLabel='Licht af'; }
+      setGauge(gaugeLane, valLane, barLane, laneLevel, laneLabel, laneAbs*300);
+
+      let curving = false;
+      if(lowerC !== null && upperC !== null){
+        const slope = Math.abs(lowerC - upperC);
+        curving = slope > W*0.09;
+      }
+      const harshCorner = curving && (Math.abs(lateralAccel) > th.cornerLatAccel || rotationMag > th.cornerRotation);
+
+      if(harshCorner){
+        cornerConfirmFrames = Math.min(cornerConfirmFrames+1, 10);
+      } else {
+        cornerConfirmFrames = Math.max(cornerConfirmFrames-1, 0);
+      }
+      const cornerConfirmed = cornerConfirmFrames >= th.cornerConfirmFrames;
+
+      let cornerLevel = 'ok', cornerLabel = 'Recht';
+      if(cornerConfirmed){ cornerLevel='warn'; cornerLabel='Fel sturen'; }
+      else if(curving){ cornerLabel='In bocht'; }
+      setGauge(gaugeCorner, valCorner, barCorner, cornerLevel, cornerLabel, Math.abs(lateralAccel)*16);
+
+      const tiltDeg = Math.max(-16, Math.min(16, laneOffsetSmoothed * 36));
+      horizonPlate.style.transform = `translate(-50%,-50%) rotate(${tiltDeg}deg)`;
+      horizonPlate.style.left = '50%'; horizonPlate.style.top = '50%';
+
+      // --- Sound-driven ambient tachometer ---
+      const rawLevel = readAudioLevel();
+      smoothedLevel = smoothedLevel*0.7 + rawLevel*0.3;
+      const tachoValue = 0.8 + smoothedLevel * 6.2; // idle-ish baseline + reactive sweep
+      setNeedle(tachoValue);
+
+      dbgEdge.textContent = currentEdge.toFixed(2);
+      dbgBaseline.textContent = base.toFixed(2);
+      dbgGrowth.textContent = relativeGrowth.toFixed(2);
+      dbgLane.textContent = laneOffsetSmoothed.toFixed(2);
+      dbgAccel.textContent = lateralAccel.toFixed(2);
+      dbgRot.textContent = rotationMag.toFixed(1);
+      dbgAudio.textContent = smoothedLevel.toFixed(2);
+      dbgConfirm.textContent = followConfirmFrames;
+
+      if(followState === 'danger'){
+        speak('Houd meer afstand, de auto voor je komt dichterbij.', 'follow', 6000);
+      } else if(followState === 'warn'){
+        speak('Let op je volgafstand.', 'follow', 13000);
+      }
+      if(laneLevel === 'danger'){
+        speak(laneOffsetSmoothed > 0 ? 'Je drift naar rechts, corrigeer rustig naar links.' : 'Je drift naar links, corrigeer rustig naar rechts.', 'lane', 9000);
+      }
+      if(cornerConfirmed){
+        speak('Stevige bocht, houd je lijn en let op grip.', 'corner', 9000);
+      }
+      if(rotationMag > 160){
+        speak('Je telefoon lijkt bewogen. Richt je aandacht op de weg.', 'phone', 14000);
+      }
+    }catch(err){
+      // keep the loop alive even if a single frame fails
+    }
+  }
+
+  async function start(){
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+      msg.style.display = 'none';
+      rec.style.display = 'flex';
+      setChip(chipCam, 'on');
+    }catch(err){
+      msg.style.display = 'flex';
+      msg.innerHTML = `<span><b>Geen camera-toegang.</b><br>${err.name}: ${err.message}<br>Controleer je browserinstellingen.</span>`;
+      setChip(chipCam, 'off');
+      return;
+    }
+
+    await requestMotionPermission();
+    await initMic();
+    startGeolocation();
+
+    startBtn.disabled = true;
+    startBtn.textContent = 'Kalibreren…';
+    logEvent('Kalibratie gestart — richt de camera op de weg.');
+    await runCalibration();
+
+    running = true;
+    startBtn.disabled = false;
+    startBtn.textContent = 'Stop rijcoach';
+    startBtn.classList.add('stop');
+    logEvent(`Rijcoach actief — ${sportToggle.checked ? 'sportmodus' : 'standaardmodus'}${cabrioToggle.checked ? ', cabrio-modus' : ''}.`);
+    startStats();
+    loopHandle = setInterval(tick, 260);
+  }
+
+  function stop(){
+    running = false;
+    if(loopHandle) clearInterval(loopHandle);
+    if(calibHandle) clearInterval(calibHandle);
+    if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+    if(micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    if(audioCtx){ audioCtx.close(); audioCtx = null; }
+    stopGeolocation();
+    micActive = false;
+    micBadge.textContent = 'MIC UIT';
+    stopStats();
+    setChip(chipCam, 'off');
+    setChip(chipMic, 'off');
+    setChip(chipMotion, 'off');
+    setNeedle(0.6);
+    video.srcObject = null;
+    msg.style.display = 'flex';
+    msg.innerHTML = '<span><b>Start kalibratie</b> om camera, sensoren, microfoon en GPS te activeren. Kalibreren duurt 3 seconden op een rustig stuk weg.</span>';
+    rec.style.display = 'none';
+    calibBadge.style.display = 'none';
+    calibRow.classList.remove('show');
+    startBtn.textContent = 'Start kalibratie';
+    startBtn.classList.remove('stop');
+    baselineEdge = null;
+    edgeHistory.length = 0;
+    followState = 'ok'; followConfirmFrames = 0; cornerConfirmFrames = 0;
+    setGauge(gaugeFollow, valFollow, barFollow, 'ok', '—', 0);
+    setGauge(gaugeLane, valLane, barLane, 'ok', '—', 0);
+    setGauge(gaugeCorner, valCorner, barCorner, 'ok', '—', 0);
+    logEvent('Rijcoach gestopt.');
+  }
+
+  startBtn.addEventListener('click', () => { running ? stop() : start(); });
+
+  testVoiceBtn.addEventListener('click', () => {
+    lastSpoken['test'] = 0;
+    speak('Rijcoach is klaar. Veel rijplezier in de Spider, en let vooral zelf op de weg.', 'test', 0);
+  });
+
+  debugToggle.addEventListener('change', () => {
+    debugPanel.classList.toggle('show', debugToggle.checked);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden && running) speechSynthesis.cancel();
+  });
+})();
+</script>
+</body>
+</html>
