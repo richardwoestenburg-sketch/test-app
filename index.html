@@ -203,6 +203,28 @@
   details.help .body ul{margin:8px 0 0; padding-left:16px;}
   details.help .body li{margin-bottom:6px;}
 
+  /* ---------- Driving mode selector (manettino: Strada · Sport · Corsa) ---------- */
+  .mode-select{margin-top:10px; background:var(--bg-panel); border:1px solid var(--line); border-radius:3px; padding:11px 12px;}
+  .mode-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:9px;}
+  .mode-title{font-family:var(--display); font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--ivory);}
+  .mode-desc{font-family:var(--mono); font-size:9.5px; color:var(--chrome); text-align:right; line-height:1.45; max-width:60%;}
+  .mode-seg{display:grid; grid-template-columns:repeat(3,1fr); gap:5px; background:#0a0806; border:1px solid var(--line); border-radius:3px; padding:4px;}
+  .mode-opt{font-family:var(--display); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--chrome); background:transparent; border:1px solid transparent; border-radius:2px; padding:10px 4px; cursor:pointer;
+    transition:color .15s, background .15s, box-shadow .15s;}
+  .mode-opt:active{transform:scale(.97);}
+  .mode-opt[data-mode="strada"].is-active{background:var(--verde); color:var(--ivory); box-shadow:0 0 10px rgba(63,107,74,.5);}
+  .mode-opt[data-mode="sport"].is-active{background:var(--amber-warn); color:#1a1200; box-shadow:0 0 10px rgba(214,154,61,.45);}
+  .mode-opt[data-mode="corsa"].is-active{background:var(--rosso); color:#180404; box-shadow:0 0 12px rgba(196,30,42,.6); text-shadow:none;}
+
+  /* Corsa: dashboard turns aggressive red */
+  body.mode-corsa .cluster{border-color:var(--rosso);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.6), 0 0 0 6px var(--bg-panel), 0 0 0 7px var(--rosso), 0 0 24px rgba(196,30,42,.28);}
+  body.mode-corsa .tacho .needle{background:#ff2a38; box-shadow:0 0 8px rgba(255,42,56,.95);}
+  body.mode-corsa .tacho .redline, body.mode-corsa .horizon .redline{opacity:.9;}
+  body.mode-corsa .rec{color:#ff5560;}
+  body.mode-corsa .cluster.flash{box-shadow: inset 0 0 0 1px rgba(0,0,0,.6), 0 0 0 6px #ff2a38, 0 0 0 7px #ff2a38, 0 0 30px rgba(255,42,56,.5);}
+
   /* ---------- Voice assistant & fullscreen ---------- */
   .btn-ask{flex:2; background:var(--verde); color:#0a140c; display:flex; align-items:center; justify-content:center; gap:7px;}
   .btn-ask.listening{background:var(--amber-warn); color:#1a1200; animation:askpulse 1.1s infinite;}
@@ -221,6 +243,16 @@
   body.fs footer, body.fs .debug-toggle, body.fs .debug-panel, body.fs details.help{display:none;}
   body.fs .wrap{max-width:none; padding-left:20px; padding-right:20px;}
   body.fs .speedo .num{font-size:56px;}
+
+  /* ---------- Extra polish: depth on buttons, glass on the cluster ---------- */
+  .btn-primary{background:linear-gradient(180deg, #d8262f 0%, var(--rosso) 55%, #a81824 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.15);}
+  .btn-primary.stop{background:linear-gradient(180deg, #cfc9bb, var(--chrome) 60%, #9a9488);}
+  .btn-ask{background:linear-gradient(180deg, #4c7d59, var(--verde) 60%, #35583f); box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
+  .cluster::after{content:''; position:absolute; inset:0; z-index:1; pointer-events:none; border-radius:4px;
+    box-shadow: inset 0 0 46px rgba(0,0,0,.5); background:radial-gradient(ellipse at 50% 42%, transparent 58%, rgba(0,0,0,.30));}
+  .cluster .msg{z-index:5;}
+  .speedo{background:linear-gradient(180deg, #0c130a, #0a1008 60%);}
+  .gauge .value{transition:color .2s;}
 
   /* ---------- Accessibility & motion preferences ---------- */
   button:focus-visible, .switch input:focus-visible + .track, summary:focus-visible, input:focus-visible{
@@ -334,12 +366,16 @@
     </div>
   </div>
 
-  <div class="toggle-row">
-    <div class="txt"><b>Sportmodus</b>hogere tolerantie voor bochten-g, strakkere lijngevoeligheid</div>
-    <label class="switch">
-      <input type="checkbox" id="sportToggle" checked>
-      <span class="track"><span class="knob"></span></span>
-    </label>
+  <div class="mode-select">
+    <div class="mode-head">
+      <span class="mode-title">Rijmodus</span>
+      <span class="mode-desc" id="modeDesc">Sport · strakke lijn, ruimte voor bocht-g</span>
+    </div>
+    <div class="mode-seg" role="group" aria-label="Rijmodus">
+      <button type="button" class="mode-opt" data-mode="strada" aria-pressed="false">Strada</button>
+      <button type="button" class="mode-opt is-active" data-mode="sport" aria-pressed="true">Sport</button>
+      <button type="button" class="mode-opt" data-mode="corsa" aria-pressed="false">Corsa</button>
+    </div>
   </div>
 
   <div class="toggle-row">
@@ -416,8 +452,30 @@
   const horizonPlate = document.getElementById('horizonPlate');
   const calibRow = document.getElementById('calibRow');
   const calibFill = document.getElementById('calibFill');
-  const sportToggle = document.getElementById('sportToggle');
   const cabrioToggle = document.getElementById('cabrioToggle');
+  const modeDesc = document.getElementById('modeDesc');
+  const modeOpts = Array.from(document.querySelectorAll('.mode-opt'));
+
+  // ---------- Driving mode: Strada (calm) · Sport · Corsa (extreme) ----------
+  let drivingMode = 'sport';
+  const MODE_INFO = {
+    strada: { name:'Strada', desc:'Strada · rustig, vroege waarschuwingen' },
+    sport:  { name:'Sport',  desc:'Sport · strakke lijn, ruimte voor bocht-g' },
+    corsa:  { name:'Corsa',  desc:'Corsa · extreem sportief, minimale onderbreking' }
+  };
+  function setMode(m, announce){
+    if(!MODE_INFO[m]) return;
+    drivingMode = m;
+    modeOpts.forEach(b => {
+      const on = b.dataset.mode === m;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    modeDesc.textContent = MODE_INFO[m].desc;
+    document.body.classList.toggle('mode-corsa', m === 'corsa');
+    if(announce) logEvent(`Rijmodus: ${MODE_INFO[m].name}.`);
+  }
+  modeOpts.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode, true)));
   const cluster = document.getElementById('cluster');
   const tachoNeedle = document.getElementById('tachoNeedle');
   const micBadge = document.getElementById('micBadge');
@@ -505,6 +563,9 @@
   const procCanvas = document.createElement('canvas');
   procCanvas.width = W; procCanvas.height = H;
   const ctx = procCanvas.getContext('2d', { willReadFrequently: true });
+  // Reused across frames so the analysis loop doesn't allocate (and garbage-collect) every tick
+  const grayBuf = new Float32Array(W*H);
+  let audioData = null;
 
   let running = false, calibrating = false;
   let stream = null, loopHandle = null, calibHandle = null;
@@ -664,6 +725,7 @@
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 512;
       source.connect(analyser);
+      audioData = new Uint8Array(analyser.frequencyBinCount);
       micActive = true;
       micBadge.textContent = 'MIC ACTIEF';
       setChip(chipMic, 'on');
@@ -676,27 +738,25 @@
     }
   }
   function readAudioLevel(){
-    if(!micActive || !analyser) return 0;
-    const data = new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(data);
+    if(!micActive || !analyser || !audioData) return 0;
+    analyser.getByteFrequencyData(audioData);
     // Focus on low-mid band roughly matching an inline-4 engine's fundamental drone
     let sum = 0, count = 0;
-    const lo = Math.floor(data.length*0.03), hi = Math.floor(data.length*0.35);
-    for(let i=lo;i<hi;i++){ sum += data[i]; count++; }
+    const lo = Math.floor(audioData.length*0.03), hi = Math.floor(audioData.length*0.35);
+    for(let i=lo;i<hi;i++){ sum += audioData[i]; count++; }
     const avg = count ? sum/count : 0;
     return avg/255; // 0..1
   }
 
-  function thresholds(){
-    const sport = sportToggle.checked;
-    return {
-      laneWarn: sport ? 0.11 : 0.13,
-      laneDanger: sport ? 0.20 : 0.24,
-      cornerLatAccel: sport ? 4.6 : 3.0,
-      cornerRotation: sport ? 130 : 90,
-      cornerConfirmFrames: sport ? 3 : 2
-    };
-  }
+  // Per-mode tuning. Corsa is the extreme setting: it tolerates far more
+  // lateral g and closer following, and nags the least, while the display
+  // idles higher and reads more aggressively.
+  const MODE_TUNING = {
+    strada: { laneWarn:0.13, laneDanger:0.24, cornerLatAccel:3.0, cornerRotation:90,  cornerConfirmFrames:2, followWarn:0.40, followDanger:0.80, tachoIdle:0.8 },
+    sport:  { laneWarn:0.11, laneDanger:0.20, cornerLatAccel:4.6, cornerRotation:130, cornerConfirmFrames:3, followWarn:0.45, followDanger:0.85, tachoIdle:1.1 },
+    corsa:  { laneWarn:0.09, laneDanger:0.17, cornerLatAccel:6.8, cornerRotation:175, cornerConfirmFrames:4, followWarn:0.60, followDanger:1.05, tachoIdle:1.7 }
+  };
+  function thresholds(){ return MODE_TUNING[drivingMode]; }
 
   function loadVoices(){
     const voices = speechSynthesis.getVoices();
@@ -770,12 +830,11 @@
     return count ? sum / count : 0;
   }
 
-  function toGray(data, w, h){
-    const gray = new Float32Array(w*h);
+  function toGray(data){
     for(let i=0, p=0; i<data.length; i+=4, p++){
-      gray[p] = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+      grayBuf[p] = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
     }
-    return gray;
+    return grayBuf;
   }
 
   function laneCentroid(gray, w, yStart, yEnd, threshold){
@@ -830,7 +889,7 @@
         try{
           ctx.drawImage(video, 0, 0, W, H);
           const imgData = ctx.getImageData(0,0,W,H).data;
-          const gray = toGray(imgData, W, H);
+          const gray = toGray(imgData);
           const x0 = Math.floor(W*0.30), x1 = Math.floor(W*0.70);
           const y0 = Math.floor(H*0.55), y1 = H;
           const edge = computeEdgeDensity(gray, x0, y0, x1, y1, W);
@@ -864,7 +923,7 @@
     try{
       ctx.drawImage(video, 0, 0, W, H);
       const imgData = ctx.getImageData(0,0,W,H).data;
-      const gray = toGray(imgData, W, H);
+      const gray = toGray(imgData);
 
       const fx0 = Math.floor(W*0.30), fx1 = Math.floor(W*0.70);
       const fy0 = Math.floor(H*0.55), fy1 = H;
@@ -880,8 +939,8 @@
         : 0;
 
       let targetFollowState = 'ok';
-      if(relativeGrowth > 0.85 && trendGrowth > 0.25) targetFollowState = 'danger';
-      else if(relativeGrowth > 0.45) targetFollowState = 'warn';
+      if(relativeGrowth > th.followDanger && trendGrowth > 0.25) targetFollowState = 'danger';
+      else if(relativeGrowth > th.followWarn) targetFollowState = 'warn';
 
       if(targetFollowState === followState){
         followConfirmFrames = Math.min(followConfirmFrames + 1, 10);
@@ -945,7 +1004,7 @@
       // --- Sound-driven ambient tachometer ---
       const rawLevel = readAudioLevel();
       smoothedLevel = smoothedLevel*0.7 + rawLevel*0.3;
-      const tachoValue = 0.8 + smoothedLevel * 6.2; // idle-ish baseline + reactive sweep
+      const tachoValue = th.tachoIdle + smoothedLevel * (TACHO_MAX - th.tachoIdle); // mode idle + reactive sweep
       setNeedle(tachoValue);
 
       dbgEdge.textContent = currentEdge.toFixed(2);
@@ -1007,7 +1066,7 @@
     startBtn.disabled = false;
     startBtn.textContent = 'Stop rijcoach';
     startBtn.classList.add('stop');
-    logEvent(`Rijcoach actief — ${sportToggle.checked ? 'sportmodus' : 'standaardmodus'}${cabrioToggle.checked ? ', cabrio-modus' : ''}.`);
+    logEvent(`Rijcoach actief — rijmodus ${MODE_INFO[drivingMode].name}${cabrioToggle.checked ? ', cabrio-modus' : ''}.`);
     startStats();
     loopHandle = setInterval(tick, 260);
   }
@@ -1125,11 +1184,10 @@
     const wantsOff = has('uit','stop','af');
     const wantsOn = has('aan','zet aan','inschakel');
 
-    // Mode commands
-    if(has('sport')){
-      sportToggle.checked = wantsOff ? false : (wantsOn ? true : !sportToggle.checked);
-      return `Sportmodus staat nu ${sportToggle.checked ? 'aan' : 'uit'}.`;
-    }
+    // Driving-mode commands (check the more specific words before "sport")
+    if(has('corsa','extreem','extreme','circuit','race','baan open')){ setMode('corsa', true); return 'Corsa-modus, de extreem sportieve stand, staat nu aan.'; }
+    if(has('strada','normaal','normale','rustig','comfort','straat')){ setMode('strada', true); return 'Strada-modus, de rustige stand, staat nu aan.'; }
+    if(has('sport')){ setMode('sport', true); return 'Sportmodus staat nu aan.'; }
     if(has('cabrio')){
       cabrioToggle.checked = wantsOff ? false : (wantsOn ? true : !cabrioToggle.checked);
       return `Cabrio-modus staat nu ${cabrioToggle.checked ? 'aan' : 'uit'}.`;
@@ -1145,7 +1203,7 @@
     if(has('bocht','sturen','kromming')) return cornerSentence();
     if(has('hoe lang','ritduur','onderweg','hoelang')) return durationSentence();
     if(has('melding','waarschuwing','hoe vaak','hoeveel keer')) return `Er ${alertCount===1?'is':'zijn'} deze rit ${alertCount} ${alertCount===1?'melding':'meldingen'} geweest.`;
-    if(has('welke modus','sportmodus aan','cabrio aan','instelling')) return `Sportmodus staat ${sportToggle.checked?'aan':'uit'} en cabrio-modus staat ${cabrioToggle.checked?'aan':'uit'}.`;
+    if(has('welke modus','welke stand','instelling')) return `Rijmodus staat op ${MODE_INFO[drivingMode].name} en cabrio-modus staat ${cabrioToggle.checked?'aan':'uit'}.`;
 
     // Overall status / how am I doing
     if(has('hoe doe ik','hoe gaat','status','samenvatting','overzicht','alles goed','veilig')){
@@ -1153,7 +1211,7 @@
     }
     // What can I ask
     if(has('wat kan','help','welke vragen','wat kun')){
-      return 'Je kunt vragen: hoe hard rij ik, hoe is mijn volgafstand, rijd ik netjes in mijn baan, hoe lang rij ik al, of zeg zet sportmodus uit.';
+      return 'Je kunt vragen: hoe hard rij ik, hoe is mijn volgafstand, rijd ik netjes in mijn baan, hoe lang rij ik al, of zeg zet Corsa aan, of zet Strada aan.';
     }
     return 'Dat verstond ik niet helemaal. Vraag bijvoorbeeld: hoe hard rij ik, of hoe is mijn volgafstand.';
   }
