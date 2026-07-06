@@ -451,6 +451,16 @@
   // so the voice assistant can answer questions about the current situation.
   const liveState = { followLevel:'ok', followLabel:'—', laneLevel:'ok', laneLabel:'—', cornerLabel:'—' };
 
+  // While the voice assistant is listening or speaking an answer, the coach
+  // stays silent so it never talks over the driver's question (or reacts to
+  // the movement of reaching for the phone).
+  let assistantBusy = false, assistantClearTimer = null;
+  function setAssistantBusy(on){
+    assistantBusy = on;
+    if(assistantClearTimer){ clearTimeout(assistantClearTimer); assistantClearTimer = null; }
+    if(on) speechSynthesis.cancel(); // stop any coaching already mid-sentence
+  }
+
   // ---------- Session stats ----------
   let sessionStart = 0, topSpeedKmh = 0, alertCount = 0, statsTimer = null;
   function fmtDuration(ms){
@@ -704,6 +714,7 @@
   }
 
   function speak(text, category, cooldownMs){
+    if(assistantBusy) return; // stay silent while the driver is asking / being answered
     const now = Date.now();
     if(lastSpoken[category] && now - lastSpoken[category] < cooldownMs) return;
     lastSpoken[category] = now;
@@ -1058,6 +1069,11 @@
   function respond(text){
     askA.textContent = text;
     askPanel.classList.add('show');
+    setAssistantBusy(true); // keep the coach quiet until the answer finishes
+    const release = () => {
+      // small grace so a last bit of movement doesn't instantly re-trigger a warning
+      assistantClearTimer = setTimeout(() => setAssistantBusy(false), 600);
+    };
     try{
       speechSynthesis.cancel(); // interrupt any queued coaching so the answer is prompt
       const u = new SpeechSynthesisUtterance(text);
@@ -1065,8 +1081,14 @@
       if(dutchVoice) u.voice = dutchVoice;
       u.volume = 1.0;
       u.rate = cabrioToggle.checked ? 0.9 : 1.0;
+      u.onend = release;
+      u.onerror = release;
       speechSynthesis.speak(u);
-    }catch(e){}
+      // Fallback in case onend never fires (some mobile browsers)
+      assistantClearTimer = setTimeout(() => setAssistantBusy(false), 9000);
+    }catch(e){
+      setAssistantBusy(false);
+    }
     logEvent('↳ ' + text);
   }
 
@@ -1138,7 +1160,7 @@
 
   // Speech recognition (Web Speech API) — press to ask
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognition = null, listening = false, askTimeout = null;
+  let recognition = null, listening = false, askTimeout = null, gotResult = false;
   if(!SR){
     askBtn.disabled = true;
     askBtn.textContent = '🎤 Spraak niet ondersteund';
@@ -1164,6 +1186,8 @@
 
       recognition.onstart = () => {
         listening = true;
+        gotResult = false;
+        setAssistantBusy(true); // from the moment we listen, the coach is silent
         askBtn.classList.add('listening');
         askPanel.classList.add('show','listening');
         askBtn.innerHTML = '● Luisteren… (tik om te stoppen)';
@@ -1173,9 +1197,10 @@
         askTimeout = setTimeout(() => { try{ recognition.stop(); }catch(e){} }, 8000);
       };
       recognition.onresult = (ev) => {
+        gotResult = true;
         const transcript = ev.results[0][0].transcript;
         askQ.innerHTML = `<b>Je vroeg:</b> ${transcript}`;
-        respond(answerQuestion(transcript));
+        respond(answerQuestion(transcript)); // respond() keeps the coach quiet until it finishes
       };
       recognition.onerror = (ev) => {
         askQ.innerHTML = '<b>Vraag mislukt.</b>';
@@ -1183,7 +1208,12 @@
           ? 'Geen microfoontoegang voor spraakherkenning.'
           : (ev.error === 'no-speech' ? 'Ik hoorde geen vraag. Probeer opnieuw.' : 'Er ging iets mis met de spraakherkenning.');
       };
-      recognition.onend = stopListening;
+      recognition.onend = () => {
+        stopListening();
+        // If we stopped without a question (cancelled / no speech), release the
+        // coach immediately; if a result came, respond() handles the release.
+        if(!gotResult) setAssistantBusy(false);
+      };
       recognition.start();
     }catch(e){
       stopListening();
