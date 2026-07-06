@@ -203,6 +203,25 @@
   details.help .body ul{margin:8px 0 0; padding-left:16px;}
   details.help .body li{margin-bottom:6px;}
 
+  /* ---------- Voice assistant & fullscreen ---------- */
+  .btn-ask{flex:2; background:var(--verde); color:#0a140c; display:flex; align-items:center; justify-content:center; gap:7px;}
+  .btn-ask.listening{background:var(--amber-warn); color:#1a1200; animation:askpulse 1.1s infinite;}
+  .btn-ask:disabled{background:var(--bg-panel); color:var(--chrome); border:1px solid var(--line);}
+  @keyframes askpulse{0%,100%{box-shadow:0 0 0 0 rgba(214,154,61,.5);}50%{box-shadow:0 0 0 9px rgba(214,154,61,0);}}
+  .btn-full{flex:1; display:flex; align-items:center; justify-content:center; gap:6px;}
+  .ask-panel{margin-top:10px; background:var(--bg-panel); border:1px solid var(--line-bright); border-left:3px solid var(--verde);
+    border-radius:3px; padding:10px 12px; font-family:var(--mono); font-size:11.5px; line-height:1.6; display:none;}
+  .ask-panel.show{display:block;}
+  .ask-panel.listening{border-left-color:var(--amber-warn);}
+  .ask-panel .q{color:var(--chrome);}
+  .ask-panel .q b{color:var(--ivory);}
+  .ask-panel .a{color:#8fdc6a; margin-top:5px;}
+  .ask-panel .a:empty{display:none;}
+  .ask-hint{font-family:var(--mono); font-size:9.5px; color:var(--chrome); margin-top:7px; letter-spacing:.02em; line-height:1.6;}
+  body.fs footer, body.fs .debug-toggle, body.fs .debug-panel, body.fs details.help{display:none;}
+  body.fs .wrap{max-width:none; padding-left:20px; padding-right:20px;}
+  body.fs .speedo .num{font-size:56px;}
+
   /* ---------- Accessibility & motion preferences ---------- */
   button:focus-visible, .switch input:focus-visible + .track, summary:focus-visible, input:focus-visible{
     outline:2px solid var(--amber-warn); outline-offset:2px;}
@@ -336,6 +355,16 @@
     <button class="btn-secondary" id="testVoiceBtn">Test stem</button>
   </div>
 
+  <div class="controls">
+    <button class="btn-secondary btn-full" id="fullscreenBtn">⛶ Volledig scherm</button>
+    <button class="btn-ask" id="askBtn">🎤 Vraag stellen</button>
+  </div>
+  <div class="ask-panel" id="askPanel" aria-live="polite">
+    <div class="q" id="askQ"></div>
+    <div class="a" id="askA"></div>
+    <div class="ask-hint" id="askHint">Tik en vraag bijvoorbeeld: “Hoe hard rij ik?” · “Hoe is mijn volgafstand?” · “Hoe lang rij ik al?” · “Zet sportmodus uit”.</div>
+  </div>
+
   <div class="debug-toggle">
     <input type="checkbox" id="debugToggle"> <label for="debugToggle">Toon meetwaarden</label>
   </div>
@@ -410,6 +439,17 @@
     el.classList.remove('on','pending','off');
     el.classList.add(state);
   }
+
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  const askBtn = document.getElementById('askBtn');
+  const askPanel = document.getElementById('askPanel');
+  const askQ = document.getElementById('askQ');
+  const askA = document.getElementById('askA');
+  const askHint = document.getElementById('askHint');
+
+  // Human-readable snapshot of the live coaching state, kept fresh in tick(),
+  // so the voice assistant can answer questions about the current situation.
+  const liveState = { followLevel:'ok', followLabel:'—', laneLevel:'ok', laneLabel:'—', cornerLabel:'—' };
 
   // ---------- Session stats ----------
   let sessionStart = 0, topSpeedKmh = 0, alertCount = 0, statsTimer = null;
@@ -848,6 +888,7 @@
       const followPct = Math.max(0, Math.min(100, relativeGrowth * 60));
       const followLabelMap = { ok: 'Vrij', warn: 'Let op', danger: 'Te dichtbij' };
       setGauge(gaugeFollow, valFollow, barFollow, followState, followLabelMap[followState], followPct);
+      liveState.followLevel = followState; liveState.followLabel = followLabelMap[followState];
 
       const lowerC = laneCentroid(gray, W, Math.floor(H*0.80), H, 18);
       const upperC = laneCentroid(gray, W, Math.floor(H*0.60), Math.floor(H*0.80), 18);
@@ -864,6 +905,7 @@
       if(laneAbs > th.laneDanger){ laneLevel='danger'; laneLabel = laneOffsetSmoothed>0 ? 'Naar rechts' : 'Naar links'; }
       else if(laneAbs > th.laneWarn){ laneLevel='warn'; laneLabel='Licht af'; }
       setGauge(gaugeLane, valLane, barLane, laneLevel, laneLabel, laneAbs*300);
+      liveState.laneLevel = laneLevel; liveState.laneLabel = laneLabel;
 
       let curving = false;
       if(lowerC !== null && upperC !== null){
@@ -883,6 +925,7 @@
       if(cornerConfirmed){ cornerLevel='warn'; cornerLabel='Fel sturen'; }
       else if(curving){ cornerLabel='In bocht'; }
       setGauge(gaugeCorner, valCorner, barCorner, cornerLevel, cornerLabel, Math.abs(lateralAccel)*16);
+      liveState.cornerLabel = cornerLabel;
 
       const tiltDeg = Math.max(-16, Math.min(16, laneOffsetSmoothed * 36));
       horizonPlate.style.transform = `translate(-50%,-50%) rotate(${tiltDeg}deg)`;
@@ -989,6 +1032,168 @@
     setGauge(gaugeCorner, valCorner, barCorner, 'ok', '—', 0);
     logEvent('Rijcoach gestopt.');
   }
+
+  // ---------- Fullscreen ----------
+  function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement; }
+  function toggleFullscreen(){
+    const el = document.documentElement;
+    if(!fsElement()){
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if(req) req.call(el);
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit) exit.call(document);
+    }
+  }
+  function syncFullscreenUI(){
+    const on = !!fsElement();
+    document.body.classList.toggle('fs', on);
+    fullscreenBtn.innerHTML = on ? '⛶ Verlaat scherm' : '⛶ Volledig scherm';
+  }
+  fullscreenBtn.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', syncFullscreenUI);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
+
+  // ---------- Voice assistant: ask questions out loud, get spoken answers ----------
+  function respond(text){
+    askA.textContent = text;
+    askPanel.classList.add('show');
+    try{
+      speechSynthesis.cancel(); // interrupt any queued coaching so the answer is prompt
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'nl-NL';
+      if(dutchVoice) u.voice = dutchVoice;
+      u.volume = 1.0;
+      u.rate = cabrioToggle.checked ? 0.9 : 1.0;
+      speechSynthesis.speak(u);
+    }catch(e){}
+    logEvent('↳ ' + text);
+  }
+
+  function speedSentence(){
+    if(!running || !lastFix) return 'Ik heb nog geen GPS-snelheid. Zorg dat de rijcoach loopt en GPS actief is.';
+    return `Je rijdt nu ongeveer ${Math.round(smoothedSpeedKmh)} kilometer per uur.`;
+  }
+  function followSentence(){
+    const m = { ok:'Je houdt genoeg volgafstand.', warn:'Let iets meer op je volgafstand, je nadert je voorligger.', danger:'Je zit te dicht op je voorligger, laat wat meer ruimte.' };
+    return m[liveState.followLevel] || 'Ik heb nog geen goede meting van je volgafstand.';
+  }
+  function laneSentence(){
+    if(liveState.laneLabel === '—') return 'Ik heb nog geen goede meting van je wegpositie.';
+    if(liveState.laneLevel === 'ok') return 'Je rijdt mooi gecentreerd in je baan.';
+    return `Je positie: ${liveState.laneLabel.toLowerCase()}. Corrigeer rustig terug naar het midden.`;
+  }
+  function cornerSentence(){
+    if(liveState.cornerLabel === 'Recht' || liveState.cornerLabel === '—') return 'Je rijdt op dit moment recht.';
+    return `Bocht: ${liveState.cornerLabel.toLowerCase()}. Houd je lijn en let op grip.`;
+  }
+  function durationSentence(){
+    if(!sessionStart) return 'De rijcoach loopt nog niet.';
+    const s = Math.floor((Date.now()-sessionStart)/1000);
+    const m = Math.floor(s/60), sec = s%60;
+    if(m === 0) return `Je bent ${sec} seconden onderweg.`;
+    return `Je bent ${m} ${m===1?'minuut':'minuten'} en ${sec} seconden onderweg.`;
+  }
+
+  function answerQuestion(raw){
+    const q = (raw || '').toLowerCase().trim();
+    if(!q) return 'Ik heb niets verstaan. Probeer het nog eens.';
+
+    const has = (...words) => words.some(w => q.includes(w));
+    const wantsOff = has('uit','stop','af');
+    const wantsOn = has('aan','zet aan','inschakel');
+
+    // Mode commands
+    if(has('sport')){
+      sportToggle.checked = wantsOff ? false : (wantsOn ? true : !sportToggle.checked);
+      return `Sportmodus staat nu ${sportToggle.checked ? 'aan' : 'uit'}.`;
+    }
+    if(has('cabrio')){
+      cabrioToggle.checked = wantsOff ? false : (wantsOn ? true : !cabrioToggle.checked);
+      return `Cabrio-modus staat nu ${cabrioToggle.checked ? 'aan' : 'uit'}.`;
+    }
+
+    // Questions about live data
+    if(has('top','hardst','snelst','maximum')) {
+      return topSpeedKmh > 0 ? `Je hoogste snelheid deze rit is ${Math.round(topSpeedKmh)} kilometer per uur.` : 'Ik heb nog geen topsnelheid geregistreerd.';
+    }
+    if(has('hoe hard','hoe snel','snelheid','km','kilometer per uur')) return speedSentence();
+    if(has('afstand','volg','voorligger','voor me','voor mij','te dicht')) return followSentence();
+    if(has('baan','lijn','positie','midden','gecentreerd','rechts of links','stuur ik recht')) return laneSentence();
+    if(has('bocht','sturen','kromming')) return cornerSentence();
+    if(has('hoe lang','ritduur','onderweg','hoelang')) return durationSentence();
+    if(has('melding','waarschuwing','hoe vaak','hoeveel keer')) return `Er ${alertCount===1?'is':'zijn'} deze rit ${alertCount} ${alertCount===1?'melding':'meldingen'} geweest.`;
+    if(has('welke modus','sportmodus aan','cabrio aan','instelling')) return `Sportmodus staat ${sportToggle.checked?'aan':'uit'} en cabrio-modus staat ${cabrioToggle.checked?'aan':'uit'}.`;
+
+    // Overall status / how am I doing
+    if(has('hoe doe ik','hoe gaat','status','samenvatting','overzicht','alles goed','veilig')){
+      return `${speedSentence()} ${followSentence()} ${laneSentence()}`;
+    }
+    // What can I ask
+    if(has('wat kan','help','welke vragen','wat kun')){
+      return 'Je kunt vragen: hoe hard rij ik, hoe is mijn volgafstand, rijd ik netjes in mijn baan, hoe lang rij ik al, of zeg zet sportmodus uit.';
+    }
+    return 'Dat verstond ik niet helemaal. Vraag bijvoorbeeld: hoe hard rij ik, of hoe is mijn volgafstand.';
+  }
+
+  // Speech recognition (Web Speech API) — press to ask
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null, listening = false, askTimeout = null;
+  if(!SR){
+    askBtn.disabled = true;
+    askBtn.textContent = '🎤 Spraak niet ondersteund';
+    askHint.textContent = 'Spraakherkenning wordt niet ondersteund in deze browser. Op Android Chrome werkt “Vraag stellen” wel.';
+  }
+
+  function stopListening(){
+    listening = false;
+    askBtn.classList.remove('listening');
+    askPanel.classList.remove('listening');
+    askBtn.innerHTML = '🎤 Vraag stellen';
+    if(askTimeout){ clearTimeout(askTimeout); askTimeout = null; }
+  }
+
+  function startListening(){
+    if(!SR || listening) return;
+    try{
+      recognition = new SR();
+      recognition.lang = 'nl-NL';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        listening = true;
+        askBtn.classList.add('listening');
+        askPanel.classList.add('show','listening');
+        askBtn.innerHTML = '● Luisteren… (tik om te stoppen)';
+        askQ.innerHTML = '<b>Luisteren…</b>';
+        askA.textContent = '';
+        // Safety: never listen indefinitely
+        askTimeout = setTimeout(() => { try{ recognition.stop(); }catch(e){} }, 8000);
+      };
+      recognition.onresult = (ev) => {
+        const transcript = ev.results[0][0].transcript;
+        askQ.innerHTML = `<b>Je vroeg:</b> ${transcript}`;
+        respond(answerQuestion(transcript));
+      };
+      recognition.onerror = (ev) => {
+        askQ.innerHTML = '<b>Vraag mislukt.</b>';
+        askA.textContent = ev.error === 'not-allowed'
+          ? 'Geen microfoontoegang voor spraakherkenning.'
+          : (ev.error === 'no-speech' ? 'Ik hoorde geen vraag. Probeer opnieuw.' : 'Er ging iets mis met de spraakherkenning.');
+      };
+      recognition.onend = stopListening;
+      recognition.start();
+    }catch(e){
+      stopListening();
+    }
+  }
+
+  askBtn.addEventListener('click', () => {
+    if(listening){ try{ recognition && recognition.stop(); }catch(e){} stopListening(); }
+    else startListening();
+  });
 
   startBtn.addEventListener('click', () => { running ? stop() : start(); });
 
