@@ -4,6 +4,61 @@ Deze Worker slaat je aantekeningen op in Cloudflare KV, zodat je telefoon, je
 Wear OS-horloge en elke browser dezelfde daglog delen. Gratis-tier is ruim
 voldoende.
 
+Er zijn twee manieren:
+
+- **Zonder computer** — helemaal via de Cloudflare-website in je telefoonbrowser
+  (geen terminal). Zie hieronder: "Zonder computer".
+- **Met een computer** — via de `wrangler` command line. Zie verderop: "Met een
+  computer (wrangler)".
+
+---
+
+## Zonder computer (alleen je telefoon)
+
+Fiddly op een klein scherm, maar het werkt. Je hoeft niets te installeren.
+
+### 1. Account
+Ga in je browser naar https://dash.cloudflare.com/sign-up en maak een gratis
+account (of log in).
+
+### 2. Maak de Worker
+Menu **Workers & Pages** → **Create** → **Create Worker** → naam `daglog-api` →
+**Deploy** (de standaard "hello world" is prima).
+
+### 3. Plak de code
+Open deze link en kopieer **alle** tekst:
+
+```
+https://raw.githubusercontent.com/richardwoestenburg-sketch/test-app/main/worker/src/worker.js
+```
+
+Terug bij je Worker → **Edit code** → wis alles → plak → **Deploy**.
+
+### 4. Opslag (KV) aanmaken en koppelen
+- Menu **Storage & Databases** → **KV** → **Create namespace** → naam `DAGLOG`.
+- Terug naar je Worker → **Settings** → **Bindings** (of "Variables") →
+  **Add binding** → type **KV namespace** → *Variable name* exact `DAGLOG_KV` →
+  kies de namespace `DAGLOG` → opslaan.
+
+### 5. Geheime sleutel
+Worker → **Settings** → **Variables and Secrets** → **Add** → naam exact
+`DAGLOG_TOKEN`, waarde = een zelfgekozen lang wachtwoord, type **Secret /
+Encrypt** → opslaan.
+
+### 6. URL ophalen
+Bovenaan je Worker staat het adres, iets als
+`https://daglog-api.<jouwnaam>.workers.dev`.
+
+### 7. App koppelen
+Open Daglog → tandwiel ⚙️ → **Worker-URL** = die workers.dev-URL, **Sleutel** =
+je `DAGLOG_TOKEN` → **Opslaan & verbinden**. Bij "Verbonden ✓" staat de sync.
+
+Ga daarna verder bij "Vanaf je Wear OS-horloge inspreken" onderaan.
+
+---
+
+## Met een computer (wrangler)
+
 Je doet dit één keer, op een computer met Node.js. Alle commando's draai je in
 de map `worker/`.
 
