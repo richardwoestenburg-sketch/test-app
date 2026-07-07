@@ -4,12 +4,37 @@ Deze Worker slaat je aantekeningen op in Cloudflare KV, zodat je telefoon, je
 Wear OS-horloge en elke browser dezelfde daglog delen. Gratis-tier is ruim
 voldoende.
 
-Er zijn twee manieren:
+Er zijn drie manieren:
 
-- **Zonder computer** — helemaal via de Cloudflare-website in je telefoonbrowser
-  (geen terminal). Zie hieronder: "Zonder computer".
-- **Met een computer** — via de `wrangler` command line. Zie verderop: "Met een
-  computer (wrangler)".
+- **Eén knop (aanbevolen, werkt op de telefoon)** — de "Deploy to Cloudflare"-
+  knop hieronder. Cloudflare bouwt de Worker vanuit deze repo en maakt de opslag
+  automatisch aan. Geen code plakken.
+- **Zonder computer, handmatig** — via de Cloudflare-website. Zie "Zonder
+  computer".
+- **Met een computer** — via de `wrangler` command line. Zie "Met een computer".
+
+---
+
+## Eén knop: Deploy to Cloudflare
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/richardwoestenburg-sketch/test-app/tree/main/worker)
+
+1. Tik de knop hierboven (of open:
+   `https://deploy.workers.cloudflare.com/?url=https://github.com/richardwoestenburg-sketch/test-app/tree/main/worker`).
+2. Log in bij Cloudflare en geef toestemming om met je GitHub te verbinden
+   (er wordt een kopie van de repo op je GitHub gezet).
+3. De wizard toont de Worker `daglog-api` en de KV-binding `DAGLOG_KV`. Laat
+   Cloudflare de KV-namespace **aanmaken/provisionen** (dat gaat vanzelf).
+4. Tik **Deploy** / **Create and deploy**.
+5. **Zet daarna de sleutel**: open de Worker → **Settings** → **Variables and
+   Secrets** → **Add** → naam exact `DAGLOG_TOKEN`, waarde = een zelfgekozen lang
+   wachtwoord, type **Secret** → opslaan. (Zonder deze sleutel weigert de API
+   alle verzoeken — dat is de bedoeling.)
+6. Noteer het Worker-adres (`https://daglog-api.<jouwnaam>.workers.dev`) en
+   koppel de app: tandwiel ⚙️ → Worker-URL + je `DAGLOG_TOKEN` →
+   **Opslaan & verbinden**.
+
+Ga daarna verder bij "Vanaf je Wear OS-horloge inspreken" onderaan.
 
 ---
 
@@ -74,14 +99,17 @@ de map `worker/`.
 
    Er opent een browser om de toegang te bevestigen.
 
-## 2. Opslag (KV) aanmaken
+## 2. Opslag (KV)
+
+`wrangler.toml` bindt `DAGLOG_KV` zonder id, dus `wrangler deploy` (stap 4)
+maakt de KV-namespace automatisch aan. Je hoeft hier niets te doen.
+
+Wil je een bestaande namespace gebruiken? Maak 'm dan zo aan en zet de `id`
+in `wrangler.toml`:
 
 ```bash
 npx wrangler kv namespace create DAGLOG_KV
 ```
-
-Dit print een `id`. Zet die in **`wrangler.toml`** op de plek van
-`REPLACE_WITH_YOUR_KV_NAMESPACE_ID`.
 
 ## 3. Een geheime sleutel instellen
 
