@@ -1,14 +1,16 @@
 // Simple offline-first service worker for Daglog.
 // Bump CACHE when you ship new assets so old caches are cleared.
-const CACHE = "daglog-v1";
+const CACHE = "daglog-v2";
+// Relative to the service worker's own location, so the same worker caches
+// correctly whether served from a domain root or a subpath (/test-app/).
 const CORE = [
-  "/",
-  "/index.html",
-  "/manifest.webmanifest",
-  "/icon.svg",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/apple-touch-icon.png",
+  "./",
+  "index.html",
+  "manifest.webmanifest",
+  "icon.svg",
+  "icon-192.png",
+  "icon-512.png",
+  "apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -40,7 +42,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((c) => c.put(request, copy));
           return res;
         })
-        .catch(() => caches.match(request).then((r) => r || caches.match("/index.html")))
+        .catch(() => caches.match(request).then((r) => r || caches.match("index.html")))
     );
     return;
   }

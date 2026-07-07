@@ -17,6 +17,15 @@ server of account nodig.
 - Alles blijft lokaal opgeslagen op je apparaat
 - Installeerbaar op je startscherm (PWA) en werkt offline
 
+## Live (GitHub Pages)
+
+De app wordt automatisch gepubliceerd op GitHub Pages via de workflow in
+`.github/workflows/deploy.yml`:
+
+**https://richardwoestenburg-sketch.github.io/test-app/**
+
+Open die URL op je telefoon om de app te installeren.
+
 ## Op je startscherm zetten
 
 Open de app in je browser en:
