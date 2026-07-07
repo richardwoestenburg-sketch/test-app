@@ -38,11 +38,10 @@ jobs:
         run: npm run build
 
       - name: Setup Pages
-        # On a public repo the workflow token can create/enable the Pages
-        # site itself, so no manual repo setting change is needed.
+        # Pages must be enabled once via Settings -> Pages -> Source:
+        # GitHub Actions. The workflow token cannot create the site itself,
+        # even on a public repo.
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
