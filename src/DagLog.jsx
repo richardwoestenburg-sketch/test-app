@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Anchor, MapPin, Trash2, Plus, Compass, RotateCcw, Mic } from "lucide-react";
+import {
+  Anchor, MapPin, Trash2, Plus, Compass, RotateCcw, Mic,
+  Settings, RefreshCw, Cloud, CloudOff,
+} from "lucide-react";
 import { storage } from "./storage.js";
+import * as sync from "./sync.js";
 
 const FONT_STYLE = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -94,9 +98,12 @@ const FONT_STYLE = `
   50% { box-shadow: 0 0 0 5px rgba(138,59,31,0); }
 }
 
+.dl-spin { animation: dl-rotate 0.9s linear infinite; }
+@keyframes dl-rotate { to { transform: rotate(360deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   .dl-btn-primary, .dl-btn-ghost, .dl-mic { transition: none; }
-  .dl-mic-live { animation: none; }
+  .dl-mic-live, .dl-spin { animation: none; }
 }
 `;
 
@@ -136,6 +143,14 @@ export default function DagLog() {
   const [speechError, setSpeechError] = useState("");
   const recognitionRef = useRef(null);
   const baseTextRef = useRef("");
+
+  // Sync (Cloudflare Worker backend) — optional; app stays local without it.
+  const [synced, setSynced] = useState(sync.isSyncConfigured());
+  const [showSettings, setShowSettings] = useState(false);
+  const [syncUrl, setSyncUrl] = useState(() => sync.getSyncConfig()?.baseUrl || "");
+  const [syncKey, setSyncKey] = useState(() => sync.getSyncConfig()?.key || "");
+  const [syncStatus, setSyncStatus] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -187,21 +202,8 @@ export default function DagLog() {
     }
   };
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await storage.get("daglog-entries", false);
-        const parsed = res ? JSON.parse(res.value) : [];
-        setEntries(Array.isArray(parsed) ? parsed : []);
-      } catch (e) {
-        setEntries([]);
-        setLoadError(false);
-      } finally {
-        setLoaded(true);
-      }
-    })();
-  }, []);
-
+  // Local cache (offline copy). Always written so the app works offline and
+  // without a backend.
   const persist = useCallback(async (next) => {
     try {
       const result = await storage.set("daglog-entries", JSON.stringify(next), false);
@@ -210,6 +212,55 @@ export default function DagLog() {
       setLoadError(true);
     }
   }, []);
+
+  const loadLocal = useCallback(async () => {
+    try {
+      const res = await storage.get("daglog-entries", false);
+      const parsed = res ? JSON.parse(res.value) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }, []);
+
+  // Pull the latest entries from the backend (used on load, on refresh, and
+  // when the window regains focus so watch-added entries show up).
+  const pullFromServer = useCallback(async () => {
+    const cfg = sync.getSyncConfig();
+    if (!cfg) return false;
+    const remote = await sync.fetchEntries(cfg);
+    setEntries(remote);
+    await persist(remote);
+    return true;
+  }, [persist]);
+
+  useEffect(() => {
+    (async () => {
+      const cfg = sync.getSyncConfig();
+      if (cfg) {
+        try {
+          await pullFromServer();
+        } catch (e) {
+          setEntries(await loadLocal());
+          setSyncStatus("Offline — lokale kopie getoond.");
+        }
+      } else {
+        setEntries(await loadLocal());
+      }
+      setLoaded(true);
+    })();
+  }, [pullFromServer, loadLocal]);
+
+  // Refresh from the server when the app regains focus.
+  useEffect(() => {
+    const onFocus = () => {
+      if (sync.isSyncConfigured()) {
+        pullFromServer().catch(() => {});
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [pullFromServer]);
 
   const addEntry = async () => {
     if (!text.trim()) return;
@@ -233,6 +284,18 @@ export default function DagLog() {
     setText("");
     setTime(nowHHMM());
     setCoords(null);
+
+    const cfg = sync.getSyncConfig();
+    if (cfg) {
+      try {
+        const remote = await sync.addEntry(cfg, entry);
+        setEntries(remote);
+        await persist(remote);
+        setSyncStatus("");
+      } catch (e) {
+        setSyncStatus("Offline — lokaal opgeslagen, nog niet gesynct.");
+      }
+    }
     setSaving(false);
   };
 
@@ -240,6 +303,16 @@ export default function DagLog() {
     const next = entries.filter((e) => e.id !== id);
     setEntries(next);
     await persist(next);
+    const cfg = sync.getSyncConfig();
+    if (cfg) {
+      try {
+        const remote = await sync.deleteEntry(cfg, id);
+        setEntries(remote);
+        await persist(remote);
+      } catch (e) {
+        setSyncStatus("Offline — verwijderen nog niet gesynct.");
+      }
+    }
   };
 
   const useLocation = () => {
@@ -266,6 +339,52 @@ export default function DagLog() {
     setEntries([]);
     await persist([]);
     setConfirmReset(false);
+    const cfg = sync.getSyncConfig();
+    if (cfg) {
+      try {
+        await sync.clearAll(cfg);
+        setSyncStatus("");
+      } catch (e) {
+        setSyncStatus("Offline — wissen nog niet gesynct.");
+      }
+    }
+  };
+
+  const refresh = async () => {
+    setRefreshing(true);
+    setSyncStatus("");
+    try {
+      await pullFromServer();
+    } catch (e) {
+      setSyncStatus("Verversen lukte niet. Ben je online?");
+    }
+    setRefreshing(false);
+  };
+
+  const saveSyncSettings = async () => {
+    const url = syncUrl.trim();
+    const key = syncKey.trim();
+    if (!url || !key) {
+      sync.setSyncConfig(null);
+      setSynced(false);
+      setSyncStatus("Sync uitgeschakeld — app werkt lokaal.");
+      return;
+    }
+    const cfg = { baseUrl: url.replace(/\/+$/, ""), key };
+    setSyncStatus("Verbinden…");
+    try {
+      await sync.testConnection(cfg);
+      sync.setSyncConfig(cfg);
+      setSynced(true);
+      const remote = await sync.fetchEntries(cfg);
+      setEntries(remote);
+      await persist(remote);
+      setSyncStatus("Verbonden ✓");
+      setShowSettings(false);
+    } catch (e) {
+      const msg = e.status === 401 ? "Onjuiste sleutel." : "Verbinden lukte niet. Check de URL.";
+      setSyncStatus(msg);
+    }
   };
 
   const groups = entries.reduce((acc, e) => {
@@ -280,11 +399,80 @@ export default function DagLog() {
       <div className="max-w-xl mx-auto px-5 py-8">
         <header className="flex items-center gap-3 mb-8">
           <Anchor size={26} strokeWidth={1.6} color="#b8892b" />
-          <div>
+          <div className="flex-1">
             <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Daglog</h1>
             <p className="text-xs opacity-60 dl-mono">een journaal van hoe je je uren besteedt</p>
           </div>
+          {synced && (
+            <button
+              onClick={refresh}
+              disabled={refreshing}
+              className="dl-btn-ghost p-2"
+              aria-label="Ververs vanaf server"
+              title="Ververs vanaf server"
+            >
+              <RefreshCw size={15} className={refreshing ? "dl-spin" : ""} />
+            </button>
+          )}
+          <button
+            onClick={() => setShowSettings((s) => !s)}
+            className="dl-btn-ghost p-2"
+            aria-label="Sync-instellingen"
+            title={synced ? "Sync aan" : "Sync-instellingen"}
+          >
+            {synced ? <Cloud size={15} color="#b8892b" /> : <Settings size={15} />}
+          </button>
         </header>
+
+        {/* Sync settings panel */}
+        {showSettings && (
+          <div className="dl-card p-4 mb-8">
+            <div className="flex items-center gap-3 mb-3">
+              {synced ? <Cloud size={16} color="#b8892b" /> : <CloudOff size={16} color="#b8892b" />}
+              <span className="text-xs uppercase dl-day-label opacity-70">Synchronisatie (Cloudflare)</span>
+            </div>
+            <p className="text-xs opacity-70 mb-3">
+              Vul het adres van je Daglog-Worker en je sleutel in om aantekeningen te delen
+              tussen je telefoon, horloge en browser. Laat leeg om alleen lokaal te werken.
+            </p>
+            <label className="block text-[11px] uppercase dl-day-label opacity-60 mb-1">Worker-URL</label>
+            <input
+              type="url"
+              value={syncUrl}
+              onChange={(e) => setSyncUrl(e.target.value)}
+              placeholder="https://daglog-api.jouwnaam.workers.dev"
+              className="dl-input dl-mono px-3 py-2 text-sm w-full mb-3"
+              aria-label="Worker-URL"
+            />
+            <label className="block text-[11px] uppercase dl-day-label opacity-60 mb-1">Sleutel</label>
+            <input
+              type="password"
+              value={syncKey}
+              onChange={(e) => setSyncKey(e.target.value)}
+              placeholder="je geheime sleutel"
+              className="dl-input dl-mono px-3 py-2 text-sm w-full mb-3"
+              aria-label="Sleutel"
+            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={saveSyncSettings} className="dl-btn-primary text-sm px-4 py-2">
+                Opslaan &amp; verbinden
+              </button>
+              {synced && (
+                <button
+                  onClick={() => { setSyncUrl(""); setSyncKey(""); sync.setSyncConfig(null); setSynced(false); setSyncStatus("Sync uitgeschakeld."); }}
+                  className="dl-btn-ghost text-xs px-3 py-2"
+                  style={{ color: "#241d10", borderColor: "rgba(36,29,16,0.25)" }}
+                >
+                  Sync uitschakelen
+                </button>
+              )}
+            </div>
+            {syncStatus && <p className="text-xs mt-2 opacity-80">{syncStatus}</p>}
+          </div>
+        )}
+        {!showSettings && syncStatus && (
+          <p className="text-xs mb-6 -mt-4 opacity-70">{syncStatus}</p>
+        )}
 
         {/* New entry card */}
         <div className="dl-card p-4 mb-8">
