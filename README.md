@@ -53,7 +53,16 @@ npm run preview  # de productie-build lokaal bekijken
 
 Standaard werkt Daglog puur lokaal. Wil je je aantekeningen delen tussen
 apparaten — of vanaf een Wear OS-horloge inspreken — dan zet je de meegeleverde
-Cloudflare-backend aan. Stap-voor-stap: **[`worker/DEPLOY.md`](worker/DEPLOY.md)**.
+Cloudflare-backend aan.
+
+**Snelste manier (ook op de telefoon), één knop:**
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/richardwoestenburg-sketch/test-app/tree/main/worker)
+
+De wizard maakt de opslag (KV) automatisch aan. Voeg daarna de secret
+`DAGLOG_TOKEN` toe (Worker → Settings → Variables and Secrets), en koppel de app
+via het tandwiel ⚙️ (Worker-URL + die sleutel). Volledige uitleg en de
+handmatige route: **[`worker/DEPLOY.md`](worker/DEPLOY.md)**.
 
 Kort:
 1. Deploy de Worker in `worker/` naar je eigen (gratis) Cloudflare-account.
