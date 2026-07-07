@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Anchor, MapPin, Trash2, Plus, Compass, RotateCcw } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Anchor, MapPin, Trash2, Plus, Compass, RotateCcw, Mic } from "lucide-react";
 import { storage } from "./storage.js";
 
 const FONT_STYLE = `
@@ -75,8 +75,28 @@ const FONT_STYLE = `
   letter-spacing: 0.14em;
 }
 
+.dl-mic {
+  border: 1px solid rgba(36,29,16,0.25);
+  border-radius: 8px;
+  color: #241d10;
+  background: rgba(16,21,28,0.04);
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.dl-mic:hover { background: rgba(16,21,28,0.08); }
+.dl-mic-live {
+  background: #8a3b1f;
+  border-color: #8a3b1f;
+  color: #efe3c0;
+  animation: dl-pulse 1.2s ease-in-out infinite;
+}
+@keyframes dl-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(138,59,31,0.45); }
+  50% { box-shadow: 0 0 0 5px rgba(138,59,31,0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .dl-btn-primary, .dl-btn-ghost { transition: none; }
+  .dl-btn-primary, .dl-btn-ghost, .dl-mic { transition: none; }
+  .dl-mic-live { animation: none; }
 }
 `;
 
@@ -111,6 +131,61 @@ export default function DagLog() {
   const [locError, setLocError] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechError, setSpeechError] = useState("");
+  const recognitionRef = useRef(null);
+  const baseTextRef = useRef("");
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    setSpeechSupported(true);
+    const rec = new SR();
+    rec.lang = "nl-NL";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onresult = (e) => {
+      let transcript = "";
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      setText((baseTextRef.current + transcript).slice(0, 500));
+    };
+    rec.onerror = (e) => {
+      setListening(false);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        setSpeechError("Geen toegang tot de microfoon. Check je toestemming.");
+      } else if (e.error === "no-speech") {
+        setSpeechError("Niets gehoord. Probeer het nog eens.");
+      } else if (e.error !== "aborted") {
+        setSpeechError("Inspreken lukte niet. Probeer het nog eens.");
+      }
+    };
+    rec.onend = () => setListening(false);
+    recognitionRef.current = rec;
+    return () => {
+      rec.onresult = rec.onerror = rec.onend = null;
+      try { rec.abort(); } catch (_) {}
+    };
+  }, []);
+
+  const toggleListening = () => {
+    const rec = recognitionRef.current;
+    if (!rec) return;
+    if (listening) {
+      rec.stop();
+      return;
+    }
+    setSpeechError("");
+    baseTextRef.current = text.trim() ? text.trim() + " " : "";
+    try {
+      rec.start();
+      setListening(true);
+    } catch (_) {
+      // start() throws if already running; ignore.
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -234,7 +309,24 @@ export default function DagLog() {
               className="dl-input px-3 py-2 text-sm flex-1"
               aria-label="Activiteit"
             />
+            {speechSupported && (
+              <button
+                onClick={toggleListening}
+                className={`dl-mic px-3 flex items-center justify-center shrink-0 ${listening ? "dl-mic-live" : ""}`}
+                aria-label={listening ? "Stop met inspreken" : "Inspreken"}
+                aria-pressed={listening}
+                title={listening ? "Stop met inspreken" : "Inspreken"}
+              >
+                <Mic size={16} />
+              </button>
+            )}
           </div>
+          {speechError && (
+            <p className="text-xs mb-3 -mt-1" style={{ color: "#8a3b1f" }}>{speechError}</p>
+          )}
+          {listening && (
+            <p className="dl-mono text-[11px] mb-3 -mt-1 opacity-70">Aan het luisteren… spreek nu.</p>
+          )}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <button
               onClick={useLocation}
