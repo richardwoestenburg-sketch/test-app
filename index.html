@@ -290,6 +290,25 @@
   .flitser-panel .toggle-row{background:transparent; border:none; padding:8px 0 4px; margin:0;}
   .flitser-panel .controls{margin-top:8px;}
   .flitser-count{font-family:var(--mono); font-size:10px; color:var(--chrome); margin-top:9px; letter-spacing:.03em;}
+  .flitser-list{list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:5px; max-height:150px; overflow-y:auto;}
+  .flitser-list li{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#0a0806; border:1px solid var(--line);
+    border-radius:2px; padding:7px 9px; font-family:var(--mono); font-size:10.5px; color:var(--ivory);}
+  .flitser-list li .co{color:var(--chrome); font-size:9.5px;}
+  .flitser-list li button{background:transparent; border:1px solid var(--line-bright); color:var(--rosso); border-radius:2px; padding:4px 9px; font-size:12px; line-height:1;}
+
+  /* ---------- Trip summary overlay ---------- */
+  .summary-overlay{position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(6,5,4,.82); backdrop-filter:blur(3px);}
+  .summary-overlay[hidden]{display:none;}
+  .summary-card{width:100%; max-width:400px; background:var(--bg-panel); border:1px solid var(--line-bright); border-top:3px solid var(--rosso);
+    border-radius:5px; padding:18px 16px 16px; box-shadow:0 18px 50px rgba(0,0,0,.6);}
+  .summary-title{font-family:var(--display); font-size:19px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--ivory); margin-bottom:14px;}
+  .summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;}
+  .s-item{background:#0a0806; border:1px solid var(--line); border-radius:3px; padding:10px;}
+  .s-item.s-wide{grid-column:1 / -1;}
+  .s-item .k{font-family:var(--mono); font-size:8.5px; color:var(--chrome); text-transform:uppercase; letter-spacing:.08em;}
+  .s-item .v{font-family:var(--digital); font-size:26px; color:var(--ivory); line-height:1.1; margin-top:4px;}
+  .summary-card .btn-primary{width:100%;}
 
   /* ---------- Drive view fills exactly one screen: the camera flexes to fill
        leftover space so every control stays visible without scrolling. ---------- */
@@ -492,6 +511,7 @@
       <button class="btn-secondary" id="clearFlitserBtn" style="flex:1">Wis alle</button>
     </div>
     <div class="flitser-count" id="flitserCount">0 flitsers opgeslagen</div>
+    <ul class="flitser-list" id="flitserList"></ul>
   </div>
 
   <div class="controls">
@@ -535,6 +555,20 @@
   <footer>ALLE VERWERKING LOKAAL — GEEN UPLOAD, GEEN OPSLAG<br>gebaseerd op rand-, bewegings- en geluidsanalyse · geen objectherkenning</footer>
 
   </section>
+
+  <div class="summary-overlay" id="tripSummary" hidden>
+    <div class="summary-card">
+      <div class="summary-title">Rit voltooid</div>
+      <div class="summary-grid">
+        <div class="s-item"><div class="k">Ritduur</div><div class="v" id="sumDuration">00:00</div></div>
+        <div class="s-item"><div class="k">Top snelheid</div><div class="v" id="sumTop">--<span class="su">km/u</span></div></div>
+        <div class="s-item"><div class="k">Meldingen</div><div class="v" id="sumAlerts">0</div></div>
+        <div class="s-item"><div class="k">Beste 0–100</div><div class="v" id="sumLaunch">--</div></div>
+        <div class="s-item s-wide"><div class="k">Piek g-kracht</div><div class="v" id="sumPeak">0.0<span class="su">g</span></div></div>
+      </div>
+      <button class="btn-primary stop" id="sumClose">Sluiten</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -584,6 +618,33 @@
   const markFlitserBtn = document.getElementById('markFlitserBtn');
   const clearFlitserBtn = document.getElementById('clearFlitserBtn');
   const flitserCount = document.getElementById('flitserCount');
+  const flitserList = document.getElementById('flitserList');
+  // Trip summary
+  const tripSummary = document.getElementById('tripSummary');
+  const sumDuration = document.getElementById('sumDuration');
+  const sumTop = document.getElementById('sumTop');
+  const sumAlerts = document.getElementById('sumAlerts');
+  const sumLaunch = document.getElementById('sumLaunch');
+  const sumPeak = document.getElementById('sumPeak');
+  const sumClose = document.getElementById('sumClose');
+  sumClose.addEventListener('click', () => { tripSummary.hidden = true; });
+
+  // ---------- Persisted preferences ----------
+  const PREFS_KEY = 'rijcoach_prefs';
+  function savePrefs(){
+    try{ localStorage.setItem(PREFS_KEY, JSON.stringify({
+      mode: drivingMode, cabrio: cabrioToggle.checked, flitser: flitserToggle.checked, best0100: launchBestVal
+    })); }catch(e){}
+  }
+  function loadPrefs(){
+    try{
+      const p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {};
+      if(typeof p.cabrio === 'boolean') cabrioToggle.checked = p.cabrio;
+      if(typeof p.flitser === 'boolean') flitserToggle.checked = p.flitser;
+      if(typeof p.best0100 === 'number') launchBestVal = p.best0100;
+      if(p.mode) setMode(p.mode, false);
+    }catch(e){}
+  }
 
   // ---------- Driving mode: Strada (calm) · Sport · Corsa (extreme) ----------
   let drivingMode = 'sport';
@@ -604,6 +665,7 @@
     document.body.classList.toggle('mode-corsa', m === 'corsa');
     // Corsa extras are shown via the body.mode-corsa CSS rule
     if(announce) logEvent(`Rijmodus: ${MODE_INFO[m].name}.`);
+    savePrefs();
   }
   modeOpts.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode, true)));
   const cluster = document.getElementById('cluster');
@@ -910,6 +972,9 @@
     const now = Date.now();
     if(lastSpoken[category] && now - lastSpoken[category] < cooldownMs) return;
     lastSpoken[category] = now;
+    if(navigator.vibrate && ['follow','lane','corner','phone','flitser'].includes(category)){
+      try{ navigator.vibrate(120); }catch(e){}
+    }
     try{
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'nl-NL';
@@ -1063,6 +1128,7 @@
 
   function tick(){
     if(!running || calibrating) return;
+    if(document.hidden) return; // skip heavy image analysis while backgrounded
     const th = thresholds();
     try{
       ctx.drawImage(video, 0, 0, W, H);
@@ -1216,11 +1282,16 @@
     startStats();
     resetGForce();
     resetLaunch();
+    requestWakeLock();
     loopHandle = setInterval(tick, 260);
   }
 
   function stop(){
     running = false;
+    // Capture the ride summary before the resets below clear these values
+    const hadSession = !!sessionStart && (Date.now() - sessionStart > 3000);
+    const summaryVals = { dur: sessionStart ? (Date.now() - sessionStart) : 0, top: topSpeedKmh, alerts: alertCount, best: launchBestVal, peak: gPeakVal };
+    releaseWakeLock();
     if(loopHandle) clearInterval(loopHandle);
     if(calibHandle) clearInterval(calibHandle);
     if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
@@ -1252,6 +1323,7 @@
     setGauge(gaugeLane, valLane, barLane, 'ok', '—', 0);
     setGauge(gaugeCorner, valCorner, barCorner, 'ok', '—', 0);
     logEvent('Rijcoach gestopt.');
+    if(hadSession) showTripSummary(summaryVals);
   }
 
   // ---------- Corsa: g-force meter ----------
@@ -1287,7 +1359,7 @@
       if(kmh >= 100){
         const t = (now - launchT0) / 1000;
         launchState = 'done';
-        if(launchBestVal == null || t < launchBestVal) launchBestVal = t;
+        if(launchBestVal == null || t < launchBestVal){ launchBestVal = t; savePrefs(); }
         setLaunchUI(t.toFixed(1), false);
         logEvent(`0–100 km/u in ${t.toFixed(1)} s.`);
         speak(`Nul naar honderd in ${t.toFixed(1)} seconden.`, 'launch', 4000);
@@ -1301,15 +1373,35 @@
   let flitsers = [];
   try{ flitsers = JSON.parse(localStorage.getItem('rijcoach_flitsers') || '[]') || []; }catch(e){ flitsers = []; }
   const flitserWarned = {};
+  let flitLastNi = -1, flitLastNd = Infinity; // track nearest camera to detect approaching
   function updateFlitserCount(){ flitserCount.textContent = `${flitsers.length} flitser${flitsers.length===1?'':'s'} opgeslagen`; }
-  function saveFlitsers(){ try{ localStorage.setItem('rijcoach_flitsers', JSON.stringify(flitsers)); }catch(e){} updateFlitserCount(); }
-  updateFlitserCount();
+  function renderFlitserList(){
+    flitserList.innerHTML = '';
+    flitsers.forEach((f, i) => {
+      const li = document.createElement('li');
+      const label = document.createElement('span');
+      label.innerHTML = `Flitser ${i+1} <span class="co">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</span>`;
+      const del = document.createElement('button');
+      del.type = 'button'; del.textContent = '✕'; del.title = 'Verwijder deze flitser';
+      del.addEventListener('click', () => {
+        flitsers.splice(i, 1);
+        for(const k in flitserWarned) delete flitserWarned[k];
+        flitLastNi = -1; flitLastNd = Infinity;
+        saveFlitsers(); logEvent('Flitser verwijderd.');
+      });
+      li.appendChild(label); li.appendChild(del);
+      flitserList.appendChild(li);
+    });
+  }
+  function saveFlitsers(){ try{ localStorage.setItem('rijcoach_flitsers', JSON.stringify(flitsers)); }catch(e){} updateFlitserCount(); renderFlitserList(); }
+  updateFlitserCount(); renderFlitserList();
   markFlitserBtn.addEventListener('click', () => {
     if(lastFix){ flitsers.push({ lat: lastFix.lat, lon: lastFix.lon }); saveFlitsers(); logEvent('📍 Flitser gemarkeerd op je huidige locatie.'); }
     else logEvent('Kan flitser niet markeren — nog geen GPS-locatie. Start eerst de rijcoach.');
   });
   clearFlitserBtn.addEventListener('click', () => {
     flitsers = []; for(const k in flitserWarned) delete flitserWarned[k];
+    flitLastNi = -1; flitLastNd = Infinity;
     saveFlitsers(); flitserAlert.hidden = true; logEvent('Alle flitserlocaties gewist.');
   });
   function checkFlitsers(lat, lon, kmh){
@@ -1319,7 +1411,10 @@
       const d = haversineMeters(lat, lon, flitsers[i].lat, flitsers[i].lon);
       if(d < nd){ nd = d; ni = i; }
     }
-    if(nd < 350 && kmh > 15){
+    // Only warn when actually getting closer to the same camera, not driving away
+    const approaching = (ni === flitLastNi) && (nd < flitLastNd - 2);
+    flitLastNi = ni; flitLastNd = nd;
+    if(nd < 350 && kmh > 15 && approaching){
       const rounded = Math.round(nd/10)*10;
       flitserDist.textContent = `± ${rounded} m`;
       flitserAlert.hidden = false;
@@ -1331,6 +1426,23 @@
     } else {
       flitserAlert.hidden = true;
     }
+  }
+
+  // ---------- Screen wake lock: keep the display on while coaching ----------
+  let wakeLock = null;
+  async function requestWakeLock(){
+    try{ if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); } }catch(e){}
+  }
+  function releaseWakeLock(){ try{ if(wakeLock){ wakeLock.release(); wakeLock = null; } }catch(e){} }
+
+  // ---------- Trip summary ----------
+  function showTripSummary(v){
+    sumDuration.textContent = fmtDuration(v.dur);
+    sumTop.innerHTML = `${Math.round(v.top)}<span class="su">km/u</span>`;
+    sumAlerts.textContent = v.alerts;
+    sumLaunch.textContent = v.best != null ? v.best.toFixed(1) + ' s' : '--';
+    sumPeak.innerHTML = `${v.peak.toFixed(1)}<span class="su">g</span>`;
+    tripSummary.hidden = false;
   }
 
   // ---------- Fullscreen ----------
@@ -1526,8 +1638,18 @@
   });
 
   document.addEventListener('visibilitychange', () => {
-    if(document.hidden && running) speechSynthesis.cancel();
+    if(document.hidden){
+      if(running) speechSynthesis.cancel();
+    } else if(running){
+      requestWakeLock(); // wake locks are dropped when the tab is hidden; re-acquire
+    }
   });
+
+  // ---------- Init: restore saved preferences & best time ----------
+  cabrioToggle.addEventListener('change', savePrefs);
+  flitserToggle.addEventListener('change', savePrefs);
+  loadPrefs();
+  resetLaunch(); // render the restored best 0-100 time
 })();
 </script>
 </body>
