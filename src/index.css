@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Respect device safe areas (notch / home indicator) when launched
+   as an installed standalone app. */
+.dl-root {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
