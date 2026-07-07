@@ -16,6 +16,10 @@ server of account nodig.
 - Verwijder losse aantekeningen of wis alles in één keer
 - Alles blijft lokaal opgeslagen op je apparaat
 - Installeerbaar op je startscherm (PWA) en werkt offline
+- Optionele **synchronisatie** via een eigen Cloudflare-backend, zodat telefoon,
+  browser én een Wear OS-horloge dezelfde daglog delen
+- Inspreken: microfoon-knop in de app (Web Speech API), en een `/log`-eindpunt
+  om vanaf een smartwatch in te spreken
 
 ## Live (GitHub Pages)
 
@@ -45,6 +49,17 @@ npm run build    # productie-build maken in dist/
 npm run preview  # de productie-build lokaal bekijken
 ```
 
+## Synchronisatie & Wear OS (optioneel)
+
+Standaard werkt Daglog puur lokaal. Wil je je aantekeningen delen tussen
+apparaten — of vanaf een Wear OS-horloge inspreken — dan zet je de meegeleverde
+Cloudflare-backend aan. Stap-voor-stap: **[`worker/DEPLOY.md`](worker/DEPLOY.md)**.
+
+Kort:
+1. Deploy de Worker in `worker/` naar je eigen (gratis) Cloudflare-account.
+2. Koppel de app via het tandwiel ⚙️ (Worker-URL + sleutel).
+3. Laat je horloge het `/log`-eindpunt aanroepen met je ingesproken tekst.
+
 ## Structuur
 
 ```
@@ -52,8 +67,10 @@ index.html                    entrypoint + PWA-meta en service worker-registrati
 src/main.jsx                  React root
 src/DagLog.jsx                het hoofdcomponent (UI + logica)
 src/storage.js                localStorage-persistentie
+src/sync.js                   client voor de Cloudflare-backend (sync)
 src/index.css                 Tailwind
 public/manifest.webmanifest   PWA-manifest (naam, iconen, kleuren)
 public/sw.js                  service worker (offline caching)
 public/icon-*.png, icon.svg   app-iconen
+worker/                       Cloudflare Worker backend (+ DEPLOY.md)
 ```

@@ -1,0 +1,14 @@
+# Cloudflare Worker config for the Daglog backend.
+# Fill in the KV namespace id (see worker/DEPLOY.md), then `wrangler deploy`.
+name = "daglog-api"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# KV namespace that stores the entries. Replace the id after creating it with:
+#   npx wrangler kv namespace create DAGLOG_KV
+kv_namespaces = [
+  { binding = "DAGLOG_KV", id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID" }
+]
+
+# The shared secret (DAGLOG_TOKEN) is NOT stored here. Set it with:
+#   npx wrangler secret put DAGLOG_TOKEN
