@@ -30,6 +30,8 @@ De app heeft twee tabbladen: **Daglog** (terugkijken — wat deed je) en
 - Laat een afspraak **herhalen**: elke dag, elke werkdag (ma–vr), elke week of
   elke maand. Een terugkerend item schuift vanzelf door naar de volgende keer
   (en krijgt telkens een nieuwe melding); afvinken zet 'm meteen op de volgende keer
+- Optionele **einddatum** voor een herhaling ("t/m …"): na die datum stopt de
+  reeks vanzelf en verdwijnt het item. Laat leeg om oneindig te herhalen
 - Kies per afspraak wanneer je een **melding** wilt: op tijd, of 5/15/30 minuten,
   1 uur of 1 dag ervoor
 - Gegroepeerd per dag ("Vandaag", "Morgen", of de datum); verlopen afspraken
