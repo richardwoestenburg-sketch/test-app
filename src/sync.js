@@ -78,3 +78,31 @@ export async function clearAll(cfg) {
   const data = await req(cfg, "/entries?all=1", { method: "DELETE" });
   return Array.isArray(data.entries) ? data.entries : [];
 }
+
+// --- Agenda (planner) items -------------------------------------------------
+// Same Worker + key as the daglog; a separate /agenda resource keeps planner
+// items in sync across phone, watch and browser.
+
+export async function fetchAgenda(cfg) {
+  const data = await req(cfg, "/agenda", { method: "GET" });
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+// Add a new item or update an existing one (upsert by id).
+export async function putAgendaItem(cfg, item) {
+  const data = await req(cfg, "/agenda", {
+    method: "POST",
+    body: JSON.stringify(item),
+  });
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+export async function deleteAgendaItem(cfg, id) {
+  const data = await req(cfg, "/agenda?id=" + encodeURIComponent(id), { method: "DELETE" });
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+export async function clearAgenda(cfg) {
+  const data = await req(cfg, "/agenda?all=1", { method: "DELETE" });
+  return Array.isArray(data.items) ? data.items : [];
+}

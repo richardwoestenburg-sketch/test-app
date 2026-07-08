@@ -150,7 +150,10 @@ tik op het tandwiel ⚙️ rechtsboven → vul in:
 - **Worker-URL:** de URL uit stap 4
 - **Sleutel:** je `DAGLOG_TOKEN` uit stap 3
 
-Tik **Opslaan & verbinden**. Vanaf nu synct de app met je backend.
+Tik **Opslaan & verbinden**. Vanaf nu synct de app met je backend — zowel je
+**Daglog** als je **Agenda** worden via dezelfde koppeling tussen je apparaten
+gedeeld. (Draaide je al een oudere Worker? Deploy `worker/` opnieuw zodat de
+nieuwe `/agenda`-endpoints meekomen.)
 
 ## 6. Vanaf je Wear OS-horloge inspreken
 

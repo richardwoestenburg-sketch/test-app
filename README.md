@@ -43,6 +43,8 @@ De app heeft twee tabbladen: **Daglog** (terugkijken — wat deed je) en
 
 - Alles blijft lokaal opgeslagen op je apparaat (`localStorage`) — geen account nodig
 - Installeerbaar op je startscherm (PWA) en werkt offline
+- Met de optionele Cloudflare-sync worden **zowel de daglog als de agenda** tussen
+  je apparaten gedeeld (zelfde koppeling, ingesteld via het tandwiel ⚙️)
 
 ## Live (GitHub Pages)
 
@@ -74,9 +76,14 @@ npm run preview  # de productie-build lokaal bekijken
 
 ## Synchronisatie & Wear OS (optioneel)
 
-Standaard werkt Daglog puur lokaal. Wil je je aantekeningen delen tussen
-apparaten — of vanaf een Wear OS-horloge inspreken — dan zet je de meegeleverde
-Cloudflare-backend aan.
+Standaard werkt Daglog puur lokaal. Wil je je aantekeningen én je agenda delen
+tussen apparaten — of vanaf een Wear OS-horloge inspreken — dan zet je de
+meegeleverde Cloudflare-backend aan. De Worker bewaart de daglog (`/entries`) en
+de agenda (`/agenda`) apart in dezelfde KV-opslag; de app gebruikt voor beide
+dezelfde koppeling.
+
+> **Al een oudere Worker gedraaid?** De agenda-endpoints (`/agenda`) zijn nieuw —
+> deploy de Worker in `worker/` opnieuw zodat je agenda ook synchroniseert.
 
 **Snelste manier (ook op de telefoon), één knop:**
 

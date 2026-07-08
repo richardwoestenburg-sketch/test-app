@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   CalendarDays, Plus, Trash2, Check, Clock, Bell, BellOff, BellRing,
+  Cloud, RefreshCw,
 } from "lucide-react";
 import {
-  loadItems, saveItems, makeItem, sortItems, reminderAt,
+  loadItems, saveItems, makeItem, sortItems,
   REMIND_OPTIONS,
 } from "./agenda.js";
 import * as notify from "./notify.js";
+import * as sync from "./sync.js";
 
 function todayKey(d = new Date()) {
   const y = d.getFullYear();
@@ -50,10 +52,14 @@ export default function Agenda() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [perm, setPerm] = useState(notify.notifySupported() ? notify.permission() : "unsupported");
   const [notifHint, setNotifHint] = useState("");
-  const didSync = useRef(false);
+  const [synced, setSynced] = useState(sync.isSyncConfigured());
+  const [syncStatus, setSyncStatus] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Persist and keep reminders in sync with the current list.
-  const commit = useCallback(async (next, { reschedule = true } = {}) => {
+  // Write the local cache and keep reminders reconciled with the list. When
+  // sync is on, a "catch-up" that fires here is pushed back so other devices
+  // (and re-pulls) don't re-notify for the same item.
+  const applyLocal = useCallback(async (next, { reschedule = true } = {}) => {
     const sorted = sortItems(next);
     setItems(sorted);
     saveItems(sorted);
@@ -66,6 +72,13 @@ export default function Agenda() {
           );
           setItems(marked);
           saveItems(marked);
+          const cfg = sync.getSyncConfig();
+          if (cfg) {
+            marked
+              .filter((it) => caughtUp.includes(it.id))
+              .forEach((it) => sync.putAgendaItem(cfg, it).catch(() => {}));
+          }
+          return marked;
         }
       } catch {
         /* notifications are best-effort */
@@ -74,23 +87,51 @@ export default function Agenda() {
     return sorted;
   }, []);
 
-  // Initial load + reconcile reminders once.
+  // Pull the shared agenda from the Worker (on load, refresh and regained focus).
+  const pullFromServer = useCallback(async () => {
+    const cfg = sync.getSyncConfig();
+    if (!cfg) return false;
+    const remote = await sync.fetchAgenda(cfg);
+    await applyLocal(remote);
+    return true;
+  }, [applyLocal]);
+
+  // Initial load: from server when synced, otherwise the local cache.
   useEffect(() => {
-    const initial = sortItems(loadItems());
-    setItems(initial);
-    setLoaded(true);
-    if (!didSync.current && notify.notifySupported()) {
-      didSync.current = true;
-      notify.syncReminders(initial).then((caughtUp) => {
-        if (caughtUp && caughtUp.length) {
-          const marked = initial.map((it) =>
-            caughtUp.includes(it.id) ? { ...it, notified: true } : it
-          );
-          setItems(marked);
-          saveItems(marked);
+    (async () => {
+      const cfg = sync.getSyncConfig();
+      if (cfg) {
+        try {
+          await pullFromServer();
+        } catch {
+          await applyLocal(loadItems());
+          setSyncStatus("Offline — lokale kopie getoond.");
         }
-      }).catch(() => {});
-    }
+      } else {
+        await applyLocal(loadItems());
+      }
+      setLoaded(true);
+    })();
+  }, [pullFromServer, applyLocal]);
+
+  // Refresh from the server when the app regains focus.
+  useEffect(() => {
+    const onFocus = () => {
+      if (sync.isSyncConfigured()) pullFromServer().catch(() => {});
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [pullFromServer]);
+
+  // Keep the cloud indicator in step if sync gets (un)configured on the other tab.
+  useEffect(() => {
+    const onVisible = () => setSynced(sync.isSyncConfigured());
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, []);
 
   const enableNotifications = async () => {
@@ -109,30 +150,54 @@ export default function Agenda() {
     }
   };
 
+  // Push a single item to the server (upsert) and adopt the returned list.
+  const pushItem = async (item) => {
+    const cfg = sync.getSyncConfig();
+    if (!cfg) return;
+    try {
+      const remote = await sync.putAgendaItem(cfg, item);
+      await applyLocal(remote);
+      setSyncStatus("");
+    } catch {
+      setSyncStatus("Offline — lokaal opgeslagen, nog niet gesynct.");
+    }
+  };
+
   const addItem = async () => {
     if (!title.trim() || !date) return;
     const item = makeItem({ title, date, timeLabel: time, remindOffset });
-    await commit([...items, item]);
+    await applyLocal([...items, item]);
     setTitle("");
     setTime(nowHHMM());
     if (notify.notifySupported() && notify.permission() === "default" && remindOffset != null) {
       // Nudge the user to enable notifications on their first reminder.
       setPerm("default");
     }
+    await pushItem(item);
   };
 
   const toggleDone = async (id) => {
-    const next = items.map((it) =>
-      it.id === id ? { ...it, done: !it.done, notified: it.done ? it.notified : true } : it
-    );
-    await commit(next);
+    const target = items.find((it) => it.id === id);
+    if (!target) return;
+    const updated = { ...target, done: !target.done, notified: target.done ? target.notified : true };
+    await applyLocal(items.map((it) => (it.id === id ? updated : it)));
+    await pushItem(updated);
   };
 
   const deleteItem = async (id) => {
     if (notify.notifySupported()) {
       try { await notify.cancelReminder(id); } catch {}
     }
-    await commit(items.filter((it) => it.id !== id), { reschedule: false });
+    await applyLocal(items.filter((it) => it.id !== id), { reschedule: false });
+    const cfg = sync.getSyncConfig();
+    if (cfg) {
+      try {
+        const remote = await sync.deleteAgendaItem(cfg, id);
+        await applyLocal(remote, { reschedule: false });
+      } catch {
+        setSyncStatus("Offline — verwijderen nog niet gesynct.");
+      }
+    }
   };
 
   const resetAll = async () => {
@@ -141,8 +206,28 @@ export default function Agenda() {
         try { await notify.cancelReminder(it.id); } catch {}
       }
     }
-    await commit([], { reschedule: false });
+    await applyLocal([], { reschedule: false });
     setConfirmReset(false);
+    const cfg = sync.getSyncConfig();
+    if (cfg) {
+      try {
+        await sync.clearAgenda(cfg);
+        setSyncStatus("");
+      } catch {
+        setSyncStatus("Offline — wissen nog niet gesynct.");
+      }
+    }
+  };
+
+  const refresh = async () => {
+    setRefreshing(true);
+    setSyncStatus("");
+    try {
+      await pullFromServer();
+    } catch {
+      setSyncStatus("Verversen lukte niet. Ben je online?");
+    }
+    setRefreshing(false);
   };
 
   const visible = items.filter((it) => showDone || !it.done);
@@ -183,6 +268,22 @@ export default function Agenda() {
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Agenda</h1>
           <p className="text-xs opacity-60 dl-mono">plan vooruit — met een seintje op tijd</p>
         </div>
+        {synced && (
+          <>
+            <button
+              onClick={refresh}
+              disabled={refreshing}
+              className="dl-btn-ghost p-2"
+              aria-label="Ververs vanaf server"
+              title="Ververs vanaf server"
+            >
+              <RefreshCw size={15} className={refreshing ? "dl-spin" : ""} />
+            </button>
+            <span className="dl-btn-ghost p-2 inline-flex" title="Agenda wordt gesynchroniseerd">
+              <Cloud size={15} color="#b8892b" />
+            </span>
+          </>
+        )}
         {notifBtn()}
       </header>
 
@@ -199,6 +300,13 @@ export default function Agenda() {
         </div>
       )}
       {notifHint && <p className="text-xs mb-6 -mt-2 opacity-70">{notifHint}</p>}
+      {syncStatus && <p className="text-xs mb-6 -mt-2 opacity-70">{syncStatus}</p>}
+      {!synced && (
+        <p className="text-xs mb-6 -mt-2 opacity-55">
+          Tip: koppel de sync via het tandwiel ⚙️ op het Daglog-tabblad om je agenda
+          tussen telefoon, horloge en browser te delen.
+        </p>
+      )}
 
       {/* New item card */}
       <div className="dl-card p-4 mb-8">
