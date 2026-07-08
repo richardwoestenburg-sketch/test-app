@@ -3,8 +3,13 @@
 //
 // An item shape:
 // { id, title, date: "YYYY-MM-DD", timeLabel: "HH:MM", timestamp: ISO (event),
-//   remindOffset: minutes-before (number), remindAt: ISO|null, done: bool,
-//   notified: bool }
+//   remindOffset: minutes-before (number), remindAt: ISO|null,
+//   repeat: "none"|"daily"|"weekdays"|"weekly"|"monthly",
+//   done: bool, notified: bool }
+//
+// Recurring items are a single record that rolls forward: once an occurrence
+// has passed (or is ticked off) it advances to the next occurrence in place,
+// so the list stays small and one reminder is scheduled at a time.
 
 const STORE_KEY = "daglog-agenda";
 
@@ -31,6 +36,14 @@ export function newId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+// Local-time date key (YYYY-MM-DD) for a Date.
+export function localDateKey(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 // Build an event timestamp from a date (YYYY-MM-DD) + time (HH:MM) in local time.
 export function eventTimestamp(date, timeLabel) {
   const [y, m, d] = date.split("-").map(Number);
@@ -54,7 +67,80 @@ export const REMIND_OPTIONS = [
   { value: null, label: "Geen melding" },
 ];
 
-export function makeItem({ title, date, timeLabel, remindOffset }) {
+export const REPEAT_OPTIONS = [
+  { value: "none", label: "Herhaalt niet" },
+  { value: "daily", label: "Elke dag" },
+  { value: "weekdays", label: "Elke werkdag" },
+  { value: "weekly", label: "Elke week" },
+  { value: "monthly", label: "Elke maand" },
+];
+
+const REPEAT_VALUES = REPEAT_OPTIONS.map((o) => o.value);
+
+export function normalizeRepeat(v) {
+  return REPEAT_VALUES.includes(v) ? v : "none";
+}
+
+export function isRecurring(item) {
+  return item && item.repeat && item.repeat !== "none";
+}
+
+export function repeatLabel(v) {
+  const o = REPEAT_OPTIONS.find((r) => r.value === v);
+  return o && o.value !== "none" ? o.label : null;
+}
+
+// Advance a local timestamp (ms) by one step of the given cadence, keeping the
+// wall-clock time of day (so DST shifts don't drift the reminder).
+function addRepeat(ms, repeat) {
+  const d = new Date(ms);
+  switch (repeat) {
+    case "daily":
+      d.setDate(d.getDate() + 1);
+      break;
+    case "weekdays":
+      do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);
+      break;
+    case "weekly":
+      d.setDate(d.getDate() + 7);
+      break;
+    case "monthly": {
+      const day = d.getDate();
+      d.setDate(1);
+      d.setMonth(d.getMonth() + 1);
+      const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      d.setDate(Math.min(day, daysInMonth));
+      break;
+    }
+    default:
+      d.setDate(d.getDate() + 1);
+  }
+  return d.getTime();
+}
+
+// Roll a recurring item forward to its next occurrence strictly after `now`.
+// Always advances at least one step (so ticking off a not-yet-due occurrence
+// moves to the following one). Resets the per-occurrence notified/done flags.
+export function rollForward(item, now = Date.now()) {
+  let ms = new Date(item.timestamp).getTime();
+  let guard = 0;
+  do {
+    ms = addRepeat(ms, item.repeat);
+    guard += 1;
+  } while (ms <= now && guard < 2000);
+  const ts = new Date(ms);
+  const timestamp = ts.toISOString();
+  return {
+    ...item,
+    date: localDateKey(ts),
+    timestamp,
+    remindAt: reminderAt(timestamp, item.remindOffset),
+    done: false,
+    notified: false,
+  };
+}
+
+export function makeItem({ title, date, timeLabel, remindOffset, repeat }) {
   const timestamp = eventTimestamp(date, timeLabel);
   return {
     id: newId(),
@@ -64,6 +150,7 @@ export function makeItem({ title, date, timeLabel, remindOffset }) {
     timestamp,
     remindOffset: remindOffset ?? null,
     remindAt: reminderAt(timestamp, remindOffset),
+    repeat: normalizeRepeat(repeat),
     done: false,
     notified: false,
   };

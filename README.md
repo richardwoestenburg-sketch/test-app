@@ -27,6 +27,9 @@ De app heeft twee tabbladen: **Daglog** (terugkijken — wat deed je) en
 **Agenda / planner**
 
 - Plan afspraken en taken vooruit met datum, tijd en titel
+- Laat een afspraak **herhalen**: elke dag, elke werkdag (ma–vr), elke week of
+  elke maand. Een terugkerend item schuift vanzelf door naar de volgende keer
+  (en krijgt telkens een nieuwe melding); afvinken zet 'm meteen op de volgende keer
 - Kies per afspraak wanneer je een **melding** wilt: op tijd, of 5/15/30 minuten,
   1 uur of 1 dag ervoor
 - Gegroepeerd per dag ("Vandaag", "Morgen", of de datum); verlopen afspraken
