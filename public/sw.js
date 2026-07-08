@@ -1,6 +1,6 @@
 // Simple offline-first service worker for Daglog.
 // Bump CACHE when you ship new assets so old caches are cleared.
-const CACHE = "daglog-v2";
+const CACHE = "daglog-v3";
 // Relative to the service worker's own location, so the same worker caches
 // correctly whether served from a domain root or a subpath (/test-app/).
 const CORE = [
@@ -25,6 +25,21 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+  );
+});
+
+// Agenda reminders: focus an existing window (or open one) when a
+// notification is tapped.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "./";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ("focus" in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+    })
   );
 });
 

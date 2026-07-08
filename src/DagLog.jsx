@@ -6,106 +6,7 @@ import {
 import { storage } from "./storage.js";
 import * as sync from "./sync.js";
 
-const FONT_STYLE = `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
-.dl-root {
-  font-family: 'Inter', sans-serif;
-  background: #10151c;
-  background-image:
-    radial-gradient(circle at 20% 0%, rgba(184,137,43,0.08), transparent 40%),
-    radial-gradient(circle at 80% 100%, rgba(184,137,43,0.05), transparent 40%);
-  min-height: 100vh;
-  color: #ede6d0;
-}
-.dl-serif { font-family: 'Fraunces', serif; }
-.dl-mono { font-family: 'JetBrains Mono', monospace; }
-
-.dl-card {
-  background: #efe3c0;
-  color: #241d10;
-  border-radius: 10px;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.15), 0 8px 20px -10px rgba(0,0,0,0.5);
-}
-
-.dl-input {
-  background: rgba(16,21,28,0.04);
-  border: 1px solid rgba(36,29,16,0.18);
-  border-radius: 8px;
-  color: #241d10;
-}
-.dl-input:focus {
-  outline: none;
-  border-color: #b8892b;
-  box-shadow: 0 0 0 3px rgba(184,137,43,0.18);
-}
-
-.dl-btn-primary {
-  background: #1f2a36;
-  color: #efe3c0;
-  border-radius: 8px;
-  transition: transform 0.12s ease, background 0.12s ease;
-}
-.dl-btn-primary:hover { background: #2a3949; }
-.dl-btn-primary:active { transform: scale(0.97); }
-.dl-btn-primary:disabled { opacity: 0.45; }
-
-.dl-btn-ghost {
-  border: 1px solid rgba(237,230,208,0.25);
-  color: #ede6d0;
-  border-radius: 8px;
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
-.dl-btn-ghost:hover { background: rgba(237,230,208,0.06); border-color: rgba(237,230,208,0.4); }
-
-.dl-line {
-  position: absolute;
-  left: 6px;
-  top: 0.65rem;
-  bottom: -1.1rem;
-  width: 1px;
-  background: linear-gradient(to bottom, rgba(184,137,43,0.6), rgba(184,137,43,0.15));
-}
-.dl-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #b8892b;
-  box-shadow: 0 0 0 3px rgba(184,137,43,0.18);
-}
-.dl-entry:last-child .dl-line { display: none; }
-
-.dl-day-label {
-  letter-spacing: 0.14em;
-}
-
-.dl-mic {
-  border: 1px solid rgba(36,29,16,0.25);
-  border-radius: 8px;
-  color: #241d10;
-  background: rgba(16,21,28,0.04);
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
-.dl-mic:hover { background: rgba(16,21,28,0.08); }
-.dl-mic-live {
-  background: #8a3b1f;
-  border-color: #8a3b1f;
-  color: #efe3c0;
-  animation: dl-pulse 1.2s ease-in-out infinite;
-}
-@keyframes dl-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(138,59,31,0.45); }
-  50% { box-shadow: 0 0 0 5px rgba(138,59,31,0); }
-}
-
-.dl-spin { animation: dl-rotate 0.9s linear infinite; }
-@keyframes dl-rotate { to { transform: rotate(360deg); } }
-
-@media (prefers-reduced-motion: reduce) {
-  .dl-btn-primary, .dl-btn-ghost, .dl-mic { transition: none; }
-  .dl-mic-live, .dl-spin { animation: none; }
-}
-`;
+// Visual styling lives in src/theme.js and is injected once by App.
 
 function todayKey(d = new Date()) {
   return d.toISOString().slice(0, 10);
@@ -394,10 +295,8 @@ export default function DagLog() {
   const orderedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
   return (
-    <div className="dl-root">
-      <style>{FONT_STYLE}</style>
-      <div className="max-w-xl mx-auto px-5 py-8">
-        <header className="flex items-center gap-3 mb-8">
+    <div className="max-w-xl mx-auto px-5 pb-10">
+      <header className="flex items-center gap-3 mb-8">
           <Anchor size={26} strokeWidth={1.6} color="#b8892b" />
           <div className="flex-1">
             <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Daglog</h1>
@@ -606,6 +505,5 @@ export default function DagLog() {
           )}
         </div>
       </div>
-    </div>
   );
 }

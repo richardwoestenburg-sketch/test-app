@@ -1,7 +1,7 @@
 {
   "name": "Daglog",
   "short_name": "Daglog",
-  "description": "Een journaal van hoe je je uren besteedt",
+  "description": "Journaal van hoe je je uren besteedt, plus een agenda die je op tijd een seintje geeft",
   "lang": "nl",
   "start_url": "./",
   "scope": "./",
