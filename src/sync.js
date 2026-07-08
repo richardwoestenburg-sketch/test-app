@@ -106,3 +106,30 @@ export async function clearAgenda(cfg) {
   const data = await req(cfg, "/agenda?all=1", { method: "DELETE" });
   return Array.isArray(data.items) ? data.items : [];
 }
+
+// --- Time tracking sessions -------------------------------------------------
+// Same Worker + key; a separate /sessions resource keeps the time log in sync
+// across phone, laptop and watch (the watch logs via the /track endpoint).
+
+export async function fetchSessions(cfg) {
+  const data = await req(cfg, "/sessions", { method: "GET" });
+  return Array.isArray(data.sessions) ? data.sessions : [];
+}
+
+export async function putSession(cfg, session) {
+  const data = await req(cfg, "/sessions", {
+    method: "POST",
+    body: JSON.stringify(session),
+  });
+  return Array.isArray(data.sessions) ? data.sessions : [];
+}
+
+export async function deleteSession(cfg, id) {
+  const data = await req(cfg, "/sessions?id=" + encodeURIComponent(id), { method: "DELETE" });
+  return Array.isArray(data.sessions) ? data.sessions : [];
+}
+
+export async function clearSessions(cfg) {
+  const data = await req(cfg, "/sessions?all=1", { method: "DELETE" });
+  return Array.isArray(data.sessions) ? data.sessions : [];
+}

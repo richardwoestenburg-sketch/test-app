@@ -10,7 +10,10 @@
 
 const KV_KEY = "entries";
 const AGENDA_KEY = "agenda";
+const SESSIONS_KEY = "sessions";
 const MAX_ENTRIES = 5000;
+// Time-tracking sessions shorter than this are treated as mis-taps.
+const MIN_SESSION_MS = 2000;
 
 function cors(origin) {
   return {
@@ -126,6 +129,75 @@ function makeAgendaItem(input) {
   };
 }
 
+// --- Time tracking sessions -------------------------------------------------
+// Stored under their own KV key. Shape: { id, label, start: ISO, end: ISO|null }.
+// The active session is the one with end === null (at most one at a time).
+
+async function readSessions(env) {
+  const raw = await env.DAGLOG_KV.get(SESSIONS_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function sortSessions(list) {
+  return list.sort((a, b) => String(a.start).localeCompare(String(b.start)));
+}
+
+async function writeSessions(env, list) {
+  const trimmed = sortSessions(list).slice(-MAX_ENTRIES);
+  await env.DAGLOG_KV.put(SESSIONS_KEY, JSON.stringify(trimmed));
+  return trimmed;
+}
+
+function makeSession(input) {
+  return {
+    id: input.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    label: String(input.label || "").slice(0, 120),
+    start: input.start || new Date().toISOString(),
+    end: input.end || null,
+  };
+}
+
+function activeSession(list) {
+  return list.find((s) => !s.end) || null;
+}
+
+// Stop the running activity (if any) and — unless the same label is already
+// running — start a new one. Mirrors the web app's switchActivity.
+function switchServer(list, label, nowMs) {
+  const clean = String(label || "").trim().slice(0, 120);
+  if (!clean) return list;
+  let next = list.slice();
+  const active = activeSession(next);
+  let same = false;
+  if (active) {
+    same = active.label === clean;
+    if (nowMs - new Date(active.start).getTime() < MIN_SESSION_MS) {
+      next = next.filter((s) => s.id !== active.id);
+    } else {
+      next = next.map((s) => (s.id === active.id ? { ...s, end: new Date(nowMs).toISOString() } : s));
+    }
+  }
+  if (!same) {
+    next.push(makeSession({ label: clean, start: new Date(nowMs).toISOString(), end: null }));
+  }
+  return next;
+}
+
+function stopServer(list, nowMs) {
+  const active = activeSession(list);
+  if (!active) return list;
+  if (nowMs - new Date(active.start).getTime() < MIN_SESSION_MS) {
+    return list.filter((s) => s.id !== active.id);
+  }
+  return list.map((s) => (s.id === active.id ? { ...s, end: new Date(nowMs).toISOString() } : s));
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -213,6 +285,77 @@ export default {
       const items = await readAgenda(env);
       const saved = await writeAgenda(env, items.filter((x) => x.id !== id));
       return json({ items: saved }, 200, origin);
+    }
+
+    // GET /sessions -> all time-tracking sessions
+    if (path === "/sessions" && request.method === "GET") {
+      const list = await readSessions(env);
+      return json({ sessions: sortSessions(list) }, 200, origin);
+    }
+
+    // POST /sessions -> upsert one session (add new, or update on stop/edit)
+    if (path === "/sessions" && request.method === "POST") {
+      let body = {};
+      try {
+        body = await request.json();
+      } catch {
+        return json({ error: "invalid json" }, 400, origin);
+      }
+      if (!String(body.label || "").trim()) {
+        return json({ error: "label required" }, 400, origin);
+      }
+      const list = await readSessions(env);
+      const session = makeSession(body);
+      const idx = list.findIndex((x) => x.id === session.id);
+      if (idx >= 0) list[idx] = session;
+      else list.push(session);
+      const saved = await writeSessions(env, list);
+      return json({ session, sessions: saved }, idx >= 0 ? 200 : 201, origin);
+    }
+
+    // DELETE /sessions?id=... -> remove one; DELETE /sessions?all=1 -> clear
+    if (path === "/sessions" && request.method === "DELETE") {
+      if (url.searchParams.get("all") === "1") {
+        await writeSessions(env, []);
+        return json({ sessions: [] }, 200, origin);
+      }
+      const id = url.searchParams.get("id");
+      if (!id) return json({ error: "id required" }, 400, origin);
+      const list = await readSessions(env);
+      const saved = await writeSessions(env, list.filter((x) => x.id !== id));
+      return json({ sessions: saved }, 200, origin);
+    }
+
+    // GET/POST /track -> one-tap activity switch for the watch.
+    //   /track?label=Bellen  -> start/switch to "Bellen"
+    //   /track?stop=1         -> stop the running activity
+    // GET so a plain "open URL" tile/Shortcut works too.
+    if (path === "/track" && (request.method === "GET" || request.method === "POST")) {
+      const stop = url.searchParams.get("stop");
+      let label = url.searchParams.get("label") || "";
+      if (!label && !stop && request.method === "POST") {
+        const ctype = request.headers.get("Content-Type") || "";
+        try {
+          label = ctype.includes("application/json")
+            ? (await request.json()).label || ""
+            : await request.text();
+        } catch {
+          label = "";
+        }
+      }
+      const list = await readSessions(env);
+      const nowMs = Date.now();
+      let next;
+      if (stop === "1" || stop === "true") {
+        next = stopServer(list, nowMs);
+      } else if (String(label).trim()) {
+        next = switchServer(list, label, nowMs);
+      } else {
+        return json({ error: "label or stop required" }, 400, origin);
+      }
+      const saved = await writeSessions(env, next);
+      const act = activeSession(saved);
+      return json({ ok: true, active: act ? act.label : null }, 200, origin);
     }
 
     // POST/GET /log -> ultra-simple endpoint for the watch: just text.

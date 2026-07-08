@@ -182,6 +182,30 @@ Voor wie al Tasker gebruikt: laat AutoWear een spraakcommando opvangen en met
 een *HTTP Request*-actie de bovenstaande URL aanroepen (`text` = de herkende
 spraak).
 
+## 7. Tijd registreren vanaf je horloge (OnePlus Watch 2 / Wear OS)
+
+De Worker heeft een tweede horloge-eindpunt voor **tijdregistratie**. Eén tik
+start (of wisselt naar) een activiteit; de lopende activiteit stopt automatisch.
+Het verschijnt meteen in het **Tijd**-tabblad op je telefoon en laptop.
+
+```
+GET  https://<jouw-worker>/track?key=<SLEUTEL>&label=<activiteit>   # start/wissel
+GET  https://<jouw-worker>/track?key=<SLEUTEL>&stop=1               # stop
+```
+
+**Instellen met HTTP Shortcuts (aanbevolen):**
+1. Installeer **HTTP Shortcuts** (Android) — die heeft Wear OS-tegels.
+2. Maak per vaste activiteit een shortcut → Methode **GET** → URL:
+   `https://<jouw-worker>/track` met parameters `key` = je sleutel en
+   `label` = de activiteit (bijv. `Bellen`, `Overleg`, `Administratie`).
+3. Maak nog één shortcut **Stop**: URL `https://<jouw-worker>/track` met
+   `key` = je sleutel en `stop` = `1`.
+4. Zet die shortcuts als **tegels** op je OnePlus Watch 2. Eén tik op de tegel
+   → de activiteit loopt; tik een andere tegel om te wisselen, of **Stop**.
+
+> Deze tijdregistratie-endpoints (`/track`, `/sessions`) zijn nieuw — draaide je
+> al een oudere Worker, deploy `worker/` dan opnieuw zodat ze meekomen.
+
 ## Beheer / opmerkingen
 
 - **Kosten:** blijft normaal €0 (Cloudflare gratis-tier: 100k requests/dag).
