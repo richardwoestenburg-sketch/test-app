@@ -104,6 +104,7 @@ function makeAgendaItem(input) {
     input.remindOffset === null || input.remindOffset === undefined
       ? null
       : Number(input.remindOffset);
+  const repeatValues = ["none", "daily", "weekdays", "weekly", "monthly"];
   return {
     id: input.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     title: String(input.title || "").slice(0, 300),
@@ -112,6 +113,7 @@ function makeAgendaItem(input) {
     timestamp,
     remindOffset: Number.isFinite(offset) ? offset : null,
     remindAt: input.remindAt || null,
+    repeat: repeatValues.includes(input.repeat) ? input.repeat : "none",
     done: !!input.done,
     notified: !!input.notified,
   };

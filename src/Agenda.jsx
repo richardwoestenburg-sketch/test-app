@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   CalendarDays, Plus, Trash2, Check, Clock, Bell, BellOff, BellRing,
-  Cloud, RefreshCw,
+  Cloud, RefreshCw, Repeat,
 } from "lucide-react";
 import {
-  loadItems, saveItems, makeItem, sortItems,
-  REMIND_OPTIONS,
+  loadItems, saveItems, makeItem, sortItems, rollForward, isRecurring,
+  REMIND_OPTIONS, REPEAT_OPTIONS, repeatLabel,
 } from "./agenda.js";
 import * as notify from "./notify.js";
 import * as sync from "./sync.js";
@@ -48,6 +48,7 @@ export default function Agenda() {
   const [date, setDate] = useState(todayKey());
   const [time, setTime] = useState(nowHHMM());
   const [remindOffset, setRemindOffset] = useState(15);
+  const [repeat, setRepeat] = useState("none");
   const [showDone, setShowDone] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [perm, setPerm] = useState(notify.notifySupported() ? notify.permission() : "unsupported");
@@ -58,9 +59,32 @@ export default function Agenda() {
 
   // Write the local cache and keep reminders reconciled with the list. When
   // sync is on, a "catch-up" that fires here is pushed back so other devices
-  // (and re-pulls) don't re-notify for the same item.
+  // (and re-pulls) don't re-notify for the same item. Recurring items whose
+  // occurrence has passed are rolled forward to their next occurrence.
   const applyLocal = useCallback(async (next, { reschedule = true } = {}) => {
-    const sorted = sortItems(next);
+    const cfg = sync.getSyncConfig();
+    let list = next;
+    if (reschedule) {
+      const now = Date.now();
+      const advancedIds = [];
+      list = next.map((it) => {
+        if (isRecurring(it) && !it.done) {
+          const ts = new Date(it.timestamp).getTime();
+          if (Number.isFinite(ts) && ts <= now) {
+            advancedIds.push(it.id);
+            return rollForward(it, now);
+          }
+        }
+        return it;
+      });
+      // Sync the rolled-forward dates so other devices see the same next occurrence.
+      if (advancedIds.length && cfg) {
+        list
+          .filter((it) => advancedIds.includes(it.id))
+          .forEach((it) => sync.putAgendaItem(cfg, it).catch(() => {}));
+      }
+    }
+    const sorted = sortItems(list);
     setItems(sorted);
     saveItems(sorted);
     if (reschedule && notify.notifySupported()) {
@@ -72,7 +96,6 @@ export default function Agenda() {
           );
           setItems(marked);
           saveItems(marked);
-          const cfg = sync.getSyncConfig();
           if (cfg) {
             marked
               .filter((it) => caughtUp.includes(it.id))
@@ -165,21 +188,28 @@ export default function Agenda() {
 
   const addItem = async () => {
     if (!title.trim() || !date) return;
-    const item = makeItem({ title, date, timeLabel: time, remindOffset });
-    await applyLocal([...items, item]);
+    const item = makeItem({ title, date, timeLabel: time, remindOffset, repeat });
+    // applyLocal may roll a recurring item forward if its first occurrence is
+    // already past; adopt whichever version ends up in the list for the server.
+    const result = await applyLocal([...items, item]);
+    const saved = result.find((it) => it.id === item.id) || item;
     setTitle("");
     setTime(nowHHMM());
     if (notify.notifySupported() && notify.permission() === "default" && remindOffset != null) {
       // Nudge the user to enable notifications on their first reminder.
       setPerm("default");
     }
-    await pushItem(item);
+    await pushItem(saved);
   };
 
   const toggleDone = async (id) => {
     const target = items.find((it) => it.id === id);
     if (!target) return;
-    const updated = { ...target, done: !target.done, notified: target.done ? target.notified : true };
+    // Ticking off a recurring item completes this occurrence and advances it to
+    // the next one, so the series keeps going.
+    const updated = isRecurring(target) && !target.done
+      ? rollForward(target, Date.now())
+      : { ...target, done: !target.done, notified: target.done ? target.notified : true };
     await applyLocal(items.map((it) => (it.id === id ? updated : it)));
     await pushItem(updated);
   };
@@ -339,7 +369,7 @@ export default function Agenda() {
             aria-label="Tijdstip"
           />
         </div>
-        <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-3 gap-y-2 mb-3 flex-wrap">
           <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#241d10" }}>
             <Bell size={13} className="opacity-60" />
             <select
@@ -356,6 +386,21 @@ export default function Agenda() {
               ))}
             </select>
           </label>
+          <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#241d10" }}>
+            <Repeat size={13} className="opacity-60" />
+            <select
+              value={repeat}
+              onChange={(e) => setRepeat(e.target.value)}
+              className="dl-input px-2 py-1.5 text-xs"
+              aria-label="Herhaling"
+            >
+              {REPEAT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="flex justify-end">
           <button
             onClick={addItem}
             disabled={!title.trim() || !date}
@@ -390,7 +435,12 @@ export default function Agenda() {
                     <button
                       onClick={() => toggleDone(it.id)}
                       className={`dl-check ${it.done ? "dl-check-on" : ""}`}
-                      aria-label={it.done ? "Markeer als niet gedaan" : "Markeer als gedaan"}
+                      aria-label={
+                        isRecurring(it)
+                          ? "Deze keer afvinken — schuift door naar de volgende"
+                          : it.done ? "Markeer als niet gedaan" : "Markeer als gedaan"
+                      }
+                      title={isRecurring(it) ? "Deze keer afvinken — gaat door naar de volgende keer" : undefined}
                       aria-pressed={it.done}
                     >
                       {it.done && <Check size={14} strokeWidth={3} />}
@@ -404,6 +454,11 @@ export default function Agenda() {
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {overdue && <span className="dl-badge dl-badge-over">Verlopen</span>}
+                        {isRecurring(it) && repeatLabel(it.repeat) && (
+                          <span className="dl-badge">
+                            <Repeat size={9} /> {repeatLabel(it.repeat)}
+                          </span>
+                        )}
                         {!it.done && it.remindOffset != null && remindLabel(it.remindOffset) && (
                           <span className="dl-badge">
                             <Bell size={9} /> {remindLabel(it.remindOffset)}
