@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Timer, Square, Plus, Trash2, ChevronLeft, ChevronRight, Pencil, X, Check,
+  Cloud, RefreshCw,
 } from "lucide-react";
 import { localDateKey } from "./agenda.js";
 import {
   loadSessions, saveSessions, loadPresets, savePresets,
   switchActivity, stopActivity, activeSession, sessionMs,
-  dayStats, formatDuration, formatClock,
+  dayStats, formatDuration, formatClock, diffSessions,
 } from "./timelog.js";
+import * as sync from "./sync.js";
 
 function addDaysKey(base, n) {
   const d = new Date(base + "T00:00:00");
@@ -34,12 +36,48 @@ export default function TimeLog() {
   const [selectedDate, setSelectedDate] = useState(localDateKey());
   const [, setTick] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [synced, setSynced] = useState(sync.isSyncConfigured());
+  const [syncStatus, setSyncStatus] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Adopt a server list into local state + cache.
+  const adopt = useCallback((list) => {
+    setSessions(list);
+    saveSessions(list);
+  }, []);
 
   useEffect(() => {
-    setSessions(loadSessions());
     setPresets(loadPresets());
-    setLoaded(true);
-  }, []);
+    (async () => {
+      const cfg = sync.getSyncConfig();
+      if (cfg) {
+        try {
+          adopt(await sync.fetchSessions(cfg));
+        } catch {
+          setSessions(loadSessions());
+          setSyncStatus("Offline — lokale kopie getoond.");
+        }
+      } else {
+        setSessions(loadSessions());
+      }
+      setLoaded(true);
+    })();
+  }, [adopt]);
+
+  // Refresh from the server when the app regains focus (picks up watch logs).
+  useEffect(() => {
+    const onFocus = () => {
+      setSynced(sync.isSyncConfigured());
+      const cfg = sync.getSyncConfig();
+      if (cfg) sync.fetchSessions(cfg).then(adopt).catch(() => {});
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [adopt]);
 
   // Live-update the running timer once a second (only while something runs).
   const hasActive = sessions.some((s) => !s.end);
@@ -49,9 +87,17 @@ export default function TimeLog() {
     return () => clearInterval(t);
   }, [hasActive]);
 
-  const persist = useCallback((next) => {
+  // Persist locally and push the delta to the server (upserts + deletes).
+  const commit = useCallback((prev, next) => {
     setSessions(next);
     saveSessions(next);
+    const cfg = sync.getSyncConfig();
+    if (!cfg) return;
+    const { upserts, removedIds } = diffSessions(prev, next);
+    let failed = false;
+    const fail = () => { if (!failed) { failed = true; setSyncStatus("Offline — nog niet gesynct."); } };
+    upserts.forEach((s) => sync.putSession(cfg, s).then(() => setSyncStatus("")).catch(fail));
+    removedIds.forEach((id) => sync.deleteSession(cfg, id).catch(fail));
   }, []);
 
   const persistPresets = useCallback((next) => {
@@ -61,12 +107,23 @@ export default function TimeLog() {
 
   const active = activeSession(sessions);
 
-  const start = (label) => persist(switchActivity(sessions, label));
-  const stop = () => persist(stopActivity(sessions));
+  const start = (label) => commit(sessions, switchActivity(sessions, label));
+  const stop = () => commit(sessions, stopActivity(sessions));
+
+  const refresh = async () => {
+    setRefreshing(true);
+    setSyncStatus("");
+    try {
+      adopt(await sync.fetchSessions(sync.getSyncConfig()));
+    } catch {
+      setSyncStatus("Verversen lukte niet. Ben je online?");
+    }
+    setRefreshing(false);
+  };
 
   const startAdhoc = () => {
     if (!adhoc.trim()) return;
-    persist(switchActivity(sessions, adhoc));
+    commit(sessions, switchActivity(sessions, adhoc));
     setAdhoc("");
   };
 
@@ -82,10 +139,10 @@ export default function TimeLog() {
 
   const removePreset = (label) => persistPresets(presets.filter((p) => p !== label));
 
-  const deleteSession = (id) => persist(sessions.filter((s) => s.id !== id));
+  const deleteSession = (id) => commit(sessions, sessions.filter((s) => s.id !== id));
 
   const clearDay = () => {
-    persist(sessions.filter((s) => localDateKey(new Date(s.start)) !== selectedDate));
+    commit(sessions, sessions.filter((s) => localDateKey(new Date(s.start)) !== selectedDate));
     setConfirmClear(false);
   };
 
@@ -101,7 +158,24 @@ export default function TimeLog() {
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Tijd</h1>
           <p className="text-xs opacity-60 dl-mono">wat je doet en hoe lang · met daganalyse</p>
         </div>
+        {synced && (
+          <>
+            <button
+              onClick={refresh}
+              disabled={refreshing}
+              className="dl-btn-ghost p-2"
+              aria-label="Ververs vanaf server"
+              title="Ververs vanaf server"
+            >
+              <RefreshCw size={15} className={refreshing ? "dl-spin" : ""} />
+            </button>
+            <span className="dl-btn-ghost p-2 inline-flex" title="Tijdregistratie wordt gesynchroniseerd">
+              <Cloud size={15} color="#b8892b" />
+            </span>
+          </>
+        )}
       </header>
+      {syncStatus && <p className="text-xs mb-4 -mt-2 opacity-70">{syncStatus}</p>}
 
       {/* Running now */}
       <div className="dl-card p-4 mb-6">

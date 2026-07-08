@@ -55,13 +55,17 @@ registreren wat je doet en hoe lang, met een daganalyse).
 - Per dag een **analyse**: totale tijd per activiteit met balkjes en percentage,
   plus de losse sessies met tijdvak en duur; blader terug naar eerdere dagen
 - Heel korte registraties (< 2 s) worden als mis-tik genegeerd
+- Optionele **synchronisatie** (zelfde Cloudflare-koppeling): je tijdregistratie
+  is gelijk op telefoon, laptop en browser
+- **Vanaf je horloge loggen**: een `/track`-eindpunt waarmee een Wear OS-tegel
+  met één tik een activiteit start/wisselt (zie `worker/DEPLOY.md`)
 
 **Algemeen**
 
 - Alles blijft lokaal opgeslagen op je apparaat (`localStorage`) — geen account nodig
 - Installeerbaar op je startscherm (PWA) en werkt offline
-- Daglog en Agenda synchroniseren optioneel via Cloudflare; de tijdregistratie
-  is (voorlopig) lokaal per apparaat
+- Daglog, Agenda én tijdregistratie synchroniseren optioneel via dezelfde
+  Cloudflare-koppeling, zodat al je apparaten (en je horloge) gelijklopen
 - Met de optionele Cloudflare-sync worden **zowel de daglog als de agenda** tussen
   je apparaten gedeeld (zelfde koppeling, ingesteld via het tandwiel ⚙️)
 

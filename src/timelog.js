@@ -136,3 +136,15 @@ export function formatDuration(ms) {
 export function formatClock(iso) {
   return new Date(iso).toTimeString().slice(0, 5);
 }
+
+// Compare two session lists to find what to upsert/remove on the server.
+export function diffSessions(prev, next) {
+  const prevById = new Map(prev.map((s) => [s.id, s]));
+  const nextIds = new Set(next.map((s) => s.id));
+  const upserts = next.filter((s) => {
+    const before = prevById.get(s.id);
+    return !before || before.label !== s.label || before.start !== s.start || before.end !== s.end;
+  });
+  const removedIds = prev.filter((s) => !nextIds.has(s.id)).map((s) => s.id);
+  return { upserts, removedIds };
+}
