@@ -41,6 +41,11 @@ function remindLabel(offset) {
   return o ? o.label : null;
 }
 
+function formatShortDate(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
+}
+
 export default function Agenda() {
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -49,6 +54,7 @@ export default function Agenda() {
   const [time, setTime] = useState(nowHHMM());
   const [remindOffset, setRemindOffset] = useState(15);
   const [repeat, setRepeat] = useState("none");
+  const [repeatUntil, setRepeatUntil] = useState("");
   const [showDone, setShowDone] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [perm, setPerm] = useState(notify.notifySupported() ? notify.permission() : "unsupported");
@@ -67,21 +73,36 @@ export default function Agenda() {
     if (reschedule) {
       const now = Date.now();
       const advancedIds = [];
-      list = next.map((it) => {
+      const endedIds = [];
+      list = [];
+      for (const it of next) {
         if (isRecurring(it) && !it.done) {
           const ts = new Date(it.timestamp).getTime();
           if (Number.isFinite(ts) && ts <= now) {
-            advancedIds.push(it.id);
-            return rollForward(it, now);
+            const rolled = rollForward(it, now);
+            if (rolled) {
+              advancedIds.push(it.id);
+              list.push(rolled);
+            } else {
+              endedIds.push(it.id); // series finished — drop it
+            }
+            continue;
           }
         }
-        return it;
-      });
+        list.push(it);
+      }
       // Sync the rolled-forward dates so other devices see the same next occurrence.
       if (advancedIds.length && cfg) {
         list
           .filter((it) => advancedIds.includes(it.id))
           .forEach((it) => sync.putAgendaItem(cfg, it).catch(() => {}));
+      }
+      // Clean up finished series: cancel their reminder and remove server-side.
+      if (endedIds.length) {
+        endedIds.forEach((id) => {
+          if (notify.notifySupported()) notify.cancelReminder(id).catch(() => {});
+          if (cfg) sync.deleteAgendaItem(cfg, id).catch(() => {});
+        });
       }
     }
     const sorted = sortItems(list);
@@ -188,7 +209,7 @@ export default function Agenda() {
 
   const addItem = async () => {
     if (!title.trim() || !date) return;
-    const item = makeItem({ title, date, timeLabel: time, remindOffset, repeat });
+    const item = makeItem({ title, date, timeLabel: time, remindOffset, repeat, repeatUntil });
     // applyLocal may roll a recurring item forward if its first occurrence is
     // already past; adopt whichever version ends up in the list for the server.
     const result = await applyLocal([...items, item]);
@@ -206,10 +227,19 @@ export default function Agenda() {
     const target = items.find((it) => it.id === id);
     if (!target) return;
     // Ticking off a recurring item completes this occurrence and advances it to
-    // the next one, so the series keeps going.
-    const updated = isRecurring(target) && !target.done
-      ? rollForward(target, Date.now())
-      : { ...target, done: !target.done, notified: target.done ? target.notified : true };
+    // the next one. If that would fall past the end date, the series is done and
+    // the item is removed.
+    if (isRecurring(target) && !target.done) {
+      const rolled = rollForward(target, Date.now());
+      if (!rolled) {
+        await deleteItem(id);
+        return;
+      }
+      await applyLocal(items.map((it) => (it.id === id ? rolled : it)));
+      await pushItem(rolled);
+      return;
+    }
+    const updated = { ...target, done: !target.done, notified: target.done ? target.notified : true };
     await applyLocal(items.map((it) => (it.id === id ? updated : it)));
     await pushItem(updated);
   };
@@ -399,6 +429,20 @@ export default function Agenda() {
               ))}
             </select>
           </label>
+          {repeat !== "none" && (
+            <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#241d10" }}>
+              <span className="opacity-60">t/m</span>
+              <input
+                type="date"
+                value={repeatUntil}
+                min={date}
+                onChange={(e) => setRepeatUntil(e.target.value)}
+                className="dl-input dl-mono px-2 py-1.5 text-xs"
+                aria-label="Herhalen tot en met (optioneel)"
+                title="Laat leeg om oneindig te herhalen"
+              />
+            </label>
+          )}
         </div>
         <div className="flex justify-end">
           <button
@@ -457,6 +501,7 @@ export default function Agenda() {
                         {isRecurring(it) && repeatLabel(it.repeat) && (
                           <span className="dl-badge">
                             <Repeat size={9} /> {repeatLabel(it.repeat)}
+                            {it.repeatUntil ? ` · t/m ${formatShortDate(it.repeatUntil)}` : ""}
                           </span>
                         )}
                         {!it.done && it.remindOffset != null && remindLabel(it.remindOffset) && (

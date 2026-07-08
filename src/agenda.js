@@ -5,11 +5,13 @@
 // { id, title, date: "YYYY-MM-DD", timeLabel: "HH:MM", timestamp: ISO (event),
 //   remindOffset: minutes-before (number), remindAt: ISO|null,
 //   repeat: "none"|"daily"|"weekdays"|"weekly"|"monthly",
+//   repeatUntil: "YYYY-MM-DD"|null (inclusive end date; null = no end),
 //   done: bool, notified: bool }
 //
 // Recurring items are a single record that rolls forward: once an occurrence
 // has passed (or is ticked off) it advances to the next occurrence in place,
-// so the list stays small and one reminder is scheduled at a time.
+// so the list stays small and one reminder is scheduled at a time. When the
+// next occurrence would fall after repeatUntil, the series has ended.
 
 const STORE_KEY = "daglog-agenda";
 
@@ -121,6 +123,8 @@ function addRepeat(ms, repeat) {
 // Roll a recurring item forward to its next occurrence strictly after `now`.
 // Always advances at least one step (so ticking off a not-yet-due occurrence
 // moves to the following one). Resets the per-occurrence notified/done flags.
+// Returns null when the next occurrence falls after repeatUntil — i.e. the
+// series has ended and the item should be removed.
 export function rollForward(item, now = Date.now()) {
   let ms = new Date(item.timestamp).getTime();
   let guard = 0;
@@ -129,10 +133,14 @@ export function rollForward(item, now = Date.now()) {
     guard += 1;
   } while (ms <= now && guard < 2000);
   const ts = new Date(ms);
+  const date = localDateKey(ts);
+  if (item.repeatUntil && date > item.repeatUntil) {
+    return null; // past the end date — no further occurrences
+  }
   const timestamp = ts.toISOString();
   return {
     ...item,
-    date: localDateKey(ts),
+    date,
     timestamp,
     remindAt: reminderAt(timestamp, item.remindOffset),
     done: false,
@@ -140,7 +148,13 @@ export function rollForward(item, now = Date.now()) {
   };
 }
 
-export function makeItem({ title, date, timeLabel, remindOffset, repeat }) {
+// Sanitize an optional end date to a "YYYY-MM-DD" string (or null).
+function normalizeUntil(v) {
+  return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+}
+
+export function makeItem({ title, date, timeLabel, remindOffset, repeat, repeatUntil }) {
+  const rep = normalizeRepeat(repeat);
   const timestamp = eventTimestamp(date, timeLabel);
   return {
     id: newId(),
@@ -150,7 +164,8 @@ export function makeItem({ title, date, timeLabel, remindOffset, repeat }) {
     timestamp,
     remindOffset: remindOffset ?? null,
     remindAt: reminderAt(timestamp, remindOffset),
-    repeat: normalizeRepeat(repeat),
+    repeat: rep,
+    repeatUntil: rep !== "none" ? normalizeUntil(repeatUntil) : null,
     done: false,
     notified: false,
   };
