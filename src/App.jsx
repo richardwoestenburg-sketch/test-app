@@ -1,15 +1,17 @@
 import React, { useState } from "react";
-import { BookOpen, CalendarDays } from "lucide-react";
+import { BookOpen, CalendarDays, Timer } from "lucide-react";
 import { APP_STYLE } from "./theme.js";
 import DagLog from "./DagLog.jsx";
 import Agenda from "./Agenda.jsx";
+import TimeLog from "./TimeLog.jsx";
 
 const TAB_KEY = "daglog-tab";
+const TABS = ["log", "agenda", "tijd"];
 
 export default function App() {
   const [tab, setTab] = useState(() => {
     const saved = localStorage.getItem(TAB_KEY);
-    return saved === "agenda" ? "agenda" : "log";
+    return TABS.includes(saved) ? saved : "log";
   });
 
   const choose = (t) => {
@@ -38,10 +40,18 @@ export default function App() {
           >
             <CalendarDays size={15} /> Agenda
           </button>
+          <button
+            role="tab"
+            aria-selected={tab === "tijd"}
+            className={`dl-tab ${tab === "tijd" ? "dl-tab-active" : ""}`}
+            onClick={() => choose("tijd")}
+          >
+            <Timer size={15} /> Tijd
+          </button>
         </div>
       </div>
       <div className="pt-7">
-        {tab === "log" ? <DagLog /> : <Agenda />}
+        {tab === "log" ? <DagLog /> : tab === "agenda" ? <Agenda /> : <TimeLog />}
       </div>
     </div>
   );
