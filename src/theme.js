@@ -166,8 +166,42 @@ export const APP_STYLE = `
 }
 .dl-badge-over { background: rgba(138,59,31,0.16); color: #8a3b1f; }
 
+/* Time-tracking quick buttons + analysis bars */
+.dl-qbtn {
+  background: #efe3c0;
+  color: #241d10;
+  border: 1px solid rgba(36,29,16,0.15);
+  border-radius: 10px;
+  padding: 14px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+.dl-qbtn:hover { background: #f3e9cc; }
+.dl-qbtn:active { transform: scale(0.97); }
+.dl-qbtn-active {
+  background: #2f7d5b;
+  color: #efe3c0;
+  border-color: #2f7d5b;
+  box-shadow: 0 0 0 3px rgba(47,125,91,0.22);
+}
+
+.dl-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(36,29,16,0.1);
+  overflow: hidden;
+}
+.dl-bar-fill {
+  height: 100%;
+  background: #b8892b;
+  border-radius: 999px;
+  min-width: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .dl-btn-primary, .dl-btn-ghost, .dl-mic, .dl-tab, .dl-ag-item, .dl-check { transition: none; }
+  .dl-btn-primary, .dl-btn-ghost, .dl-mic, .dl-tab, .dl-ag-item, .dl-check, .dl-qbtn { transition: none; }
   .dl-mic-live, .dl-spin { animation: none; }
 }
 `;

@@ -8,8 +8,9 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft twee tabbladen: **Daglog** (terugkijken — wat deed je) en
-**Agenda** (vooruit plannen — met een melding op tijd).
+De app heeft drie tabbladen: **Daglog** (terugkijken — wat deed je),
+**Agenda** (vooruit plannen — met een melding op tijd) en **Tijd** (snel
+registreren wat je doet en hoe lang, met een daganalyse).
 
 ## Functies
 
@@ -44,10 +45,23 @@ De app heeft twee tabbladen: **Daglog** (terugkijken — wat deed je) en
   ondersteuning (o.a. Safari) verschijnt de melding terwijl de app open is, en
   als inhaalmelding zodra je de app weer opent.
 
+**Tijd / tijdregistratie**
+
+- **Snelknoppen** voor je vaste (werk)activiteiten — één tik start een activiteit
+  en stopt automatisch de vorige, zodat wisselen één tik kost
+- Een **lopende teller** loopt live mee; met één druk op **Stop** rond je af
+- Vrij tekstveld voor een **eenmalige** activiteit die niet op een knop staat
+- Snelknoppen zijn zelf **aan te passen** (toevoegen/verwijderen)
+- Per dag een **analyse**: totale tijd per activiteit met balkjes en percentage,
+  plus de losse sessies met tijdvak en duur; blader terug naar eerdere dagen
+- Heel korte registraties (< 2 s) worden als mis-tik genegeerd
+
 **Algemeen**
 
 - Alles blijft lokaal opgeslagen op je apparaat (`localStorage`) — geen account nodig
 - Installeerbaar op je startscherm (PWA) en werkt offline
+- Daglog en Agenda synchroniseren optioneel via Cloudflare; de tijdregistratie
+  is (voorlopig) lokaal per apparaat
 - Met de optionele Cloudflare-sync worden **zowel de daglog als de agenda** tussen
   je apparaten gedeeld (zelfde koppeling, ingesteld via het tandwiel ⚙️)
 
@@ -113,6 +127,8 @@ src/App.jsx                   tab-shell (Daglog / Agenda) + gedeelde stijl
 src/DagLog.jsx                het daglog-component (UI + logica)
 src/Agenda.jsx                het agenda/planner-component (UI + logica)
 src/agenda.js                 opslag & helpers voor agenda-items
+src/TimeLog.jsx               het tijdregistratie-component (UI + logica)
+src/timelog.js                opslag, sessies & daganalyse voor tijdregistratie
 src/notify.js                 meldingen (Notification Triggers + in-app fallback)
 src/theme.js                  gedeelde CSS/design-tokens
 src/storage.js                localStorage-persistentie (daglog)
