@@ -8,10 +8,12 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft vier tabbladen: **Daglog** (terugkijken — wat deed je),
+De app heeft vijf tabbladen: **Daglog** (terugkijken — wat deed je),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
-registreren wat je doet en hoe lang, met een daganalyse) en **Flitsers**
-(kaart met flitspalen/trajectcontroles en een waarschuwing als je in de buurt komt).
+registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
+(op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
+je vakantie was) en **Flitsers** (kaart met flitspalen/trajectcontroles en een
+waarschuwing als je in de buurt komt).
 
 ## Functies
 
@@ -60,6 +62,21 @@ registreren wat je doet en hoe lang, met een daganalyse) en **Flitsers**
   is gelijk op telefoon, laptop en browser
 - **Vanaf je horloge loggen**: een `/track`-eindpunt waarmee een Wear OS-tegel
   met één tik een activiteit start/wisselt (zie `worker/DEPLOY.md`)
+
+**Vakantie**
+
+- Voeg op elk moment een **foto** toe (uit je camera of fotobibliotheek), met
+  tijdstip en een optioneel bijschrift
+- Foto's worden automatisch **verkleind en gecomprimeerd** in de browser
+  voordat ze bewaard worden, zodat je er veel kwijt kunt
+- Bekeken als **tijdlijn per dag**, met miniaturen en het tijdstip erbij
+- Tik op een foto voor een **groot scherm** met bijschrift, tijdstip en
+  eventuele locatie; van daaruit ook meteen te verwijderen
+- Zo zie je in één overzicht — achteraf — hoe je vakantie eruitzag
+- Voeg optioneel je GPS-locatie toe aan een foto
+- Verwijder losse foto's of wis alles in één keer
+- Foto's blijven **lokaal op je apparaat** (IndexedDB), er is geen account of
+  server nodig
 
 **Flitsers**
 
@@ -151,6 +168,8 @@ src/Agenda.jsx                het agenda/planner-component (UI + logica)
 src/agenda.js                 opslag & helpers voor agenda-items
 src/TimeLog.jsx               het tijdregistratie-component (UI + logica)
 src/timelog.js                opslag, sessies & daganalyse voor tijdregistratie
+src/Vakantie.jsx               het vakantie-component (fototijdlijn + lightbox)
+src/vakantie.js                opslag (IndexedDB) & verkleinen/comprimeren van foto's
 src/Flitsers.jsx               het flitsers-component (kaart, GPS, waarschuwing)
 src/flitsers.js                opslag, OSM-databron (Overpass) & geo-berekeningen
 src/notify.js                 meldingen (Notification Triggers + in-app fallback)

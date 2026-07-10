@@ -239,4 +239,70 @@ export const APP_STYLE = `
 @media (prefers-reduced-motion: reduce) {
   .fl-alert { animation: none; }
 }
+
+/* Vakantie: fototijdlijn + lightbox */
+.dl-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.dl-photo-thumb-wrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(237,230,208,0.06);
+  border: 1px solid rgba(237,230,208,0.12);
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.dl-photo-thumb-wrap:hover { opacity: 0.9; }
+.dl-photo-thumb-wrap:active { transform: scale(0.97); }
+.dl-photo-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dl-photo-time {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(16,21,28,0.65);
+  color: #ede6d0;
+}
+.dl-photo-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,10,14,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.dl-photo-modal {
+  background: #efe3c0;
+  color: #241d10;
+  border-radius: 10px;
+  padding: 12px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px -10px rgba(0,0,0,0.6);
+}
+.dl-photo-modal-img {
+  width: 100%;
+  max-height: 65vh;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #10151c;
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dl-photo-thumb-wrap { transition: none; }
+}
 `;
