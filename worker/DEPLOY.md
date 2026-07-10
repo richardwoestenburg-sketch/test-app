@@ -206,6 +206,87 @@ GET  https://<jouw-worker>/track?key=<SLEUTEL>&stop=1               # stop
 > Deze tijdregistratie-endpoints (`/track`, `/sessions`) zijn nieuw — draaide je
 > al een oudere Worker, deploy `worker/` dan opnieuw zodat ze meekomen.
 
+## 8. Secretaresse: Outlook/Microsoft 365 koppelen
+
+De **Secretaresse**-tab toont je Outlook-mail en -agenda en kan namens jou
+meldingen sturen — ook als de app niet openstaat. Dit vraagt twee dingen:
+een **Azure-app-registratie** (jouw eigen, gratis Microsoft-account) zodat de
+app mag inloggen bij je Outlook, en **VAPID-sleutels** op je Worker zodat hij
+pushmeldingen naar je telefoon mag sturen.
+
+### 8.1 Azure-app-registratie (eenmalig, in je browser)
+
+1. Ga naar https://portal.azure.com (log in met hetzelfde Microsoft-account
+   als je Outlook/Hotmail/Microsoft 365 — een gratis account is genoeg).
+2. Zoek naar **"App-registraties"** (App registrations) → **Nieuwe registratie**.
+3. Naam: bijvoorbeeld `Daglog Secretaresse`.
+4. **Ondersteunde accounttypen**: kies *"Accounts in elke organisatiemap en
+   persoonlijke Microsoft-accounts"* (multitenant + persoonlijk) — zo werkt
+   het met zowel een privé Outlook/Hotmail-account als een werk/school-account.
+5. **Redirect URI**: kies platform **"Single-page application (SPA)"** en vul
+   in: `https://richardwoestenburg-sketch.github.io/test-app/` (met de
+   afsluitende `/`). Wil je ook lokaal testen (`npm run dev`), voeg dan een
+   tweede SPA-redirect-URI toe: `http://localhost:5173/`.
+6. Klik **Registreren**. Kopieer de **Application (client) ID** die je nu ziet
+   — dat vul je zo in de app in (bij het tandwiel niet nodig, wel bij de
+   Secretaresse-tab zelf).
+7. Ga naar **API-machtigingen** (API permissions) → **Een machtiging
+   toevoegen** → **Microsoft Graph** → **Gedelegeerde machtigingen** en voeg
+   toe: `Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `User.Read`,
+   `offline_access`. Bij een persoonlijk account hoef je niets goed te keuren
+   namens een organisatie; bij een werk/school-account kan "Beheerderstoestemming
+   verlenen" nodig zijn (of je krijgt de vraag vanzelf bij het inloggen).
+8. Klaar — er is **geen client secret** nodig; de app en de Worker gebruiken
+   allebei de veilige "public client + PKCE"-manier van inloggen.
+
+### 8.2 VAPID-sleutels (voor achtergrondmeldingen)
+
+```bash
+cd worker
+npm install               # als je dat nog niet had gedaan
+npx web-push generate-vapid-keys
+```
+
+Dat geeft twee sleutels. Zet ze op je Worker:
+
+- **Dashboard:** Worker → **Settings** → **Variables and Secrets** → **Add**:
+  - `VAPID_PUBLIC_KEY` (type: gewone variabele mag, hoeft geen secret)
+  - `VAPID_PRIVATE_KEY` (type: **Secret**)
+- **Of met wrangler:**
+  ```bash
+  npx wrangler secret put VAPID_PUBLIC_KEY
+  npx wrangler secret put VAPID_PRIVATE_KEY
+  ```
+
+Draaide je de Worker al eerder? Deploy 'm opnieuw (via de Cloudflare-knop,
+"Edit code" opnieuw plakken, of `npx wrangler deploy`) zodat de
+Secretaresse-endpoints en de cron-taak (elke 10 minuten) meekomen.
+
+### 8.3 Koppelen in de app
+
+1. Open de **Secretaresse**-tab (zorg dat je Worker-URL + sleutel al zijn
+   ingesteld via het tandwiel ⚙️ op de Daglog-tab — dezelfde koppeling wordt
+   hier gebruikt).
+2. Vul de **Client-ID** uit stap 8.1 in en tik **Inloggen bij Microsoft**.
+3. Log in en geef toestemming. Je komt terug in de app, nu verbonden.
+4. Tik **Meldingen inschakelen** en geef toestemming voor meldingen — vanaf nu
+   krijg je een seintje bij nieuwe mail en vlak voor een afspraak, ook met
+   vergrendeld scherm.
+
+### Hoe dit werkt (kort)
+
+- De app logt zelf in bij Microsoft (geen wachtwoord gaat via de Worker).
+- Het **ververstoken** wordt één keer, versleuteld, aan je Worker gegeven —
+  die beheert het daarna (ververst het zelf, en gebruikt het om je mail/agenda
+  in de gaten te houden zolang de app dicht is).
+- De Worker meldt zich bij Microsoft Graph aan voor **webhooks**
+  (`/subscriptions`) op je postvak en agenda, en verlengt die elke 10 minuten
+  op tijd via een Cron Trigger.
+- Nieuwe mail of een afspraak die zo begint → de Worker stuurt een **Web
+  Push**-melding naar je telefoon, zonder dat de app open hoeft te staan.
+- **Loskoppelen** in de app verwijdert het bewaarde token en de webhooks bij
+  Microsoft.
+
 ## Beheer / opmerkingen
 
 - **Kosten:** blijft normaal €0 (Cloudflare gratis-tier: 100k requests/dag).

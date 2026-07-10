@@ -8,6 +8,8 @@
 // Data: a single KV key ("entries") holds a JSON array of entries with the
 // same shape the web app uses: { id, date, timeLabel, timestamp, text, lat, lon }.
 
+import { handleSecretary, runScheduled } from "./secretary.js";
+
 const KV_KEY = "entries";
 const AGENDA_KEY = "agenda";
 const SESSIONS_KEY = "sessions";
@@ -199,7 +201,7 @@ function stopServer(list, nowMs) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin");
     const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -208,8 +210,19 @@ export default {
       return new Response(null, { status: 204, headers: cors(origin) });
     }
 
+    // Microsoft roept dit endpoint rechtstreeks aan (validatie + webhooks) en
+    // kan onze eigen sleutel niet meesturen — die route ligt daarom vóór de
+    // auth-poort en verifieert zichzelf via Graph's eigen clientState.
+    if (path === "/secretary/graph-webhook" || path === "/secretary/vapid-key") {
+      return handleSecretary(request, env, ctx, url, origin, path);
+    }
+
     if (!authorized(request, url, env)) {
       return json({ error: "unauthorized" }, 401, origin);
+    }
+
+    if (path.startsWith("/secretary/")) {
+      return handleSecretary(request, env, ctx, url, origin, path);
     }
 
     // GET /entries -> all entries
@@ -383,5 +396,11 @@ export default {
     }
 
     return json({ error: "not found" }, 404, origin);
+  },
+
+  // Cron Trigger (zie wrangler.toml): verlengt Graph-abonnementen op tijd en
+  // stuurt "je afspraak begint zo"-meldingen, ook als de app niet openstaat.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runScheduled(env));
   },
 };

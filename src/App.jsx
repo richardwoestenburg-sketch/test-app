@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { BookOpen, CalendarDays, Timer, Camera, Images } from "lucide-react";
+import { BookOpen, CalendarDays, Timer, Camera, Images, UserRound } from "lucide-react";
 import { APP_STYLE } from "./theme.js";
 import DagLog from "./DagLog.jsx";
 import Agenda from "./Agenda.jsx";
 import TimeLog from "./TimeLog.jsx";
-import Flitsers from "./Flitsers.jsx";
 import Vakantie from "./Vakantie.jsx";
+import Flitsers from "./Flitsers.jsx";
+import Secretary from "./Secretary.jsx";
 
 const TAB_KEY = "daglog-tab";
-const TABS = ["log", "agenda", "tijd", "vakantie", "flitsers"];
+const TABS = ["log", "agenda", "tijd", "vakantie", "flitsers", "secretaresse"];
 
 export default function App() {
   const [tab, setTab] = useState(() => {
@@ -66,6 +67,14 @@ export default function App() {
           >
             <Camera size={15} /> Flitsers
           </button>
+          <button
+            role="tab"
+            aria-selected={tab === "secretaresse"}
+            className={`dl-tab ${tab === "secretaresse" ? "dl-tab-active" : ""}`}
+            onClick={() => choose("secretaresse")}
+          >
+            <UserRound size={15} /> Secretaresse
+          </button>
         </div>
       </div>
       <div className="pt-7">
@@ -77,8 +86,10 @@ export default function App() {
           <TimeLog />
         ) : tab === "vakantie" ? (
           <Vakantie />
-        ) : (
+        ) : tab === "flitsers" ? (
           <Flitsers />
+        ) : (
+          <Secretary />
         )}
       </div>
     </div>

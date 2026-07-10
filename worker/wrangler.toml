@@ -2,6 +2,9 @@
 name = "daglog-api"
 main = "src/worker.js"
 compatibility_date = "2025-01-01"
+# nodejs_compat: laat de "web-push" library (gebruikt door de Secretaresse-tab
+# voor achtergrondmeldingen) Node's crypto-shims gebruiken.
+compatibility_flags = ["nodejs_compat"]
 
 # KV namespace that stores the entries.
 # No id here on purpose: the "Deploy to Cloudflare" wizard (and modern
@@ -16,3 +19,14 @@ kv_namespaces = [
 #   - Deploy button / dashboard: add it under the Worker's
 #     Settings -> Variables and Secrets (type: Secret).
 #   - wrangler: npx wrangler secret put DAGLOG_TOKEN
+#
+# Secretaresse-tab (optioneel): voor achtergrond-pushmeldingen zijn twee extra
+# secrets nodig, zie worker/DEPLOY.md voor hoe je ze genereert:
+#   - VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (npx web-push generate-vapid-keys)
+#   - VAPID_SUBJECT is optioneel (standaard "mailto:secretary@example.com")
+
+# Draait elke 10 minuten: verlengt Microsoft Graph-abonnementen op tijd en
+# stuurt afspraakherinneringen (Secretaresse-tab). Zonder gekoppeld account
+# doet deze taak niets.
+[triggers]
+crons = ["*/10 * * * *"]
