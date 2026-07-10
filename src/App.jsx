@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BookOpen, CalendarDays, Timer, Camera, Images, UserRound } from "lucide-react";
+import { BookOpen, CalendarDays, Timer, Camera, Images, UserRound, Box } from "lucide-react";
 import { APP_STYLE } from "./theme.js";
 import DagLog from "./DagLog.jsx";
 import Agenda from "./Agenda.jsx";
@@ -7,9 +7,10 @@ import TimeLog from "./TimeLog.jsx";
 import Vakantie from "./Vakantie.jsx";
 import Flitsers from "./Flitsers.jsx";
 import Secretary from "./Secretary.jsx";
+import Images3D from "./Images3D.jsx";
 
 const TAB_KEY = "daglog-tab";
-const TABS = ["log", "agenda", "tijd", "vakantie", "flitsers", "secretaresse"];
+const TABS = ["log", "agenda", "tijd", "vakantie", "flitsers", "afbeeldingen", "secretaresse"];
 
 export default function App() {
   const [tab, setTab] = useState(() => {
@@ -69,6 +70,14 @@ export default function App() {
           </button>
           <button
             role="tab"
+            aria-selected={tab === "afbeeldingen"}
+            className={`dl-tab ${tab === "afbeeldingen" ? "dl-tab-active" : ""}`}
+            onClick={() => choose("afbeeldingen")}
+          >
+            <Box size={15} /> Afbeeldingen
+          </button>
+          <button
+            role="tab"
             aria-selected={tab === "secretaresse"}
             className={`dl-tab ${tab === "secretaresse" ? "dl-tab-active" : ""}`}
             onClick={() => choose("secretaresse")}
@@ -88,6 +97,8 @@ export default function App() {
           <Vakantie />
         ) : tab === "flitsers" ? (
           <Flitsers />
+        ) : tab === "afbeeldingen" ? (
+          <Images3D />
         ) : (
           <Secretary />
         )}

@@ -8,13 +8,15 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft zes tabbladen: **Daglog** (terugkijken — wat deed je),
+De app heeft zeven tabbladen: **Daglog** (terugkijken — wat deed je),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
 je vakantie was), **Flitsers** (kaart met flitspalen/trajectcontroles en een
-waarschuwing als je in de buurt komt) en **Secretaresse** (je Outlook-mail en
--agenda, met meldingen — ook met vergrendeld scherm).
+waarschuwing als je in de buurt komt), **Afbeeldingen** (hoge-resolutie
+3D-render-stijl afbeeldingen genereren op basis van een omschrijving) en
+**Secretaresse** (je Outlook-mail en -agenda, met meldingen — ook met
+vergrendeld scherm).
 
 ## Functies
 
@@ -95,6 +97,16 @@ waarschuwing als je in de buurt komt) en **Secretaresse** (je Outlook-mail en
 - Werkt het betrouwbaarst met de app **open en actief** (bv. telefoon in een
   houder); zoals bij vrijwel elke navigatie-PWA werken meldingen niet
   gegarandeerd door als het scherm vergrendeld is
+
+**Afbeeldingen**
+
+- Typ een omschrijving en genereer een **hoge-resolutie 3D-render-stijl**
+  afbeelding — werkt direct, geen account, sleutel of eigen backend nodig
+  (gratis via [Pollinations.ai](https://pollinations.ai))
+- Kies de afmeting (vierkant, breed of staand) en optioneel een
+  3D-render-stijl die aan je omschrijving wordt toegevoegd
+- Gegenereerde afbeeldingen blijven **lokaal op je apparaat** (IndexedDB) in
+  een galerij, met lightbox om te downloaden of te verwijderen
 
 **Secretaresse**
 
@@ -186,6 +198,9 @@ src/Vakantie.jsx               het vakantie-component (fototijdlijn + lightbox)
 src/vakantie.js                opslag (IndexedDB) & verkleinen/comprimeren van foto's
 src/Flitsers.jsx               het flitsers-component (kaart, GPS, waarschuwing)
 src/flitsers.js                opslag, OSM-databron (Overpass) & geo-berekeningen
+src/Images3D.jsx                de afbeeldingen-tab (prompt → 3D-afbeelding, galerij)
+src/images3d.js                 opslag (IndexedDB) van gegenereerde afbeeldingen
+src/images3dApi.js              client voor Pollinations.ai (gratis, geen key nodig)
 src/Secretary.jsx              de secretaresse-tab (mail, agenda, meldingen)
 src/msAuth.js                  Microsoft-inloggen (OAuth2 + PKCE)
 src/secretaryApi.js            client voor de Secretaresse-endpoints op de Worker
