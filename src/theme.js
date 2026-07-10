@@ -204,4 +204,39 @@ export const APP_STYLE = `
   .dl-btn-primary, .dl-btn-ghost, .dl-mic, .dl-tab, .dl-ag-item, .dl-check, .dl-qbtn { transition: none; }
   .dl-mic-live, .dl-spin { animation: none; }
 }
+
+/* Flitsers: kaart + waarschuwingsbanner */
+.fl-map-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(237,230,208,0.14);
+  box-shadow: 0 8px 20px -10px rgba(0,0,0,0.5);
+}
+.fl-map {
+  height: 42vh;
+  min-height: 260px;
+  background: #1f2a36;
+}
+.fl-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #7a5a1a;
+  color: #fff7e0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 20px -10px rgba(0,0,0,0.6);
+  animation: fl-pulse 1.4s ease-in-out infinite;
+}
+.fl-alert-close {
+  background: #8a3b1f;
+  animation-duration: 0.7s;
+}
+@keyframes fl-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(122,90,26,0.4), 0 8px 20px -10px rgba(0,0,0,0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(122,90,26,0), 0 8px 20px -10px rgba(0,0,0,0.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fl-alert { animation: none; }
+}
 `;
