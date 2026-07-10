@@ -37,14 +37,20 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { title: "Secretaresse", body: event.data ? event.data.text() : "" };
   }
+  // Elke melding krijgt een unieke tag (bv. per mail/afspraak), anders zou een
+  // nieuwe melding een vorige met dezelfde tag vervangen — dan zie je maar één
+  // van meerdere nieuwe mails. `renotify` zorgt dat een nieuwe melding alsnog
+  // trilt/geluid geeft. `data.url` is de tab die geopend moet worden bij een tik.
+  const tag = data.tag || `secretaresse-${Date.now()}`;
   event.waitUntil(
     self.registration.showNotification(data.title || "Secretaresse", {
       body: data.body || "",
       icon: "icon-192.png",
       badge: "favicon-32.png",
-      tag: data.url || "secretaresse",
+      tag,
+      renotify: true,
       lang: "nl",
-      data: { url: "./" },
+      data: { tab: data.url || "secretaresse" },
     })
   );
 });
@@ -53,11 +59,18 @@ self.addEventListener("push", (event) => {
 // notification is tapped.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || "./";
+  // Open de bijbehorende tab (Secretaresse-meldingen zetten data.tab). We geven
+  // 'm mee als ?tab=… zodat de app het juiste tabblad toont; een al open venster
+  // krijgt het via postMessage en wordt gefocust.
+  const tab = event.notification.data && event.notification.data.tab;
+  const target = tab ? `./?tab=${encodeURIComponent(tab)}` : "./";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       for (const client of list) {
-        if ("focus" in client) return client.focus();
+        if ("focus" in client) {
+          if (tab) client.postMessage({ type: "open-tab", tab });
+          return client.focus();
+        }
       }
       if (self.clients.openWindow) return self.clients.openWindow(target);
     })

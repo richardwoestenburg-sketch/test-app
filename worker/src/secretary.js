@@ -7,6 +7,7 @@ import { encryptSecret, decryptSecret } from "./crypto.js";
 import { refreshAccessToken, graphFetch, createSubscription, renewSubscription, deleteSubscription } from "./msGraph.js";
 
 const ACCOUNT_KEY = "secretary-account";
+const ACCESS_KEY = "secretary-access"; // kortlevend access-token, los van het account
 const PUSH_KEY = "secretary-push-subs";
 const SETTINGS_KEY = "secretary-settings";
 const NOTIFIED_KEY = "secretary-notified";
@@ -38,22 +39,29 @@ async function getSettings(env) {
   return { ...DEFAULT_SETTINGS, ...(await getJSON(env, SETTINGS_KEY, {})) };
 }
 
-// Zorgt dat we een geldig (niet-verlopen) access-token hebben; ververst zo
-// nodig via het bewaarde ververstoken en schrijft het resultaat terug naar KV.
+// Zorgt dat we een geldig (niet-verlopen) access-token hebben. Het access-token
+// wordt in een eigen KV-sleutel gecachet, los van het account. Zo hoeft een
+// routinematige tokenophaling (webhook, cron, /token) het account — met het
+// roterende ververstoken — niet te herschrijven; dat gebeurt alleen wanneer het
+// ververstoken daadwerkelijk roteert. Dat verkleint het risico dat twee
+// gelijktijdige verversingen elkaars nieuwste ververstoken overschrijven.
 async function ensureAccessToken(env, account) {
-  if (account.accessToken && account.accessTokenExpiry > Date.now() + 60000) {
-    return { accessToken: account.accessToken, account };
+  const cached = await getJSON(env, ACCESS_KEY, null);
+  if (cached && cached.accessToken && cached.expiry > Date.now() + 60000) {
+    return { accessToken: cached.accessToken, expiry: cached.expiry, account };
   }
   const refreshToken = await decryptSecret(env, account.refreshTokenEnc);
   const tokens = await refreshAccessToken(account.clientId, refreshToken);
-  const updated = {
-    ...account,
-    accessToken: tokens.access_token,
-    accessTokenExpiry: Date.now() + (Number(tokens.expires_in || 3600) - 60) * 1000,
-    refreshTokenEnc: await encryptSecret(env, tokens.refresh_token || refreshToken),
-  };
-  await putJSON(env, ACCOUNT_KEY, updated);
-  return { accessToken: updated.accessToken, account: updated };
+  const expiry = Date.now() + (Number(tokens.expires_in || 3600) - 60) * 1000;
+  await putJSON(env, ACCESS_KEY, { accessToken: tokens.access_token, expiry });
+
+  // Alleen het account herschrijven als het ververstoken écht is geroteerd.
+  let nextAccount = account;
+  if (tokens.refresh_token && tokens.refresh_token !== refreshToken) {
+    nextAccount = { ...account, refreshTokenEnc: await encryptSecret(env, tokens.refresh_token) };
+    await putJSON(env, ACCOUNT_KEY, nextAccount);
+  }
+  return { accessToken: tokens.access_token, expiry, account: nextAccount };
 }
 
 async function loadNotified(env) {
@@ -230,7 +238,7 @@ async function checkUpcomingEventReminders(env, account) {
     const minsUntil = (startMs - now.getTime()) / 60000;
     const key = `evt-${ev.id}`;
     if (minsUntil > 0 && minsUntil <= settings.eventReminderMinutes && !hasNotified(notified, key)) {
-      toSend.push({ title: "Afspraak zo begint", body: `${ev.subject || "(geen titel)"} — over ${Math.round(minsUntil)} min`, url: "secretaresse" });
+      toSend.push({ title: "Afspraak zo begint", body: `${ev.subject || "(geen titel)"} — over ${Math.round(minsUntil)} min`, url: "secretaresse", tag: `evt-rem-${ev.id}` });
       notified.push({ id: key, ts: Date.now() });
     }
   }
@@ -294,14 +302,21 @@ async function handleConnect(request, env, ctx, origin) {
     email: email || null,
     name: name || null,
     refreshTokenEnc: await encryptSecret(env, refreshToken),
-    accessToken: accessToken || null,
-    accessTokenExpiry: accessToken ? Date.now() + (Number(expiresIn || 3600) - 60) * 1000 : 0,
     mailSubId: null,
     mailSubExpiry: 0,
     calSubId: null,
     calSubExpiry: 0,
   };
   await putJSON(env, ACCOUNT_KEY, account);
+  // Het meegegeven access-token in de eigen (kortlevende) cache zetten.
+  if (accessToken) {
+    await putJSON(env, ACCESS_KEY, {
+      accessToken,
+      expiry: Date.now() + (Number(expiresIn || 3600) - 60) * 1000,
+    });
+  } else {
+    await putJSON(env, ACCESS_KEY, null);
+  }
   ctx.waitUntil(
     ensureSubscriptions(env, account).catch(() => {})
   );
@@ -320,6 +335,7 @@ async function handleDisconnect(env, origin) {
     }
   }
   await putJSON(env, ACCOUNT_KEY, null);
+  await putJSON(env, ACCESS_KEY, null);
   await putJSON(env, NOTIFIED_KEY, []);
   return json({ ok: true }, 200, origin);
 }
@@ -347,8 +363,8 @@ async function handleGetToken(env, origin) {
   const account = await getAccount(env);
   if (!account) return json({ error: "not connected" }, 400, origin);
   try {
-    const { accessToken, account: updated } = await ensureAccessToken(env, account);
-    return json({ accessToken, expiresIn: Math.round((updated.accessTokenExpiry - Date.now()) / 1000) }, 200, origin);
+    const { accessToken, expiry } = await ensureAccessToken(env, account);
+    return json({ accessToken, expiresIn: Math.round((expiry - Date.now()) / 1000) }, 200, origin);
   } catch (e) {
     return json({ error: String(e.message || e) }, 502, origin);
   }
@@ -437,11 +453,11 @@ async function processGraphNotifications(env, body) {
     if (typeof n.resource === "string" && n.resource.toLowerCase().includes("messages")) {
       if (!settings.notifyAllMail) continue;
       const msg = await fetchMessagePreview(accessToken, resourceId);
-      if (msg) toSend.push({ title: `Nieuwe mail van ${msg.from}`, body: msg.subject, url: "secretaresse" });
+      if (msg) toSend.push({ title: `Nieuwe mail van ${msg.from}`, body: msg.subject, url: "secretaresse", tag: `mail-${resourceId}` });
     } else if (typeof n.resource === "string" && n.resource.toLowerCase().includes("events")) {
       if (n.changeType !== "created") continue;
       const ev = await fetchEventPreview(accessToken, resourceId);
-      if (ev) toSend.push({ title: "Nieuwe afspraak", body: `${ev.subject}${ev.label ? " — " + ev.label : ""}`, url: "secretaresse" });
+      if (ev) toSend.push({ title: "Nieuwe afspraak", body: `${ev.subject}${ev.label ? " — " + ev.label : ""}`, url: "secretaresse", tag: `evt-new-${resourceId}` });
     }
     notified.push({ id: resourceId, ts: Date.now() });
   }

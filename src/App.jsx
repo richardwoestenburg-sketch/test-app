@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BookOpen, CalendarDays, Timer, Camera, Images, UserRound } from "lucide-react";
 import { APP_STYLE } from "./theme.js";
 import DagLog from "./DagLog.jsx";
@@ -13,6 +13,12 @@ const TABS = ["log", "agenda", "tijd", "vakantie", "flitsers", "secretaresse"];
 
 export default function App() {
   const [tab, setTab] = useState(() => {
+    // Een melding-tik opent de app als ?tab=… (zie service worker); die wint van
+    // de laatst gekozen tab.
+    try {
+      const q = new URLSearchParams(window.location.search).get("tab");
+      if (q && TABS.includes(q)) return q;
+    } catch {}
     const saved = localStorage.getItem(TAB_KEY);
     return TABS.includes(saved) ? saved : "log";
   });
@@ -21,6 +27,32 @@ export default function App() {
     setTab(t);
     try { localStorage.setItem(TAB_KEY, t); } catch {}
   };
+
+  // Ruim alleen de ?tab=-parameter op na het laden (laat ?code=/&state= van de
+  // Microsoft-redirect intact — die verwerkt de Secretaresse-tab zelf).
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("tab")) {
+        url.searchParams.delete("tab");
+        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+      }
+    } catch {}
+  }, []);
+
+  // Een al geopende app die een melding-tik krijgt, wisselt van tab via een
+  // bericht van de service worker.
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return undefined;
+    const onMsg = (e) => {
+      if (e.data && e.data.type === "open-tab" && TABS.includes(e.data.tab)) {
+        setTab(e.data.tab);
+        try { localStorage.setItem(TAB_KEY, e.data.tab); } catch {}
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+  }, []);
 
   return (
     <div className="dl-root">

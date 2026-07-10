@@ -51,6 +51,13 @@ export const APP_STYLE = `
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .dl-btn-ghost:hover { background: rgba(237,230,208,0.06); border-color: rgba(237,230,208,0.4); }
+/* Ghost-knoppen binnen een lichte kaart: donkere tekst/rand i.p.v. de crème
+   variant, anders wordt het crème-op-crème en dus onleesbaar. */
+.dl-card .dl-btn-ghost {
+  color: #3a2f18;
+  border-color: rgba(36,29,16,0.22);
+}
+.dl-card .dl-btn-ghost:hover { background: rgba(36,29,16,0.06); border-color: rgba(36,29,16,0.4); }
 
 .dl-line {
   position: absolute;
