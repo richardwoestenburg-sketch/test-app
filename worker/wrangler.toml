@@ -25,10 +25,6 @@ kv_namespaces = [
 #   - VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (npx web-push generate-vapid-keys)
 #   - VAPID_SUBJECT is optioneel (standaard "mailto:secretary@example.com")
 #
-# Afbeeldingen-tab (optioneel): voor het genereren van 3D-render-stijl
-# afbeeldingen is een OpenAI API-key nodig, zie worker/DEPLOY.md:
-#   - OPENAI_API_KEY (van https://platform.openai.com/api-keys)
-
 # Draait elke 10 minuten: verlengt Microsoft Graph-abonnementen op tijd en
 # stuurt afspraakherinneringen (Secretaresse-tab). Zonder gekoppeld account
 # doet deze taak niets.

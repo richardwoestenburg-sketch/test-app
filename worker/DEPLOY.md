@@ -287,33 +287,6 @@ Secretaresse-endpoints en de cron-taak (elke 10 minuten) meekomen.
 - **Loskoppelen** in de app verwijdert het bewaarde token en de webhooks bij
   Microsoft.
 
-## 9. Afbeeldingen: OpenAI-key instellen
-
-De **Afbeeldingen**-tab genereert een hoge-resolutie 3D-render-stijl
-afbeelding op basis van jouw omschrijving, via OpenAI's Images API
-(`gpt-image-1`). De Worker houdt de API-key geheim; de browser stuurt alleen
-je omschrijving en de gewenste afmeting.
-
-1. Maak een API-key op https://platform.openai.com/api-keys (vereist een
-   OpenAI-account met een betaalmethode; elke afbeelding kost een paar
-   dollarcent).
-2. Zet die als secret op je Worker:
-   - **Dashboard:** Worker → **Settings** → **Variables and Secrets** →
-     **Add** → naam exact `OPENAI_API_KEY`, waarde = je key, type **Secret**
-     → opslaan.
-   - **Of met wrangler:**
-     ```bash
-     npx wrangler secret put OPENAI_API_KEY
-     ```
-3. Draaide je de Worker al eerder? Deploy 'm opnieuw (via de
-   Cloudflare-knop, "Edit code" opnieuw plakken, of `npx wrangler deploy`)
-   zodat het `/images/generate`-endpoint meekomt.
-
-Daarna werkt de Afbeeldingen-tab meteen — dezelfde Worker-URL + `DAGLOG_TOKEN`
-die je al bij het tandwiel ⚙️ hebt ingevuld, wordt hiervoor hergebruikt. Zonder
-`OPENAI_API_KEY` geeft de tab een duidelijke foutmelding in plaats van een
-gegenereerde afbeelding.
-
 ## Beheer / opmerkingen
 
 - **Kosten:** blijft normaal €0 (Cloudflare gratis-tier: 100k requests/dag).

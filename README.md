@@ -101,14 +101,12 @@ vergrendeld scherm).
 **Afbeeldingen**
 
 - Typ een omschrijving en genereer een **hoge-resolutie 3D-render-stijl**
-  afbeelding (via een eigen Cloudflare Worker + OpenAI-key — zie
-  [`worker/DEPLOY.md`](worker/DEPLOY.md))
+  afbeelding — werkt direct, geen account, sleutel of eigen backend nodig
+  (gratis via [Pollinations.ai](https://pollinations.ai))
 - Kies de afmeting (vierkant, breed of staand) en optioneel een
   3D-render-stijl die aan je omschrijving wordt toegevoegd
 - Gegenereerde afbeeldingen blijven **lokaal op je apparaat** (IndexedDB) in
   een galerij, met lightbox om te downloaden of te verwijderen
-- Vereist eenmalig een gratis/betaalde **OpenAI API-key** als secret op je
-  Worker — zonder die sleutel toont de tab een duidelijke foutmelding
 
 **Secretaresse**
 
@@ -202,7 +200,7 @@ src/Flitsers.jsx               het flitsers-component (kaart, GPS, waarschuwing)
 src/flitsers.js                opslag, OSM-databron (Overpass) & geo-berekeningen
 src/Images3D.jsx                de afbeeldingen-tab (prompt → 3D-afbeelding, galerij)
 src/images3d.js                 opslag (IndexedDB) van gegenereerde afbeeldingen
-src/images3dApi.js              client voor het /images/generate-endpoint op de Worker
+src/images3dApi.js              client voor Pollinations.ai (gratis, geen key nodig)
 src/Secretary.jsx              de secretaresse-tab (mail, agenda, meldingen)
 src/msAuth.js                  Microsoft-inloggen (OAuth2 + PKCE)
 src/secretaryApi.js            client voor de Secretaresse-endpoints op de Worker

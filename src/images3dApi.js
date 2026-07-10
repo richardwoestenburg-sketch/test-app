@@ -1,50 +1,33 @@
-// Client voor het (nog te bouwen) /images/generate-endpoint op dezelfde
-// Cloudflare Worker die ook de Daglog-sync bedient (zelfde Worker-URL +
-// sleutel, ingesteld via het tandwiel ⚙️ in de Daglog-tab). De Worker houdt
-// de API-key van de beeldgenerator geheim; de browser stuurt alleen de
-// omschrijving + gewenste afmeting.
+// Genereert een 3D-render-stijl afbeelding via Pollinations.ai — een
+// volledig gratis, publieke text-to-image-API zonder account of API-key.
+// Werkt direct vanuit de browser, geen eigen backend/Worker nodig.
 //
-// Verwacht contract: POST /images/generate met { prompt, size } als JSON,
-// antwoord { imageBase64, mimeType } (base64-gecodeerde PNG/JPEG).
-import { getSyncConfig } from "./sync.js";
+// https://image.pollinations.ai/prompt/<omschrijving>?width=&height=&seed=&nologo=true
 
-function cfgOrThrow() {
-  const cfg = getSyncConfig();
-  if (!cfg) {
-    const err = new Error("Stel eerst je Worker-koppeling in via het tandwiel ⚙️ (tab Daglog).");
-    err.noWorker = true;
-    throw err;
-  }
-  return cfg;
-}
+const BASE_URL = "https://image.pollinations.ai/prompt/";
 
-function base64ToBlob(base64, mimeType) {
-  const byteChars = atob(base64);
-  const bytes = new Uint8Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
-  return new Blob([bytes], { type: mimeType });
-}
-
-export function hasWorkerConfigured() {
-  return getSyncConfig() != null;
-}
-
-export async function generateImage({ prompt, size }) {
-  const cfg = cfgOrThrow();
-  const res = await fetch(cfg.baseUrl + "/images/generate", {
-    method: "POST",
-    headers: {
-      "X-Daglog-Key": cfg.key,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ prompt, size }),
+export async function generateImage({ prompt, width, height }) {
+  const clean = String(prompt || "").trim();
+  if (!clean) throw new Error("Omschrijving is verplicht.");
+  // Een willekeurige seed voorkomt dat dezelfde prompt+afmeting altijd
+  // dezelfde (gecachete) afbeelding teruggeeft.
+  const seed = Math.floor(Math.random() * 1_000_000_000);
+  const params = new URLSearchParams({
+    width: String(width),
+    height: String(height),
+    seed: String(seed),
+    nologo: "true",
+    model: "flux",
   });
+  const res = await fetch(`${BASE_URL}${encodeURIComponent(clean)}?${params.toString()}`);
   if (!res.ok) {
     const err = new Error(`HTTP ${res.status}`);
     err.status = res.status;
     throw err;
   }
-  const data = await res.json();
-  if (!data.imageBase64) throw new Error("Onverwacht antwoord van de Worker.");
-  return base64ToBlob(data.imageBase64, data.mimeType || "image/png");
+  const blob = await res.blob();
+  if (!blob.type.startsWith("image/")) {
+    throw new Error("Onverwacht antwoord van de beeldgenerator.");
+  }
+  return blob;
 }

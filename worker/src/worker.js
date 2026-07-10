@@ -9,7 +9,6 @@
 // same shape the web app uses: { id, date, timeLabel, timestamp, text, lat, lon }.
 
 import { handleSecretary, runScheduled } from "./secretary.js";
-import { handleImages } from "./images.js";
 
 const KV_KEY = "entries";
 const AGENDA_KEY = "agenda";
@@ -224,10 +223,6 @@ export default {
 
     if (path.startsWith("/secretary/")) {
       return handleSecretary(request, env, ctx, url, origin, path);
-    }
-
-    if (path.startsWith("/images/")) {
-      return handleImages(request, env, path, origin, json);
     }
 
     // GET /entries -> all entries

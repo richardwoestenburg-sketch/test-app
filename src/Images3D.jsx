@@ -6,9 +6,9 @@ import * as images3dApi from "./images3dApi.js";
 // Visual styling lives in src/theme.js and is injected once by App.
 
 const SIZE_OPTIONS = [
-  { value: "1024x1024", label: "Vierkant · 1024×1024" },
-  { value: "1536x1024", label: "Breed · 1536×1024" },
-  { value: "1024x1536", label: "Staand · 1024×1536" },
+  { value: "1024x1024", width: 1024, height: 1024, label: "Vierkant · 1024×1024" },
+  { value: "1536x1024", width: 1536, height: 1024, label: "Breed · 1536×1024" },
+  { value: "1024x1536", width: 1024, height: 1536, label: "Staand · 1024×1536" },
 ];
 
 const STYLE_SUFFIX = "3D render, octane render, hoge resolutie, gedetailleerd, studiolicht";
@@ -79,19 +79,18 @@ export default function Images3D() {
     setGenerating(true);
     setError("");
     try {
+      const opt = SIZE_OPTIONS.find((o) => o.value === size) || SIZE_OPTIONS[0];
       const fullPrompt = style3d ? `${trimmed}, ${STYLE_SUFFIX}` : trimmed;
-      const blob = await images3dApi.generateImage({ prompt: fullPrompt, size });
+      const blob = await images3dApi.generateImage({
+        prompt: fullPrompt,
+        width: opt.width,
+        height: opt.height,
+      });
       const entry = await images3d.addImage({ prompt: trimmed, size, blob });
       setImages((prev) => [entry, ...prev]);
       setPrompt("");
-    } catch (err) {
-      if (err.noWorker) {
-        setError(err.message);
-      } else {
-        setError(
-          "Genereren lukte niet. Controleer of je Worker het /images/generate-endpoint ondersteunt."
-        );
-      }
+    } catch {
+      setError("Genereren lukte niet. Probeer het opnieuw of gebruik een andere omschrijving.");
     }
     setGenerating(false);
   };
