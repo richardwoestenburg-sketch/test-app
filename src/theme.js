@@ -103,7 +103,11 @@ export const APP_STYLE = `
   border: 1px solid rgba(237,230,208,0.12);
   border-radius: 11px;
   padding: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.dl-tabs::-webkit-scrollbar { display: none; }
 .dl-tab {
   flex: 1;
   display: flex;
@@ -117,7 +121,11 @@ export const APP_STYLE = `
   color: #ede6d0;
   opacity: 0.6;
   cursor: pointer;
+  white-space: nowrap;
   transition: background 0.12s ease, opacity 0.12s ease, color 0.12s ease;
+}
+@media (max-width: 480px) {
+  .dl-tab { flex: 0 0 auto; padding: 9px 12px; }
 }
 .dl-tab:hover { opacity: 0.85; }
 .dl-tab-active {

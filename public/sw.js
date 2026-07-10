@@ -1,6 +1,6 @@
 // Simple offline-first service worker for Daglog.
 // Bump CACHE when you ship new assets so old caches are cleared.
-const CACHE = "daglog-v4";
+const CACHE = "daglog-v5";
 // Relative to the service worker's own location, so the same worker caches
 // correctly whether served from a domain root or a subpath (/test-app/).
 const CORE = [
@@ -25,6 +25,27 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+  );
+});
+
+// Secretaresse: achtergrondmeldingen via Web Push (nieuwe mail, afspraken die
+// zo beginnen) — de Worker stuurt deze, ook als de app niet openstaat.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Secretaresse", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Secretaresse", {
+      body: data.body || "",
+      icon: "icon-192.png",
+      badge: "favicon-32.png",
+      tag: data.url || "secretaresse",
+      lang: "nl",
+      data: { url: "./" },
+    })
   );
 });
 

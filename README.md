@@ -8,12 +8,13 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft vijf tabbladen: **Daglog** (terugkijken — wat deed je),
+De app heeft zes tabbladen: **Daglog** (terugkijken — wat deed je),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
-je vakantie was) en **Flitsers** (kaart met flitspalen/trajectcontroles en een
-waarschuwing als je in de buurt komt).
+je vakantie was), **Flitsers** (kaart met flitspalen/trajectcontroles en een
+waarschuwing als je in de buurt komt) en **Secretaresse** (je Outlook-mail en
+-agenda, met meldingen — ook met vergrendeld scherm).
 
 ## Functies
 
@@ -95,6 +96,19 @@ waarschuwing als je in de buurt komt).
   houder); zoals bij vrijwel elke navigatie-PWA werken meldingen niet
   gegarandeerd door als het scherm vergrendeld is
 
+**Secretaresse**
+
+- Log in met je **Outlook/Microsoft 365**-account (OAuth, geen wachtwoord
+  gaat via deze app of de Worker)
+- **Postvak in**: nieuwste mail met lezen/ongelezen, archiveren, verwijderen
+  en een snelle reactie versturen
+- **Agenda**: aankomende afspraken bekijken, nieuwe aanmaken en verwijderen
+- **Meldingen — ook met vergrendeld scherm**: via je eigen Cloudflare Worker
+  (Microsoft Graph-webhooks + Web Push) krijg je een seintje bij nieuwe mail
+  en vlak voor een afspraak begint, zonder dat de app open hoeft te staan
+- Vereist eenmalig een gratis **Azure-app-registratie** en **VAPID-sleutels**
+  op je Worker — zie [`worker/DEPLOY.md`](worker/DEPLOY.md)
+
 **Algemeen**
 
 - Alles blijft lokaal opgeslagen op je apparaat (`localStorage`) — geen account nodig
@@ -172,6 +186,10 @@ src/Vakantie.jsx               het vakantie-component (fototijdlijn + lightbox)
 src/vakantie.js                opslag (IndexedDB) & verkleinen/comprimeren van foto's
 src/Flitsers.jsx               het flitsers-component (kaart, GPS, waarschuwing)
 src/flitsers.js                opslag, OSM-databron (Overpass) & geo-berekeningen
+src/Secretary.jsx              de secretaresse-tab (mail, agenda, meldingen)
+src/msAuth.js                  Microsoft-inloggen (OAuth2 + PKCE)
+src/secretaryApi.js            client voor de Secretaresse-endpoints op de Worker
+src/graph.js                   Microsoft Graph-aanroepen (mail/agenda)
 src/notify.js                 meldingen (Notification Triggers + in-app fallback)
 src/theme.js                  gedeelde CSS/design-tokens
 src/storage.js                localStorage-persistentie (daglog)
