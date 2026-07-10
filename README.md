@@ -8,9 +8,10 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft drie tabbladen: **Daglog** (terugkijken — wat deed je),
-**Agenda** (vooruit plannen — met een melding op tijd) en **Tijd** (snel
-registreren wat je doet en hoe lang, met een daganalyse).
+De app heeft vier tabbladen: **Daglog** (terugkijken — wat deed je),
+**Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
+registreren wat je doet en hoe lang, met een daganalyse) en **Flitsers**
+(kaart met flitspalen/trajectcontroles en een waarschuwing als je in de buurt komt).
 
 ## Functies
 
@@ -59,6 +60,23 @@ registreren wat je doet en hoe lang, met een daganalyse).
   is gelijk op telefoon, laptop en browser
 - **Vanaf je horloge loggen**: een `/track`-eindpunt waarmee een Wear OS-tegel
   met één tik een activiteit start/wisselt (zie `worker/DEPLOY.md`)
+
+**Flitsers**
+
+- **Kaart** (OpenStreetMap) met je eigen positie en flitspalen/trajectcontroles
+  in de buurt
+- Camera-data komt **gratis en automatisch** van OpenStreetMap (Overpass API,
+  geen account nodig) en wordt lokaal gecached; een **Ververs**-knop haalt de
+  laatste stand op, en dat gebeurt ook vanzelf als de cache ouder dan 2 weken is
+- **Geluid + trilling** zodra een camera binnen de ingestelde afstand komt
+  (instelbaar: 300 m – 1,5 km), met een duidelijke banner bovenaan
+- Waarschuwt bij voorkeur alleen voor camera's **in je rijrichting** (op basis
+  van je GPS-koers), zodat je niet gestoord wordt door camera's op een andere weg
+- **Zelf camera's toevoegen** op je huidige locatie (bijv. mobiele controles die
+  OSM mist) — deze blijven lokaal op je apparaat bewaard en zijn los te verwijderen
+- Werkt het betrouwbaarst met de app **open en actief** (bv. telefoon in een
+  houder); zoals bij vrijwel elke navigatie-PWA werken meldingen niet
+  gegarandeerd door als het scherm vergrendeld is
 
 **Algemeen**
 
@@ -133,6 +151,8 @@ src/Agenda.jsx                het agenda/planner-component (UI + logica)
 src/agenda.js                 opslag & helpers voor agenda-items
 src/TimeLog.jsx               het tijdregistratie-component (UI + logica)
 src/timelog.js                opslag, sessies & daganalyse voor tijdregistratie
+src/Flitsers.jsx               het flitsers-component (kaart, GPS, waarschuwing)
+src/flitsers.js                opslag, OSM-databron (Overpass) & geo-berekeningen
 src/notify.js                 meldingen (Notification Triggers + in-app fallback)
 src/theme.js                  gedeelde CSS/design-tokens
 src/storage.js                localStorage-persistentie (daglog)

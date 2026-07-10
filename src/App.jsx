@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { BookOpen, CalendarDays, Timer } from "lucide-react";
+import { BookOpen, CalendarDays, Timer, Camera } from "lucide-react";
 import { APP_STYLE } from "./theme.js";
 import DagLog from "./DagLog.jsx";
 import Agenda from "./Agenda.jsx";
 import TimeLog from "./TimeLog.jsx";
+import Flitsers from "./Flitsers.jsx";
 
 const TAB_KEY = "daglog-tab";
-const TABS = ["log", "agenda", "tijd"];
+const TABS = ["log", "agenda", "tijd", "flitsers"];
 
 export default function App() {
   const [tab, setTab] = useState(() => {
@@ -48,10 +49,26 @@ export default function App() {
           >
             <Timer size={15} /> Tijd
           </button>
+          <button
+            role="tab"
+            aria-selected={tab === "flitsers"}
+            className={`dl-tab ${tab === "flitsers" ? "dl-tab-active" : ""}`}
+            onClick={() => choose("flitsers")}
+          >
+            <Camera size={15} /> Flitsers
+          </button>
         </div>
       </div>
       <div className="pt-7">
-        {tab === "log" ? <DagLog /> : tab === "agenda" ? <Agenda /> : <TimeLog />}
+        {tab === "log" ? (
+          <DagLog />
+        ) : tab === "agenda" ? (
+          <Agenda />
+        ) : tab === "tijd" ? (
+          <TimeLog />
+        ) : (
+          <Flitsers />
+        )}
       </div>
     </div>
   );
