@@ -125,7 +125,12 @@ export const APP_STYLE = `
   transition: background 0.12s ease, opacity 0.12s ease, color 0.12s ease;
 }
 @media (max-width: 480px) {
-  .dl-tab { flex: 0 0 auto; padding: 9px 12px; }
+  /* Met 7 tabbladen past niet alles op één rij op een telefoon. Wrap naar
+     een tweede rij in plaats van onzichtbaar horizontaal te laten scrollen
+     (de scrollbalk is verborgen, dus scrollen zou geen enkele aanwijzing geven
+     dat er meer tabbladen zijn). */
+  .dl-tabs { flex-wrap: wrap; overflow-x: visible; }
+  .dl-tab { flex: 1 1 30%; padding: 9px 6px; font-size: 12px; }
 }
 .dl-tab:hover { opacity: 0.85; }
 .dl-tab-active {
