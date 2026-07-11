@@ -14,7 +14,8 @@ registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
 je vakantie was), **Flitsers** (kaart met flitspalen/trajectcontroles en een
 waarschuwing als je in de buurt komt), **Afbeeldingen** (hoge-resolutie
-3D-render-stijl afbeeldingen genereren op basis van een omschrijving) en
+3D-render-stijl afbeeldingen genereren op basis van een omschrijving),
+**Stem** (je eigen stem klonen en tekst laten voorlezen in die stem) en
 **Secretaresse** (je Outlook-mail en -agenda, met meldingen — ook met
 vergrendeld scherm).
 
@@ -107,6 +108,19 @@ vergrendeld scherm).
   3D-render-stijl die aan je omschrijving wordt toegevoegd
 - Gegenereerde afbeeldingen blijven **lokaal op je apparaat** (IndexedDB) in
   een galerij, met lightbox om te downloaden of te verwijderen
+
+**Stem**
+
+- Neem opnames van jezelf op (microfoon in de browser) en **kloon je eigen
+  stem** via [ElevenLabs](https://elevenlabs.io) — vereist een eigen (gratis
+  of betaalde) ElevenLabs API-key, ingevuld in de tab zelf
+- Typ tekst en laat die **voorlezen in je gekloonde stem**; gegenereerde
+  fragmenten blijven als **geschiedenis** bewaard (lokaal, IndexedDB), met
+  afspelen, downloaden en verwijderen
+- De API-key en de gekloonde stem worden alleen **lokaal in je browser**
+  bewaard (`localStorage`); aanroepen gaan rechtstreeks van de app naar
+  ElevenLabs, er is geen eigen backend/Worker voor nodig
+- Kloon alleen stemmen waar je zelf toestemming voor hebt (je eigen stem)
 
 **Secretaresse**
 
@@ -201,6 +215,9 @@ src/flitsers.js                opslag, OSM-databron (Overpass) & geo-berekeninge
 src/Images3D.jsx                de afbeeldingen-tab (prompt → 3D-afbeelding, galerij)
 src/images3d.js                 opslag (IndexedDB) van gegenereerde afbeeldingen
 src/images3dApi.js              client voor Pollinations.ai (gratis, geen key nodig)
+src/Voice.jsx                   de stem-tab (opnemen, klonen, voorlezen, geschiedenis)
+src/voice.js                    instellingen (API-key, voice-id) + opslag (IndexedDB) van fragmenten
+src/voiceApi.js                 client voor ElevenLabs (eigen API-key nodig)
 src/Secretary.jsx              de secretaresse-tab (mail, agenda, meldingen)
 src/msAuth.js                  Microsoft-inloggen (OAuth2 + PKCE)
 src/secretaryApi.js            client voor de Secretaresse-endpoints op de Worker
