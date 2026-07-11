@@ -223,18 +223,19 @@ export default function Voice() {
         <div className="dl-card p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
             <KeyRound size={15} color="#b8892b" />
-            <span className="text-sm font-semibold">ElevenLabs API-key</span>
+            <span className="text-sm font-semibold">Fish Audio API-key</span>
           </div>
           <p className="text-sm opacity-70 mb-3">
-            Stemklonen loopt via <span className="dl-mono">elevenlabs.io</span> — maak daar een gratis
-            account, kopieer je API-key en plak 'm hieronder. De key wordt alleen lokaal in je browser
-            bewaard en rechtstreeks naar ElevenLabs gestuurd, er is geen eigen server voor nodig. Kloon
-            alleen je eigen stem, met je eigen toestemming.
+            Stemklonen loopt via <span className="dl-mono">fish.audio</span> — maak daar een gratis
+            account (Profiel → API Keys), kopieer je API-key en plak 'm hieronder. De gratis laag geeft
+            elke maand een beperkt aantal minuten, voor persoonlijk gebruik. De key wordt alleen lokaal
+            in je browser bewaard en rechtstreeks naar Fish Audio gestuurd, er is geen eigen server voor
+            nodig. Kloon alleen je eigen stem, met je eigen toestemming.
           </p>
           <input
             type="password"
             className="dl-input w-full px-3 py-2 text-sm mb-2"
-            placeholder="ElevenLabs API-key"
+            placeholder="Fish Audio API-key"
             value={apiKeyInput}
             onChange={(e) => setApiKeyInput(e.target.value)}
           />

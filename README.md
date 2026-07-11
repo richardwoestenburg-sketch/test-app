@@ -112,14 +112,14 @@ vergrendeld scherm).
 **Stem**
 
 - Neem opnames van jezelf op (microfoon in de browser) en **kloon je eigen
-  stem** via [ElevenLabs](https://elevenlabs.io) — vereist een eigen (gratis
-  of betaalde) ElevenLabs API-key, ingevuld in de tab zelf
+  stem** via [Fish Audio](https://fish.audio) — vereist een eigen (gratis,
+  voor persoonlijk gebruik) Fish Audio API-key, ingevuld in de tab zelf
 - Typ tekst en laat die **voorlezen in je gekloonde stem**; gegenereerde
   fragmenten blijven als **geschiedenis** bewaard (lokaal, IndexedDB), met
   afspelen, downloaden en verwijderen
 - De API-key en de gekloonde stem worden alleen **lokaal in je browser**
-  bewaard (`localStorage`); aanroepen gaan rechtstreeks van de app naar
-  ElevenLabs, er is geen eigen backend/Worker voor nodig
+  bewaard (`localStorage`); aanroepen gaan rechtstreeks van de app naar Fish
+  Audio, er is geen eigen backend/Worker voor nodig
 - Kloon alleen stemmen waar je zelf toestemming voor hebt (je eigen stem)
 
 **Secretaresse**
@@ -217,7 +217,7 @@ src/images3d.js                 opslag (IndexedDB) van gegenereerde afbeeldingen
 src/images3dApi.js              client voor Pollinations.ai (gratis, geen key nodig)
 src/Voice.jsx                   de stem-tab (opnemen, klonen, voorlezen, geschiedenis)
 src/voice.js                    instellingen (API-key, voice-id) + opslag (IndexedDB) van fragmenten
-src/voiceApi.js                 client voor ElevenLabs (eigen API-key nodig)
+src/voiceApi.js                 client voor Fish Audio (eigen API-key nodig)
 src/Secretary.jsx              de secretaresse-tab (mail, agenda, meldingen)
 src/msAuth.js                  Microsoft-inloggen (OAuth2 + PKCE)
 src/secretaryApi.js            client voor de Secretaresse-endpoints op de Worker
