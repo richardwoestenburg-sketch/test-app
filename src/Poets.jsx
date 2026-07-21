@@ -721,6 +721,7 @@ function ChatTab({ data, setData, melding }) {
     if (!tekst) return;
     if (!getApiKey()) {
       setStatus("Geen API-key ingesteld — ga naar tab Inzicht om er een toe te voegen.");
+      melding("Stel eerst je Claude API-key in (tab Inzicht)");
       return;
     }
     const nieuweChat = [...data.chat, { role: "user", content: tekst }];
@@ -742,6 +743,8 @@ function ChatTab({ data, setData, melding }) {
 
   const wis = () => setData((d) => ({ ...d, chat: [] }));
 
+  const heeftKey = !!getApiKey();
+
   return (
     <div className="dl-card p-4">
       <h2 className="dl-card-h">Vraag het de AI</h2>
@@ -749,6 +752,12 @@ function ChatTab({ data, setData, melding }) {
         Leg een probleem of vraag voor over je Spider 916 of Mito — de AI kent je producten,
         workflow en bekende aandachtspunten.
       </p>
+      {!heeftKey && (
+        <div className="pt-note mb-2">
+          Nog geen Claude API-key ingesteld op dit toestel. Ga naar het tabblad <b>Inzicht</b>,
+          plak je key en klik op <b>Opslaan</b> — anders kan de AI niet antwoorden.
+        </div>
+      )}
       <div className="pt-chat">
         {data.chat.length === 0 && <div className="pt-empty">Stel hieronder je vraag</div>}
         {data.chat.map((m, i) => (
