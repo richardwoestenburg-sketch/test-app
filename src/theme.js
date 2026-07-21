@@ -318,4 +318,96 @@ export const APP_STYLE = `
 @media (prefers-reduced-motion: reduce) {
   .dl-photo-thumb-wrap { transition: none; }
 }
+
+/* Cabrio: weeradvies-banner + uurtijdlijn */
+.cb-advice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 20px -10px rgba(0,0,0,0.5);
+}
+.cb-advice-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.14);
+}
+.cb-advice-open {
+  background: #2f7d5b;
+  color: #f2fbf6;
+}
+.cb-advice-closed {
+  background: #3a4552;
+  color: #ede6d0;
+}
+
+.cb-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.cb-stat {
+  background: rgba(237,230,208,0.06);
+  border: 1px solid rgba(237,230,208,0.12);
+  border-radius: 9px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.cb-stat-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+.cb-stat-label {
+  font-size: 9px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cb-hours {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.cb-hour {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 40px;
+  opacity: 0.75;
+}
+.cb-hour-time {
+  font-size: 10px;
+  opacity: 0.7;
+}
+.cb-hour-temp {
+  font-size: 12px;
+  font-weight: 600;
+}
+.cb-hour-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(36,29,16,0.2);
+}
+.cb-hour-open {
+  opacity: 1;
+}
+.cb-hour-open .cb-hour-dot {
+  background: #2f7d5b;
+}
 `;

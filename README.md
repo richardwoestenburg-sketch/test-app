@@ -8,16 +8,17 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft zeven tabbladen: **Daglog** (terugkijken — wat deed je),
+De app heeft acht tabbladen: **Daglog** (terugkijken — wat deed je),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
 je vakantie was), **Flitsers** (kaart met flitspalen/trajectcontroles en een
-waarschuwing als je in de buurt komt), **Afbeeldingen** (hoge-resolutie
-3D-render-stijl afbeeldingen genereren op basis van een omschrijving),
-**Stem** (je eigen stem klonen en tekst laten voorlezen in die stem) en
-**Secretaresse** (je Outlook-mail en -agenda, met meldingen — ook met
-vergrendeld scherm).
+waarschuwing als je in de buurt komt), **Cabrio** (live weeradvies — kap open
+of dicht — op basis van temperatuur, wind, regenkans en UV op jouw locatie),
+**Afbeeldingen** (hoge-resolutie 3D-render-stijl afbeeldingen genereren op
+basis van een omschrijving), **Stem** (je eigen stem klonen en tekst laten
+voorlezen in die stem) en **Secretaresse** (je Outlook-mail en -agenda, met
+meldingen — ook met vergrendeld scherm).
 
 ## Functies
 
@@ -98,6 +99,18 @@ vergrendeld scherm).
 - Werkt het betrouwbaarst met de app **open en actief** (bv. telefoon in een
   houder); zoals bij vrijwel elke navigatie-PWA werken meldingen niet
   gegarandeerd door als het scherm vergrendeld is
+
+**Cabrio**
+
+- **Kap open of dicht?** — duidelijk advies op basis van live weerdata op je
+  huidige locatie: temperatuur, windstoten, regenkans en UV-index
+- Weerdata komt **gratis en automatisch** van Open-Meteo (geen account of
+  sleutel nodig) en ververst vanzelf elke 15 minuten
+- **Uurverwachting voor vandaag**, zodat je in één oogopslag ziet wanneer
+  het (nog) een goed moment is om de kap open te doen
+- Zelf in te stellen **grenzen**: vanaf welke temperatuur, tot welke wind en
+  tot welke regenkans jij het nog prima vindt
+- Geen opslag nodig — alleen je eigen drempelwaarden blijven lokaal bewaard
 
 **Afbeeldingen**
 
@@ -212,6 +225,8 @@ src/Vakantie.jsx               het vakantie-component (fototijdlijn + lightbox)
 src/vakantie.js                opslag (IndexedDB) & verkleinen/comprimeren van foto's
 src/Flitsers.jsx               het flitsers-component (kaart, GPS, waarschuwing)
 src/flitsers.js                opslag, OSM-databron (Overpass) & geo-berekeningen
+src/Cabrio.jsx                  de cabrio-tab (weeradvies kap open/dicht)
+src/cabrio.js                   instellingen, Open-Meteo-databron & advieslogica
 src/Images3D.jsx                de afbeeldingen-tab (prompt → 3D-afbeelding, galerij)
 src/images3d.js                 opslag (IndexedDB) van gegenereerde afbeeldingen
 src/images3dApi.js              client voor Pollinations.ai (gratis, geen key nodig)
