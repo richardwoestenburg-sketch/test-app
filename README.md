@@ -8,17 +8,19 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft acht tabbladen: **Daglog** (terugkijken — wat deed je),
+De app heeft tien tabbladen: **Daglog** (terugkijken — wat deed je),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
 je vakantie was), **Flitsers** (kaart met flitspalen/trajectcontroles en een
 waarschuwing als je in de buurt komt), **Cabrio** (live weeradvies — kap open
 of dicht — op basis van temperatuur, wind, regenkans en UV op jouw locatie),
-**Afbeeldingen** (hoge-resolutie 3D-render-stijl afbeeldingen genereren op
-basis van een omschrijving), **Stem** (je eigen stem klonen en tekst laten
-voorlezen in die stem) en **Secretaresse** (je Outlook-mail en -agenda, met
-meldingen — ook met vergrendeld scherm).
+**Poets** (detailing-logboek voor de Alfa Romeo Spider 916 en Mito — bijhouden
+wat je gepoetst hebt, voorraad, vaste werkvolgordes en AI-hulp), **Afbeeldingen**
+(hoge-resolutie 3D-render-stijl afbeeldingen genereren op basis van een
+omschrijving), **Stem** (je eigen stem klonen en tekst laten voorlezen in die
+stem) en **Secretaresse** (je Outlook-mail en -agenda, met meldingen — ook met
+vergrendeld scherm).
 
 ## Functies
 
@@ -111,6 +113,31 @@ meldingen — ook met vergrendeld scherm).
 - Zelf in te stellen **grenzen**: vanaf welke temperatuur, tot welke wind en
   tot welke regenkans jij het nog prima vindt
 - Geen opslag nodig — alleen je eigen drempelwaarden blijven lokaal bewaard
+
+**Poets**
+
+- **Detailing-logboek** voor de Alfa Romeo Spider 916 (zwart) en de Mito (rood):
+  leg per poetsbeurt vast wat je gedaan hebt, met datum, auto, gebruikte
+  producten en een notitie
+- **Wasstatus** bovenaan: hoe lang geleden is elke auto voor het laatst gewassen,
+  met een "Vandaag"-knop om in één tik een wasbeurt te noteren
+- **Voorraad**: houd bij welke producten je hebt, zet uit wat op is (dan
+  verdwijnt het als snelle keuze), en markeer producten waar je een slechte
+  ervaring mee had zodat de AI ze niet aanraadt
+- **Plakken**: plak een bestaand poets-overzicht of een stuk chatgeschiedenis;
+  de app haalt er via trefwoorden of via de AI datums, producten en acties uit
+  en maakt daar per fragment een voorstel van dat je in je log kunt zetten
+- **Inzicht**: laat de AI je log analyseren op patronen en welke aanpak/producten
+  het beste effect lijken te hebben, met concrete aanbevelingen
+- **Chat**: stel losse vragen over onderhoud en detailing — de AI kent je vaste
+  werkvolgordes, producten en bekende aandachtspunten (zoals het raamrubber en de
+  softtop van de Spider 916)
+- **Tips**: de vaste exterieur-workflow (6 stappen), de kleurloze
+  leerverzorging en bekende technische aandachtspunten altijd bij de hand
+- De AI-functies gebruiken de **Claude API** met een eigen key (Haiku-model, een
+  fractie van een cent per aanvraag); de key wordt alleen **lokaal** bewaard en
+  komt nooit in de export/back-up. Alle log- en voorraaddata blijft lokaal
+  (`localStorage`), en is te **exporteren/importeren** als JSON-back-up
 
 **Afbeeldingen**
 
