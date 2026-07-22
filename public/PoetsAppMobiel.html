@@ -291,7 +291,7 @@
     <div class="card">
       <h2>Vraag het de AI</h2>
       <p style="font-size:12px;color:#999;margin-bottom:8px;">
-        Leg een probleem of vraag voor over je Spider 916 of Mito — de AI kent je producten, workflow en bekende aandachtspunten.
+        Leg een probleem of vraag voor over je Spider 916 of Mito — de AI kent je producten, workflow en bekende aandachtspunten. Je kunt ook een <b>foto meesturen</b> (bv. van lak, een vlek of beschadiging) voor gerichter advies.
       </p>
       <label>AI-model</label>
       <select id="chat-provider" onchange="bewaarChatProvider()">
@@ -299,7 +299,14 @@
         <option value="claude">Claude (Anthropic)</option>
       </select>
       <div id="chat-berichten" style="margin-top:10px;"></div>
+      <div id="chat-bijlage-preview" style="display:none;align-items:center;gap:8px;margin-top:8px;">
+        <img id="chat-bijlage-thumb" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid #3a3a3f;">
+        <span id="chat-bijlage-naam" style="font-size:12px;color:#aaa;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+        <button class="small ghost" onclick="verwijderBijlage()">✖ Foto weg</button>
+      </div>
       <div class="chat-input-row">
+        <button class="secondary" onclick="document.getElementById('chat-foto').click()" style="align-self:flex-end;padding:11px 13px;" title="Foto toevoegen">📎</button>
+        <input type="file" id="chat-foto" accept="image/*" style="display:none;" onchange="kiesBijlage(event)">
         <textarea id="chat-input" placeholder="Bv. mijn raamrubber trekt naar binnen, wat kan ik doen?"></textarea>
         <button onclick="stuurChatBericht()" style="background:#5a2ea6;align-self:flex-end;">➤</button>
       </div>
@@ -820,9 +827,18 @@ function wisGeminiKey() {
   toast('Gemini API-key verwijderd');
 }
 
-async function callGemini(systeemPrompt, berichten) {
+async function callGemini(systeemPrompt, berichten, bijlage) {
   const key = getGeminiKey();
   if (!key) throw new Error('Geen Gemini API-key ingesteld (zie tab Inzicht).');
+  const contents = berichten.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+  // Foto aan de laatste (huidige) user-beurt hangen.
+  if (bijlage && contents.length) {
+    const laatste = contents[contents.length - 1];
+    laatste.parts.push({ inline_data: { mime_type: bijlage.mimeType, data: bijlage.data } });
+  }
   let resp;
   try {
     resp = await fetch(GEMINI_API_URL + '?key=' + encodeURIComponent(key), {
@@ -830,10 +846,7 @@ async function callGemini(systeemPrompt, berichten) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systeemPrompt }] },
-        contents: berichten.map(m => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }]
-        })),
+        contents,
         generationConfig: { maxOutputTokens: 2048 }
       })
     });
@@ -972,6 +985,58 @@ function bewaarChatProvider() {
   localStorage.setItem(CHAT_PROVIDER_STORAGE, document.getElementById('chat-provider').value);
 }
 
+// Foto-bijlage voor de chat (alleen in-memory, niet in localStorage/export).
+let chatBijlage = null;
+
+// Verklein de foto client-side naar max 1024px en JPEG, zodat de aanvraag
+// klein en snel blijft. Geeft { mimeType, data (base64 zonder prefix) }.
+function verkleinFoto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('kon foto niet lezen'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('kon foto niet openen'));
+      img.onload = () => {
+        const max = 1024;
+        let { width, height } = img;
+        if (width > max || height > max) {
+          if (width >= height) { height = Math.round(height * max / width); width = max; }
+          else { width = Math.round(width * max / height); height = max; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        resolve({ mimeType: 'image/jpeg', data: dataUrl.split(',')[1], preview: dataUrl });
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function kiesBijlage(evt) {
+  const file = evt.target.files[0];
+  evt.target.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('Kies een afbeelding'); return; }
+  try {
+    chatBijlage = await verkleinFoto(file);
+    document.getElementById('chat-bijlage-thumb').src = chatBijlage.preview;
+    document.getElementById('chat-bijlage-naam').textContent = file.name || 'foto';
+    document.getElementById('chat-bijlage-preview').style.display = 'flex';
+  } catch (e) {
+    toast('Foto verwerken mislukt');
+  }
+}
+
+function verwijderBijlage() {
+  chatBijlage = null;
+  document.getElementById('chat-bijlage-preview').style.display = 'none';
+  document.getElementById('chat-bijlage-thumb').src = '';
+}
+
 function chatSysteemPrompt() {
   const voorraadNamen = data.voorraad.filter(p => p.op !== false && !p.slechteErvaring).map(p => p.naam).join(', ');
   const slechteErvaringen = data.voorraad.filter(p => p.slechteErvaring)
@@ -1007,8 +1072,8 @@ function renderChat() {
 
 async function stuurChatBericht() {
   const inp = document.getElementById('chat-input');
-  const tekst = inp.value.trim();
-  if (!tekst) return;
+  let tekst = inp.value.trim();
+  if (!tekst && !chatBijlage) return;
   const status = document.getElementById('chat-status');
   const provider = chatProvider();
   if (provider === 'gemini' ? !getGeminiKey() : !getApiKey()) {
@@ -1017,7 +1082,11 @@ async function stuurChatBericht() {
       : 'Geen Claude API-key ingesteld — ga naar tab Inzicht om er een toe te voegen.';
     return;
   }
-  data.chat.push({ role: 'user', content: tekst });
+  // Foto los pakken en het invoerveld/preview meteen leegmaken.
+  const bijlage = chatBijlage;
+  if (!tekst && bijlage) tekst = 'Bekijk deze foto en geef poets-/detailingadvies.';
+  verwijderBijlage();
+  data.chat.push({ role: 'user', content: tekst + (bijlage ? '\n[📷 foto meegestuurd]' : '') });
   inp.value = '';
   renderChat();
   bewaarData();
@@ -1028,13 +1097,22 @@ async function stuurChatBericht() {
     if (recente.length && recente[0].role === 'assistant') recente.shift();
     let antwoord;
     if (provider === 'gemini') {
-      antwoord = await callGemini(chatSysteemPrompt(), recente);
+      antwoord = await callGemini(chatSysteemPrompt(), recente, bijlage);
     } else {
+      // Bij Claude de foto als image-block aan de laatste user-beurt hangen.
+      const claudeMessages = recente.map(m => ({ role: m.role, content: m.content }));
+      if (bijlage && claudeMessages.length) {
+        const laatste = claudeMessages[claudeMessages.length - 1];
+        laatste.content = [
+          { type: 'text', text: laatste.content },
+          { type: 'image', source: { type: 'base64', media_type: bijlage.mimeType, data: bijlage.data } }
+        ];
+      }
       const result = await callClaude({
         model: CLAUDE_MODEL,
         max_tokens: 1024,
         system: chatSysteemPrompt(),
-        messages: recente
+        messages: claudeMessages
       });
       antwoord = result.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
     }
