@@ -1,8 +1,12 @@
 // Simple offline-first service worker for Daglog.
 // Bump CACHE when you ship new assets so old caches are cleared.
-const CACHE = "daglog-v5";
+const CACHE = "daglog-v6";
 // Relative to the service worker's own location, so the same worker caches
 // correctly whether served from a domain root or a subpath (/test-app/).
+const APP_KEYS = [
+  "log", "agenda", "tijd", "vakantie", "flitsers",
+  "cabrio", "garage", "afbeeldingen", "stem", "secretaresse",
+];
 const CORE = [
   "./",
   "index.html",
@@ -11,6 +15,10 @@ const CORE = [
   "icon-192.png",
   "icon-512.png",
   "apple-touch-icon.png",
+  // Per-app manifesten + iconen, zodat losse apps ook offline installeerbaar
+  // en opstartbaar blijven.
+  ...APP_KEYS.map((k) => `manifest-${k}.webmanifest`),
+  ...APP_KEYS.map((k) => `icons/${k}.svg`),
 ];
 
 self.addEventListener("install", (event) => {

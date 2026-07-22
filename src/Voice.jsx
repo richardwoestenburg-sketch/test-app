@@ -210,7 +210,7 @@ export default function Voice() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-16">
       <header className="flex items-center gap-3 mb-8">
-        <AudioLines size={26} strokeWidth={1.6} color="#1f4e8c" />
+        <div className="dl-hero-icon"><AudioLines size={22} strokeWidth={1.8} /></div>
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Stem</h1>
           <p className="text-xs opacity-60 dl-mono">
@@ -222,7 +222,7 @@ export default function Voice() {
       {!apiKey ? (
         <div className="dl-card p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <KeyRound size={15} color="#1f4e8c" />
+            <KeyRound size={15} className="dl-ico-accent" />
             <span className="text-sm font-semibold">Fish Audio API-key</span>
           </div>
           <p className="text-sm opacity-70 mb-3">
@@ -265,7 +265,7 @@ export default function Voice() {
           {!clonedVoice ? (
             <div className="dl-card p-4 mb-8">
               <div className="flex items-center gap-2 mb-2">
-                <Mic size={15} color="#1f4e8c" />
+                <Mic size={15} className="dl-ico-accent" />
                 <span className="text-sm font-semibold">Stem opnemen</span>
               </div>
               <p className="text-sm opacity-70 mb-3">
@@ -332,7 +332,7 @@ export default function Voice() {
             <>
               <div className="dl-card p-4 mb-8">
                 <div className="flex items-center gap-3 mb-3">
-                  <Wand2 size={16} color="#1f4e8c" />
+                  <Wand2 size={16} className="dl-ico-accent" />
                   <span className="text-xs uppercase dl-day-label opacity-70">Laat voorlezen</span>
                 </div>
                 <textarea

@@ -1,0 +1,37 @@
+{
+  "id": "./?app=agenda",
+  "name": "Agenda",
+  "short_name": "Agenda",
+  "description": "plannen mét melding",
+  "lang": "nl",
+  "start_url": "./?app=agenda",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f8fc",
+  "theme_color": "#e11d48",
+  "icons": [
+    {
+      "src": "icons/agenda.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

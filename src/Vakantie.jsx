@@ -162,7 +162,7 @@ export default function Vakantie() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-8">
-        <Images size={26} strokeWidth={1.6} color="#1f4e8c" />
+        <div className="dl-hero-icon"><Images size={22} strokeWidth={1.8} /></div>
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Vakantie</h1>
           <p className="text-xs opacity-60 dl-mono">
@@ -176,7 +176,7 @@ export default function Vakantie() {
       {/* New photo card */}
       <div className="dl-card p-4 mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <Camera size={16} color="#1f4e8c" />
+          <Camera size={16} className="dl-ico-accent" />
           <span className="text-xs uppercase dl-day-label opacity-70">Nieuwe foto</span>
         </div>
         <div className="flex gap-2 mb-3">

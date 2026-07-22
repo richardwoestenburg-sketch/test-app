@@ -304,7 +304,7 @@ export default function Agenda() {
     if (perm === "granted") {
       return (
         <span className="dl-btn-ghost p-2 inline-flex" title="Meldingen staan aan">
-          <BellRing size={15} color="#1f4e8c" />
+          <BellRing size={15} className="dl-ico-accent" />
         </span>
       );
     }
@@ -323,7 +323,7 @@ export default function Agenda() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-6">
-        <CalendarDays size={26} strokeWidth={1.6} color="#1f4e8c" />
+        <div className="dl-hero-icon"><CalendarDays size={22} strokeWidth={1.8} /></div>
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Agenda</h1>
           <p className="text-xs opacity-60 dl-mono">plan vooruit — met een seintje op tijd</p>
@@ -340,7 +340,7 @@ export default function Agenda() {
               <RefreshCw size={15} className={refreshing ? "dl-spin" : ""} />
             </button>
             <span className="dl-btn-ghost p-2 inline-flex" title="Agenda wordt gesynchroniseerd">
-              <Cloud size={15} color="#1f4e8c" />
+              <Cloud size={15} className="dl-ico-accent" />
             </span>
           </>
         )}
@@ -350,7 +350,7 @@ export default function Agenda() {
       {/* Notification banner */}
       {perm === "default" && (
         <div className="dl-card p-3 mb-6 flex items-center gap-3">
-          <Bell size={16} color="#1f4e8c" className="shrink-0" />
+          <Bell size={16} className="shrink-0 dl-ico-accent" />
           <p className="text-xs flex-1 opacity-80">
             Zet meldingen aan om een seintje te krijgen wanneer een afspraak eraan komt.
           </p>
@@ -371,7 +371,7 @@ export default function Agenda() {
       {/* New item card */}
       <div className="dl-card p-4 mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <Plus size={16} color="#1f4e8c" />
+          <Plus size={16} className="dl-ico-accent" />
           <span className="text-xs uppercase dl-day-label opacity-70">Nieuwe afspraak</span>
         </div>
         <input

@@ -1,102 +1,140 @@
-// Shared visual language for the app (Daglog + Agenda).
-// Injected once at the App root so every tab uses the same tokens.
+// Gedeelde visuele stijl voor alle mini-apps.
+// Eén keer geïnjecteerd in de App-root; elke app krijgt zijn eigen
+// accentkleur via de CSS-variabelen --dl-accent en --dl-accent-bright
+// (gezet in App.jsx vanuit src/apps.js).
 //
-// Zakelijke stijl: licht, neutraal grijs met één blauwe accentkleur,
-// witte kaarten met dunne randen, en ruime aanraakdoelen zodat alles
-// makkelijk te bedienen is op een telefoon.
+// Frisse stijl: zachte getinte achtergrond met een gloed in de app-kleur,
+// witte kaarten met grote afrondingen, gradient-accenten en ruime
+// aanraakdoelen zodat alles prettig werkt op een telefoon.
 export const APP_STYLE = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 .dl-root {
+  --dl-accent: #4f46e5;
+  --dl-accent-bright: #818cf8;
   font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
-  background: #f5f6f8;
   min-height: 100vh;
-  color: #1f2937;
+  color: #1c2434;
+  background: #f2f4f9;
+  background:
+    radial-gradient(900px 420px at 50% -120px, color-mix(in srgb, var(--dl-accent) 16%, transparent), transparent 72%),
+    linear-gradient(180deg, #f7f8fc 0%, #eef0f7 100%);
 }
-.dl-serif { font-family: 'Inter', sans-serif; font-weight: 600; letter-spacing: -0.01em; }
+.dl-serif { font-family: 'Inter', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
 .dl-mono { font-family: 'JetBrains Mono', monospace; }
+
+.dl-ico-accent { color: var(--dl-accent); }
 
 .dl-card {
   background: #ffffff;
-  color: #1f2937;
-  border: 1px solid #e3e7ec;
-  border-radius: 10px;
-  box-shadow: 0 1px 2px rgba(16,24,40,0.05);
+  color: #1c2434;
+  border: 1px solid #e6e9f2;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(23,28,60,0.05);
+  box-shadow:
+    0 1px 3px rgba(23,28,60,0.05),
+    0 14px 30px -22px color-mix(in srgb, var(--dl-accent) 45%, transparent);
+}
+
+/* Gradient-badge voor app-koppen (icoon in gekleurd blokje) */
+.dl-hero-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  color: #ffffff;
+  background: var(--dl-accent);
+  background: linear-gradient(135deg, var(--dl-accent-bright), var(--dl-accent));
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--dl-accent) 65%, transparent);
+  flex-shrink: 0;
 }
 
 .dl-input {
   background: #ffffff;
-  border: 1px solid #cbd2d9;
-  border-radius: 8px;
-  color: #1f2937;
+  border: 1px solid #d4d9e6;
+  border-radius: 10px;
+  color: #1c2434;
   min-height: 40px;
 }
 .dl-input:focus {
   outline: none;
-  border-color: #1f4e8c;
-  box-shadow: 0 0 0 3px rgba(31,78,140,0.15);
+  border-color: var(--dl-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dl-accent) 18%, transparent);
 }
 
 .dl-btn-primary {
-  background: #1f4e8c;
+  background: var(--dl-accent);
+  background: linear-gradient(135deg, var(--dl-accent-bright), var(--dl-accent));
   color: #ffffff;
-  border-radius: 8px;
+  border-radius: 10px;
   min-height: 40px;
-  font-weight: 500;
-  transition: background 0.12s ease;
+  font-weight: 600;
+  box-shadow: 0 5px 12px -5px color-mix(in srgb, var(--dl-accent) 60%, transparent);
+  transition: filter 0.12s ease, transform 0.12s ease;
 }
-.dl-btn-primary:hover { background: #183e70; }
-.dl-btn-primary:active { background: #143459; }
-.dl-btn-primary:disabled { opacity: 0.45; }
+.dl-btn-primary:hover { filter: brightness(1.06); }
+.dl-btn-primary:active { filter: brightness(0.94); transform: translateY(1px); }
+.dl-btn-primary:disabled { opacity: 0.45; box-shadow: none; }
 
 .dl-btn-ghost {
   background: #ffffff;
-  border: 1px solid #cbd2d9;
+  border: 1px solid #d4d9e6;
   color: #33404d;
-  border-radius: 8px;
+  border-radius: 10px;
   min-height: 40px;
   font-weight: 500;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
-.dl-btn-ghost:hover { background: #eef1f4; border-color: #b3bcc5; }
+.dl-btn-ghost:hover {
+  background: #f2f4fa;
+  border-color: color-mix(in srgb, var(--dl-accent) 45%, #d4d9e6);
+}
 
-.dl-btn-primary:focus-visible, .dl-btn-ghost:focus-visible, .dl-tab:focus-visible,
-.dl-mic:focus-visible, .dl-check:focus-visible, .dl-qbtn:focus-visible {
-  outline: 2px solid #1f4e8c;
+.dl-btn-primary:focus-visible, .dl-btn-ghost:focus-visible, .dl-mic:focus-visible,
+.dl-check:focus-visible, .dl-qbtn:focus-visible, .dl-tile:focus-visible,
+.dl-back:focus-visible {
+  outline: 2px solid var(--dl-accent);
   outline-offset: 2px;
 }
 
+/* Tijdlijn (daglog) */
 .dl-line {
   position: absolute;
   left: 6px;
   top: 0.65rem;
   bottom: -1.1rem;
-  width: 1px;
-  background: #d5dbe1;
+  width: 2px;
+  border-radius: 2px;
+  background: #dfe3ed;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--dl-accent) 35%, #dfe3ed), #e4e8f1);
 }
 .dl-dot {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #1f4e8c;
-  box-shadow: 0 0 0 3px rgba(31,78,140,0.15);
+  background: var(--dl-accent);
+  background: linear-gradient(135deg, var(--dl-accent-bright), var(--dl-accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dl-accent) 18%, transparent);
 }
 .dl-entry:last-child .dl-line { display: none; }
 
 .dl-day-label {
   letter-spacing: 0.14em;
+  color: var(--dl-accent);
 }
 
 .dl-mic {
-  border: 1px solid #cbd2d9;
-  border-radius: 8px;
+  border: 1px solid #d4d9e6;
+  border-radius: 10px;
   color: #33404d;
   background: #ffffff;
   min-height: 40px;
   min-width: 44px;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
-.dl-mic:hover { background: #eef1f4; }
+.dl-mic:hover { background: #f2f4fa; }
 .dl-mic-live {
   background: #b3362a;
   border-color: #b3362a;
@@ -111,55 +149,88 @@ export const APP_STYLE = `
 .dl-spin { animation: dl-rotate 0.9s linear infinite; }
 @keyframes dl-rotate { to { transform: rotate(360deg); } }
 
-/* Tab bar (segmented control at the top) */
-.dl-tabs {
-  display: flex;
-  gap: 4px;
-  background: #ffffff;
-  border: 1px solid #e3e7ec;
-  border-radius: 11px;
-  padding: 4px;
-  box-shadow: 0 1px 2px rgba(16,24,40,0.05);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+/* Startscherm: raster van app-tegels */
+.dl-home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
-.dl-tabs::-webkit-scrollbar { display: none; }
-.dl-tab {
-  flex: 1;
+@media (min-width: 440px) {
+  .dl-home-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.dl-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px 14px 14px;
+  background: #ffffff;
+  border: 1px solid #e6e9f2;
+  border-radius: 18px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(23,28,60,0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.dl-tile:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--dl-accent) 40%, #e6e9f2);
+  box-shadow: 0 12px 26px -14px color-mix(in srgb, var(--dl-accent) 55%, transparent);
+}
+.dl-tile:active { transform: translateY(0); }
+.dl-tile-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 10px 8px;
-  min-height: 42px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  margin-bottom: 8px;
+  color: #ffffff;
+  background: var(--dl-accent);
+  background: linear-gradient(135deg, var(--dl-accent-bright), var(--dl-accent));
+  box-shadow: 0 6px 12px -5px color-mix(in srgb, var(--dl-accent) 65%, transparent);
+}
+.dl-tile-name { font-weight: 600; font-size: 14px; }
+.dl-tile-tag { font-size: 11px; opacity: 0.55; line-height: 1.35; }
+
+/* Slanke navigatiebalk boven een geopende app */
+.dl-appbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e6e9f2;
+  border-radius: 13px;
+  padding: 5px 8px;
+  box-shadow: 0 1px 3px rgba(23,28,60,0.05);
+}
+.dl-appbar-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+}
+.dl-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   color: #52606e;
-  cursor: pointer;
-  white-space: nowrap;
+  background: transparent;
   transition: background 0.12s ease, color 0.12s ease;
 }
-@media (max-width: 480px) {
-  /* Met tien tabbladen past niet alles op één rij op een telefoon. Wrap naar
-     meerdere rijen in plaats van onzichtbaar horizontaal te laten scrollen
-     (de scrollbalk is verborgen, dus scrollen zou geen enkele aanwijzing geven
-     dat er meer tabbladen zijn). */
-  .dl-tabs { flex-wrap: wrap; overflow-x: visible; }
-  .dl-tab { flex: 1 1 30%; padding: 10px 6px; font-size: 12px; }
-}
-.dl-tab:hover { background: #eef1f4; color: #1f2937; }
-.dl-tab-active, .dl-tab-active:hover {
-  background: #1f4e8c;
-  color: #ffffff;
-}
+.dl-back:hover { background: #f2f4fa; color: var(--dl-accent); }
 
 /* Agenda item states */
 .dl-ag-item {
-  border: 1px solid #e3e7ec;
-  border-radius: 9px;
-  background: #fafbfc;
+  border: 1px solid #e6e9f2;
+  border-radius: 12px;
+  background: #fafbfd;
   transition: border-color 0.12s ease, opacity 0.12s ease;
 }
 .dl-ag-over { border-color: rgba(179,54,42,0.5); background: rgba(179,54,42,0.05); }
@@ -169,8 +240,8 @@ export const APP_STYLE = `
 .dl-check {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
-  border: 1.6px solid #b3bcc5;
+  border-radius: 8px;
+  border: 1.6px solid #b8c0cf;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,7 +250,7 @@ export const APP_STYLE = `
   transition: background 0.12s ease, border-color 0.12s ease;
   flex-shrink: 0;
 }
-.dl-check:hover { border-color: #1f4e8c; }
+.dl-check:hover { border-color: var(--dl-accent); }
 .dl-check-on { background: #1e7a4f; border-color: #1e7a4f; }
 
 .dl-badge {
@@ -190,17 +261,18 @@ export const APP_STYLE = `
   font-weight: 500;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #e8eef6;
-  color: #1f4e8c;
+  background: #eceffa;
+  background: color-mix(in srgb, var(--dl-accent) 12%, #ffffff);
+  color: var(--dl-accent);
 }
 .dl-badge-over { background: #f6e5e3; color: #b3362a; }
 
-/* Time-tracking quick buttons + analysis bars */
+/* Tijdregistratie: snelknoppen + analysebalkjes */
 .dl-qbtn {
   background: #ffffff;
-  color: #1f2937;
-  border: 1px solid #cbd2d9;
-  border-radius: 10px;
+  color: #1c2434;
+  border: 1px solid #d4d9e6;
+  border-radius: 12px;
   padding: 14px 12px;
   min-height: 48px;
   font-size: 14px;
@@ -208,8 +280,8 @@ export const APP_STYLE = `
   line-height: 1.2;
   transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
-.dl-qbtn:hover { background: #eef1f4; }
-.dl-qbtn:active { background: #e3e7ec; }
+.dl-qbtn:hover { background: #f2f4fa; }
+.dl-qbtn:active { background: #e6e9f2; }
 .dl-qbtn-active, .dl-qbtn-active:hover {
   background: #1e7a4f;
   color: #ffffff;
@@ -220,33 +292,36 @@ export const APP_STYLE = `
 .dl-bar {
   height: 8px;
   border-radius: 999px;
-  background: #e3e7ec;
+  background: #e4e8f1;
   overflow: hidden;
 }
 .dl-bar-fill {
   height: 100%;
-  background: #1f4e8c;
+  background: var(--dl-accent);
+  background: linear-gradient(90deg, var(--dl-accent-bright), var(--dl-accent));
   border-radius: 999px;
   min-width: 2px;
 }
 .dl-bar-fill-over { background: #b3362a; }
 
 @media (prefers-reduced-motion: reduce) {
-  .dl-btn-primary, .dl-btn-ghost, .dl-mic, .dl-tab, .dl-ag-item, .dl-check, .dl-qbtn { transition: none; }
+  .dl-btn-primary, .dl-btn-ghost, .dl-mic, .dl-ag-item, .dl-check, .dl-qbtn,
+  .dl-tile, .dl-back { transition: none; }
   .dl-mic-live, .dl-spin { animation: none; }
+  .dl-tile:hover { transform: none; }
 }
 
 /* Flitsers: kaart + waarschuwingsbanner */
 .fl-map-wrap {
-  border-radius: 10px;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid #e3e7ec;
-  box-shadow: 0 1px 2px rgba(16,24,40,0.05);
+  border: 1px solid #e6e9f2;
+  box-shadow: 0 1px 3px rgba(23,28,60,0.05);
 }
 .fl-map {
   height: 42vh;
   min-height: 260px;
-  background: #e3e7ec;
+  background: #e4e8f1;
 }
 .fl-alert {
   display: flex;
@@ -254,9 +329,9 @@ export const APP_STYLE = `
   gap: 10px;
   background: #b46a10;
   color: #ffffff;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 14px;
-  box-shadow: 0 2px 8px rgba(16,24,40,0.15);
+  box-shadow: 0 2px 8px rgba(23,28,60,0.15);
   animation: fl-pulse 1.4s ease-in-out infinite;
 }
 .fl-alert-close {
@@ -264,8 +339,8 @@ export const APP_STYLE = `
   animation-duration: 0.7s;
 }
 @keyframes fl-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(180,106,16,0.35), 0 2px 8px rgba(16,24,40,0.15); }
-  50% { box-shadow: 0 0 0 6px rgba(180,106,16,0), 0 2px 8px rgba(16,24,40,0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(180,106,16,0.35), 0 2px 8px rgba(23,28,60,0.15); }
+  50% { box-shadow: 0 0 0 6px rgba(180,106,16,0), 0 2px 8px rgba(23,28,60,0.15); }
 }
 @media (prefers-reduced-motion: reduce) {
   .fl-alert { animation: none; }
@@ -280,10 +355,10 @@ export const APP_STYLE = `
 .dl-photo-thumb-wrap {
   position: relative;
   aspect-ratio: 1 / 1;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
-  background: #eef1f4;
-  border: 1px solid #e3e7ec;
+  background: #f2f4fa;
+  border: 1px solid #e6e9f2;
   transition: opacity 0.12s ease;
 }
 .dl-photo-thumb-wrap:hover { opacity: 0.9; }
@@ -300,13 +375,13 @@ export const APP_STYLE = `
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 999px;
-  background: rgba(31,41,55,0.72);
+  background: rgba(28,36,52,0.72);
   color: #ffffff;
 }
 .dl-photo-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(31,41,55,0.55);
+  background: rgba(28,36,52,0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -315,21 +390,21 @@ export const APP_STYLE = `
 }
 .dl-photo-modal {
   background: #ffffff;
-  color: #1f2937;
-  border-radius: 10px;
+  color: #1c2434;
+  border-radius: 14px;
   padding: 12px;
   max-width: 520px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 8px 24px rgba(16,24,40,0.25);
+  box-shadow: 0 8px 24px rgba(23,28,60,0.25);
 }
 .dl-photo-modal-img {
   width: 100%;
   max-height: 65vh;
   object-fit: contain;
-  border-radius: 6px;
-  background: #eef1f4;
+  border-radius: 8px;
+  background: #f2f4fa;
   display: block;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -341,9 +416,9 @@ export const APP_STYLE = `
   display: flex;
   align-items: center;
   gap: 14px;
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 14px 16px;
-  box-shadow: 0 1px 2px rgba(16,24,40,0.08);
+  box-shadow: 0 1px 3px rgba(23,28,60,0.08);
 }
 .cb-advice-icon {
   display: flex;
@@ -371,8 +446,8 @@ export const APP_STYLE = `
 }
 .cb-stat {
   background: #ffffff;
-  border: 1px solid #e3e7ec;
-  border-radius: 9px;
+  border: 1px solid #e6e9f2;
+  border-radius: 11px;
   padding: 8px 6px;
   display: flex;
   flex-direction: column;

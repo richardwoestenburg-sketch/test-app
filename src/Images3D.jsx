@@ -120,7 +120,7 @@ export default function Images3D() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-8">
-        <Box size={26} strokeWidth={1.6} color="#1f4e8c" />
+        <div className="dl-hero-icon"><Box size={22} strokeWidth={1.8} /></div>
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Afbeeldingen</h1>
           <p className="text-xs opacity-60 dl-mono">
@@ -134,7 +134,7 @@ export default function Images3D() {
       {/* Prompt card */}
       <div className="dl-card p-4 mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <Wand2 size={16} color="#1f4e8c" />
+          <Wand2 size={16} className="dl-ico-accent" />
           <span className="text-xs uppercase dl-day-label opacity-70">Nieuwe afbeelding</span>
         </div>
         <textarea

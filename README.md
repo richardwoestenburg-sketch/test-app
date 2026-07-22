@@ -8,7 +8,9 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft tien tabbladen: **Daglog** (terugkijken — wat deed je),
+De app opent met een **startscherm met app-tegels** — elke module heeft een
+eigen kleur en icoon, en is ook **als losse app** te installeren op je
+startscherm (zie *Op je startscherm zetten*). De tien apps: **Daglog** (terugkijken — wat deed je),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
@@ -199,6 +201,17 @@ Open de app in je browser en:
 
 Daarna start Daglog als een losstaande app, zonder browserbalk.
 
+### Elke module als eigen app
+
+Elke module is ook **onafhankelijk** te installeren, met eigen naam, kleur en
+icoon. Open de module en tik rechtsboven op ⧉ (of ga direct naar
+`…/?app=agenda`, `…/?app=garage`, enz.) en installeer vanaf daar zoals
+hierboven. Zo krijg je bijvoorbeeld "Agenda", "Garage" en "Cabrio" als aparte
+apps naast elkaar op je telefoon; elke app opent direct in die module, zonder
+startscherm eromheen. (Op Android/Chrome en desktop krijgt elke app zijn eigen
+icoon en naam via een eigen manifest; op iOS deel-knop → *Zet op beginscherm*
+vanaf de `?app=…`-pagina.)
+
 ## Aan de slag
 
 ```bash
@@ -238,7 +251,8 @@ Kort:
 ```
 index.html                    entrypoint + PWA-meta en service worker-registratie
 src/main.jsx                  React root
-src/App.jsx                   tab-shell (Daglog / Agenda) + gedeelde stijl
+src/App.jsx                   app-shell: startscherm met tegels + standalone-modus (?app=…)
+src/apps.js                   registry van alle mini-apps (naam, kleur, icoon)
 src/DagLog.jsx                het daglog-component (UI + logica)
 src/Agenda.jsx                het agenda/planner-component (UI + logica)
 src/agenda.js                 opslag & helpers voor agenda-items
@@ -265,7 +279,10 @@ src/theme.js                  gedeelde CSS/design-tokens
 src/storage.js                localStorage-persistentie (daglog)
 src/sync.js                   client voor de Cloudflare-backend (sync)
 src/index.css                 Tailwind
-public/manifest.webmanifest   PWA-manifest (naam, iconen, kleuren)
+public/manifest.webmanifest   PWA-manifest van het verzamel-startscherm
+public/manifest-*.webmanifest per-app manifesten (losse installatie, gegenereerd)
+public/icons/*.svg            per-app iconen (gegenereerd)
+scripts/generate-app-assets.mjs  genereert per-app manifesten + iconen (npm run gen:apps)
 public/sw.js                  service worker (offline caching + melding-clicks)
 public/icon-*.png, icon.svg   app-iconen
 worker/                       Cloudflare Worker backend (+ DEPLOY.md)

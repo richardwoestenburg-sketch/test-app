@@ -1,0 +1,37 @@
+{
+  "id": "./?app=cabrio",
+  "name": "Cabrio",
+  "short_name": "Cabrio",
+  "description": "kap open of dicht?",
+  "lang": "nl",
+  "start_url": "./?app=cabrio",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f8fc",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "icons/cabrio.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
