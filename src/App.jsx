@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BookOpen, CalendarDays, Timer, Camera, Images, UserRound, Box, AudioLines, Car } from "lucide-react";
+import { BookOpen, CalendarDays, Timer, Camera, Images, UserRound, Box, AudioLines, Car, Wrench } from "lucide-react";
 import { APP_STYLE } from "./theme.js";
 import DagLog from "./DagLog.jsx";
 import Agenda from "./Agenda.jsx";
@@ -10,9 +10,10 @@ import Secretary from "./Secretary.jsx";
 import Images3D from "./Images3D.jsx";
 import Voice from "./Voice.jsx";
 import Cabrio from "./Cabrio.jsx";
+import Garage from "./Garage.jsx";
 
 const TAB_KEY = "daglog-tab";
-const TABS = ["log", "agenda", "tijd", "vakantie", "flitsers", "cabrio", "afbeeldingen", "stem", "secretaresse"];
+const TABS = ["log", "agenda", "tijd", "vakantie", "flitsers", "cabrio", "garage", "afbeeldingen", "stem", "secretaresse"];
 
 export default function App() {
   const [tab, setTab] = useState(() => {
@@ -80,6 +81,14 @@ export default function App() {
           </button>
           <button
             role="tab"
+            aria-selected={tab === "garage"}
+            className={`dl-tab ${tab === "garage" ? "dl-tab-active" : ""}`}
+            onClick={() => choose("garage")}
+          >
+            <Wrench size={15} /> Garage
+          </button>
+          <button
+            role="tab"
             aria-selected={tab === "afbeeldingen"}
             className={`dl-tab ${tab === "afbeeldingen" ? "dl-tab-active" : ""}`}
             onClick={() => choose("afbeeldingen")}
@@ -117,6 +126,8 @@ export default function App() {
           <Flitsers />
         ) : tab === "cabrio" ? (
           <Cabrio />
+        ) : tab === "garage" ? (
+          <Garage />
         ) : tab === "afbeeldingen" ? (
           <Images3D />
         ) : tab === "stem" ? (

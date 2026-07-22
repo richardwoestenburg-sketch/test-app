@@ -8,13 +8,15 @@ je kunt hem op je startscherm zetten en als een echte app openen, ook offline.
 Aantekeningen worden lokaal in je browser bewaard (`localStorage`), er is geen
 server of account nodig.
 
-De app heeft acht tabbladen: **Daglog** (terugkijken — wat deed je),
+De app heeft tien tabbladen: **Daglog** (terugkijken — wat deed je),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
 je vakantie was), **Flitsers** (kaart met flitspalen/trajectcontroles en een
 waarschuwing als je in de buurt komt), **Cabrio** (live weeradvies — kap open
 of dicht — op basis van temperatuur, wind, regenkans en UV op jouw locatie),
+**Garage** (onderhouds- en detailing-logboek voor je auto's, met APK- en
+verzekeringsherinneringen en een wasdag-advies),
 **Afbeeldingen** (hoge-resolutie 3D-render-stijl afbeeldingen genereren op
 basis van een omschrijving), **Stem** (je eigen stem klonen en tekst laten
 voorlezen in die stem) en **Secretaresse** (je Outlook-mail en -agenda, met
@@ -111,6 +113,23 @@ meldingen — ook met vergrendeld scherm).
 - Zelf in te stellen **grenzen**: vanaf welke temperatuur, tot welke wind en
   tot welke regenkans jij het nog prima vindt
 - Geen opslag nodig — alleen je eigen drempelwaarden blijven lokaal bewaard
+
+**Garage**
+
+- **Twee auto's** (Spider 916 en MiTo), elk met eigen kilometerstand,
+  logboek, datums, detailing-historie en foto's
+- **Onderhoudslogboek**: leg vast wat er is gedaan (onderhoud, reparatie,
+  APK, overig) met kilometerstand — ook **in te spreken** met de microfoon,
+  handig met vieze handen in de garage
+- **Belangrijke datums**: APK, verzekering en onderhoudsbeurt, met een
+  melding 14 dagen van tevoren (zelfde meldingssysteem als de Agenda)
+- **Detailing-workflow**: de vaste volgorde (insectenverwijderaar → Korrosol
+  → klei → polijsten → wax, plus leerverzorging voor de Spider) met per stap
+  hoe lang geleden die is gedaan en wanneer die weer "toe aan" is
+- **Wasdag-advies** op basis van live weerdata (Open-Meteo): regen(kans),
+  temperatuur, felle zon en wind bepalen of het een goede was/wax-dag is
+- **Fototijdlijn per auto** (lokaal, IndexedDB) om poets- en
+  restauratieresultaten door de tijd heen vast te leggen
 
 **Afbeeldingen**
 
