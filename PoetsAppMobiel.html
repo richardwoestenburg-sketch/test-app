@@ -224,7 +224,7 @@
     <div class="card">
       <h2>AI-instellingen</h2>
       <p style="font-size:12px;color:#999;margin-bottom:8px;">
-        Nodig voor AI-tekstanalyse en trendinzicht. Je Claude API-key wordt alleen lokaal op dit toestel opgeslagen (nooit in de export/back-up).
+        Tekstanalyse en trendinzicht gebruiken Claude; de Chat werkt via Gemini óf Claude (keuzemenu op de Chat-tab). Keys worden alleen lokaal op dit toestel opgeslagen (nooit in de export/back-up).
       </p>
       <label>Claude API-key</label>
       <input type="text" id="api-key-input" placeholder="sk-ant-...">
@@ -243,6 +243,26 @@
             <li>Onder <b>Settings → Billing</b> moet je eerst wat credit opladen — er is geen gratis standaardtarief. Voor dit soort korte tekstanalyses (Haiku-model) kost een aanvraag maar een fractie van een cent</li>
           </ol>
           <div class="note-box">Behandel je API-key als een wachtwoord — deel 'm met niemand.</div>
+        </div>
+      </details>
+
+      <label style="margin-top:14px;">Gemini API-key</label>
+      <input type="text" id="gemini-key-input" placeholder="AIza...">
+      <div class="btn-row">
+        <button onclick="opslaanGeminiKey()">Opslaan</button>
+        <button class="secondary" onclick="wisGeminiKey()">Verwijderen</button>
+      </div>
+      <p id="gemini-key-status" style="font-size:11px;color:#999;margin-top:6px;"></p>
+      <details style="margin-top:10px;">
+        <summary>Hoe kom ik aan een Gemini API-key?</summary>
+        <div class="details-body">
+          <ol>
+            <li>Ga naar <b>aistudio.google.com</b> en log in met je Google-account</li>
+            <li>Klik op <b>Get API key</b> en dan "Create API key"</li>
+            <li>Kopieer de key en plak 'm hierboven</li>
+            <li>Gemini heeft een <b>gratis tarief</b> — voor de chat hoef je meestal niets te betalen</li>
+          </ol>
+          <div class="note-box">Ook deze key is een wachtwoord — deel 'm met niemand.</div>
         </div>
       </details>
     </div>
@@ -273,7 +293,12 @@
       <p style="font-size:12px;color:#999;margin-bottom:8px;">
         Leg een probleem of vraag voor over je Spider 916 of Mito — de AI kent je producten, workflow en bekende aandachtspunten.
       </p>
-      <div id="chat-berichten"></div>
+      <label>AI-model</label>
+      <select id="chat-provider" onchange="bewaarChatProvider()">
+        <option value="gemini">Gemini (Google)</option>
+        <option value="claude">Claude (Anthropic)</option>
+      </select>
+      <div id="chat-berichten" style="margin-top:10px;"></div>
       <div class="chat-input-row">
         <textarea id="chat-input" placeholder="Bv. mijn raamrubber trekt naar binnen, wat kan ik doen?"></textarea>
         <button onclick="stuurChatBericht()" style="background:#5a2ea6;align-self:flex-end;">➤</button>
@@ -773,6 +798,56 @@ async function callClaude(body) {
   return data;
 }
 
+// ---------- AI (Gemini API, direct vanuit de browser) ----------
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
+const GEMINI_KEY_STORAGE = 'poetsAppGeminiKey';
+
+function getGeminiKey() {
+  return localStorage.getItem(GEMINI_KEY_STORAGE) || '';
+}
+function opslaanGeminiKey() {
+  const key = document.getElementById('gemini-key-input').value.trim();
+  if (!key) { toast('Vul eerst een key in'); return; }
+  localStorage.setItem(GEMINI_KEY_STORAGE, key);
+  document.getElementById('gemini-key-status').textContent = 'Gemini API-key opgeslagen op dit toestel.';
+  toast('Gemini API-key opgeslagen');
+}
+function wisGeminiKey() {
+  localStorage.removeItem(GEMINI_KEY_STORAGE);
+  document.getElementById('gemini-key-input').value = '';
+  document.getElementById('gemini-key-status').textContent = 'Gemini API-key verwijderd.';
+  toast('Gemini API-key verwijderd');
+}
+
+async function callGemini(systeemPrompt, berichten) {
+  const key = getGeminiKey();
+  if (!key) throw new Error('Geen Gemini API-key ingesteld (zie tab Inzicht).');
+  const resp = await fetch(GEMINI_API_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systeemPrompt }] },
+      contents: berichten.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      })),
+      generationConfig: { maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } }
+    })
+  });
+  const data = await resp.json();
+  if (!resp.ok) {
+    const msg = (data && data.error && data.error.message) ? data.error.message : ('HTTP ' + resp.status);
+    throw new Error(msg);
+  }
+  const kandidaat = data.candidates && data.candidates[0];
+  const tekst = kandidaat && kandidaat.content && kandidaat.content.parts
+    ? kandidaat.content.parts.map(p => p.text || '').join('')
+    : '';
+  if (!tekst) throw new Error('Leeg antwoord van Gemini');
+  return tekst;
+}
+
 const EXTRACTIE_SCHEMA = {
   type: 'object',
   properties: {
@@ -878,6 +953,15 @@ async function genereerInzicht() {
 // ---------- Chat ----------
 if (!data.chat) data.chat = [];
 
+const CHAT_PROVIDER_STORAGE = 'poetsAppChatProvider';
+
+function chatProvider() {
+  return localStorage.getItem(CHAT_PROVIDER_STORAGE) || 'gemini';
+}
+function bewaarChatProvider() {
+  localStorage.setItem(CHAT_PROVIDER_STORAGE, document.getElementById('chat-provider').value);
+}
+
 function chatSysteemPrompt() {
   const voorraadNamen = data.voorraad.filter(p => p.op !== false && !p.slechteErvaring).map(p => p.naam).join(', ');
   const slechteErvaringen = data.voorraad.filter(p => p.slechteErvaring)
@@ -916,8 +1000,11 @@ async function stuurChatBericht() {
   const tekst = inp.value.trim();
   if (!tekst) return;
   const status = document.getElementById('chat-status');
-  if (!getApiKey()) {
-    status.textContent = 'Geen API-key ingesteld — ga naar tab Inzicht om er een toe te voegen.';
+  const provider = chatProvider();
+  if (provider === 'gemini' ? !getGeminiKey() : !getApiKey()) {
+    status.textContent = provider === 'gemini'
+      ? 'Geen Gemini API-key ingesteld — ga naar tab Inzicht om er een toe te voegen.'
+      : 'Geen Claude API-key ingesteld — ga naar tab Inzicht om er een toe te voegen.';
     return;
   }
   data.chat.push({ role: 'user', content: tekst });
@@ -927,13 +1014,20 @@ async function stuurChatBericht() {
   status.textContent = 'AI denkt na...';
   try {
     const recente = data.chat.slice(-20).map(m => ({ role: m.role, content: m.content }));
-    const result = await callClaude({
-      model: CLAUDE_MODEL,
-      max_tokens: 1024,
-      system: chatSysteemPrompt(),
-      messages: recente
-    });
-    const antwoord = result.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    // Gemini eist dat het gesprek met een user-beurt begint.
+    if (recente.length && recente[0].role === 'assistant') recente.shift();
+    let antwoord;
+    if (provider === 'gemini') {
+      antwoord = await callGemini(chatSysteemPrompt(), recente);
+    } else {
+      const result = await callClaude({
+        model: CLAUDE_MODEL,
+        max_tokens: 1024,
+        system: chatSysteemPrompt(),
+        messages: recente
+      });
+      antwoord = result.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    }
     data.chat.push({ role: 'assistant', content: antwoord });
     bewaarData();
     renderChat();
@@ -996,6 +1090,11 @@ if (getApiKey()) {
   document.getElementById('api-key-input').value = getApiKey();
   document.getElementById('api-key-status').textContent = 'API-key ingesteld.';
 }
+if (getGeminiKey()) {
+  document.getElementById('gemini-key-input').value = getGeminiKey();
+  document.getElementById('gemini-key-status').textContent = 'Gemini API-key ingesteld.';
+}
+document.getElementById('chat-provider').value = chatProvider();
 </script>
 </body>
 </html>
