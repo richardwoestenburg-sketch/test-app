@@ -21,6 +21,7 @@ import { fetchWeather } from "./cabrio.js";
 import {
   DATE_LABELS,
   LOG_TYPES,
+  ensureSeeded,
   loadCars,
   saveCars,
   loadActiveCarId,
@@ -96,7 +97,12 @@ function DueBadge({ iso }) {
 }
 
 export default function Garage() {
-  const [cars, setCars] = useState(loadCars);
+  // Eenmalig de bekende onderhoudshistorie van de Spider inladen (uit de
+  // eerdere Auto Onderhoud Tracker) vóór de state wordt geïnitialiseerd.
+  const [cars, setCars] = useState(() => {
+    ensureSeeded();
+    return loadCars();
+  });
   const [activeCarId, setActiveCarId] = useState(() => loadActiveCarId(loadCars()));
   const [log, setLog] = useState(loadLog);
   const [detailing, setDetailing] = useState(loadDetailing);
