@@ -210,7 +210,7 @@ export default function Voice() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-16">
       <header className="flex items-center gap-3 mb-8">
-        <AudioLines size={26} strokeWidth={1.6} color="#b8892b" />
+        <AudioLines size={26} strokeWidth={1.6} color="#1f4e8c" />
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Stem</h1>
           <p className="text-xs opacity-60 dl-mono">
@@ -222,7 +222,7 @@ export default function Voice() {
       {!apiKey ? (
         <div className="dl-card p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <KeyRound size={15} color="#b8892b" />
+            <KeyRound size={15} color="#1f4e8c" />
             <span className="text-sm font-semibold">Fish Audio API-key</span>
           </div>
           <p className="text-sm opacity-70 mb-3">
@@ -265,7 +265,7 @@ export default function Voice() {
           {!clonedVoice ? (
             <div className="dl-card p-4 mb-8">
               <div className="flex items-center gap-2 mb-2">
-                <Mic size={15} color="#b8892b" />
+                <Mic size={15} color="#1f4e8c" />
                 <span className="text-sm font-semibold">Stem opnemen</span>
               </div>
               <p className="text-sm opacity-70 mb-3">
@@ -278,12 +278,12 @@ export default function Voice() {
                     <Mic size={15} /> Opname starten
                   </button>
                 ) : (
-                  <button className="dl-btn-primary text-sm px-4 py-2 flex items-center gap-1.5" onClick={stopRecording} style={{ background: "#8a3b1f" }}>
+                  <button className="dl-btn-primary text-sm px-4 py-2 flex items-center gap-1.5" onClick={stopRecording} style={{ background: "#b3362a" }}>
                     <Square size={15} /> Stop
                   </button>
                 )}
               </div>
-              {recError && <p className="text-xs mb-3" style={{ color: "#c0654a" }}>{recError}</p>}
+              {recError && <p className="text-xs mb-3" style={{ color: "#b3362a" }}>{recError}</p>}
               {samples.length > 0 && (
                 <div className="flex flex-col gap-2 mb-3">
                   {samples.map((s, i) => (
@@ -305,7 +305,7 @@ export default function Voice() {
                 <Wand2 size={15} className={cloning ? "dl-spin" : ""} />
                 {cloning ? "Bezig…" : "Stem klonen"}
               </button>
-              {cloneError && <p className="text-xs mt-2" style={{ color: "#c0654a" }}>{cloneError}</p>}
+              {cloneError && <p className="text-xs mt-2" style={{ color: "#b3362a" }}>{cloneError}</p>}
             </div>
           ) : (
             <div className="dl-card p-4 mb-8">
@@ -332,7 +332,7 @@ export default function Voice() {
             <>
               <div className="dl-card p-4 mb-8">
                 <div className="flex items-center gap-3 mb-3">
-                  <Wand2 size={16} color="#b8892b" />
+                  <Wand2 size={16} color="#1f4e8c" />
                   <span className="text-xs uppercase dl-day-label opacity-70">Laat voorlezen</span>
                 </div>
                 <textarea
@@ -354,7 +354,7 @@ export default function Voice() {
                     {generating ? "Bezig…" : "Genereer"}
                   </button>
                 </div>
-                {genError && <p className="text-xs mt-2" style={{ color: "#c0654a" }}>{genError}</p>}
+                {genError && <p className="text-xs mt-2" style={{ color: "#b3362a" }}>{genError}</p>}
               </div>
 
               {!loaded ? (

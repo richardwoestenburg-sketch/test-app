@@ -329,7 +329,6 @@ export default function Garage() {
           <Gauge size={13} />
           <input
             className="dl-input px-2 py-1 text-xs w-24 text-right"
-            style={{ background: "rgba(237,230,208,0.08)", color: "#ede6d0", borderColor: "rgba(237,230,208,0.25)" }}
             inputMode="numeric"
             placeholder="km-stand"
             value={kmDraft}
@@ -370,7 +369,7 @@ export default function Garage() {
         <div className="dl-card p-4 mb-2 text-sm opacity-70">Weer ophalen voor het wasdag-advies…</div>
       )}
       {(geoError || fetchError) && (
-        <div className="text-xs mb-2" style={{ color: "#e0a27a" }}>{geoError || fetchError}</div>
+        <div className="text-xs mb-2" style={{ color: "#b3362a" }}>{geoError || fetchError}</div>
       )}
       {weather && (
         <div className="flex items-center justify-between gap-2 mb-4">
@@ -433,7 +432,7 @@ export default function Garage() {
                     <div className="text-xs opacity-60">
                       {fmtSince(days)}
                       {due && days != null && " · "}
-                      {due && days != null && <span style={{ color: "#8a3b1f" }}>toe aan een nieuwe ronde</span>}
+                      {due && days != null && <span style={{ color: "#b3362a" }}>toe aan een nieuwe ronde</span>}
                     </div>
                   </div>
                   {(due || days == null) && <span className="dl-badge dl-badge-over">toe aan</span>}
@@ -451,7 +450,7 @@ export default function Garage() {
                       title="Datum wissen"
                       aria-label={`${step.label}: datum wissen`}
                     >
-                      <X size={13} color="#241d10" />
+                      <X size={13} color="#52606e" />
                     </button>
                   )}
                 </div>
@@ -525,7 +524,7 @@ export default function Garage() {
             <Plus size={16} />
           </button>
         </div>
-        {speechError && <div className="text-xs mt-1.5" style={{ color: "#8a3b1f" }}>{speechError}</div>}
+        {speechError && <div className="text-xs mt-1.5" style={{ color: "#b3362a" }}>{speechError}</div>}
 
         {carLog.length === 0 ? (
           <div className="text-sm opacity-60 mt-3">
@@ -550,7 +549,7 @@ export default function Garage() {
                   title="Verwijderen"
                   aria-label="Aantekening verwijderen"
                 >
-                  <Trash2 size={12} color="#241d10" />
+                  <Trash2 size={12} color="#52606e" />
                 </button>
               </div>
             ))}
@@ -602,7 +601,6 @@ export default function Garage() {
               <div className="flex gap-2">
                 <button
                   className="dl-btn-ghost text-xs px-3 py-1.5"
-                  style={{ borderColor: "rgba(36,29,16,0.3)", color: "#241d10" }}
                   onClick={() => removePhoto(lightbox.id)}
                 >
                   Verwijderen

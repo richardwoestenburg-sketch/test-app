@@ -1,56 +1,70 @@
 // Shared visual language for the app (Daglog + Agenda).
 // Injected once at the App root so every tab uses the same tokens.
+//
+// Zakelijke stijl: licht, neutraal grijs met één blauwe accentkleur,
+// witte kaarten met dunne randen, en ruime aanraakdoelen zodat alles
+// makkelijk te bedienen is op een telefoon.
 export const APP_STYLE = `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 .dl-root {
-  font-family: 'Inter', sans-serif;
-  background: #10151c;
-  background-image:
-    radial-gradient(circle at 20% 0%, rgba(184,137,43,0.08), transparent 40%),
-    radial-gradient(circle at 80% 100%, rgba(184,137,43,0.05), transparent 40%);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  background: #f5f6f8;
   min-height: 100vh;
-  color: #ede6d0;
+  color: #1f2937;
 }
-.dl-serif { font-family: 'Fraunces', serif; }
+.dl-serif { font-family: 'Inter', sans-serif; font-weight: 600; letter-spacing: -0.01em; }
 .dl-mono { font-family: 'JetBrains Mono', monospace; }
 
 .dl-card {
-  background: #efe3c0;
-  color: #241d10;
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e3e7ec;
   border-radius: 10px;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.15), 0 8px 20px -10px rgba(0,0,0,0.5);
+  box-shadow: 0 1px 2px rgba(16,24,40,0.05);
 }
 
 .dl-input {
-  background: rgba(16,21,28,0.04);
-  border: 1px solid rgba(36,29,16,0.18);
+  background: #ffffff;
+  border: 1px solid #cbd2d9;
   border-radius: 8px;
-  color: #241d10;
+  color: #1f2937;
+  min-height: 40px;
 }
 .dl-input:focus {
   outline: none;
-  border-color: #b8892b;
-  box-shadow: 0 0 0 3px rgba(184,137,43,0.18);
+  border-color: #1f4e8c;
+  box-shadow: 0 0 0 3px rgba(31,78,140,0.15);
 }
 
 .dl-btn-primary {
-  background: #1f2a36;
-  color: #efe3c0;
+  background: #1f4e8c;
+  color: #ffffff;
   border-radius: 8px;
-  transition: transform 0.12s ease, background 0.12s ease;
+  min-height: 40px;
+  font-weight: 500;
+  transition: background 0.12s ease;
 }
-.dl-btn-primary:hover { background: #2a3949; }
-.dl-btn-primary:active { transform: scale(0.97); }
+.dl-btn-primary:hover { background: #183e70; }
+.dl-btn-primary:active { background: #143459; }
 .dl-btn-primary:disabled { opacity: 0.45; }
 
 .dl-btn-ghost {
-  border: 1px solid rgba(237,230,208,0.25);
-  color: #ede6d0;
+  background: #ffffff;
+  border: 1px solid #cbd2d9;
+  color: #33404d;
   border-radius: 8px;
+  min-height: 40px;
+  font-weight: 500;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
-.dl-btn-ghost:hover { background: rgba(237,230,208,0.06); border-color: rgba(237,230,208,0.4); }
+.dl-btn-ghost:hover { background: #eef1f4; border-color: #b3bcc5; }
+
+.dl-btn-primary:focus-visible, .dl-btn-ghost:focus-visible, .dl-tab:focus-visible,
+.dl-mic:focus-visible, .dl-check:focus-visible, .dl-qbtn:focus-visible {
+  outline: 2px solid #1f4e8c;
+  outline-offset: 2px;
+}
 
 .dl-line {
   position: absolute;
@@ -58,14 +72,14 @@ export const APP_STYLE = `
   top: 0.65rem;
   bottom: -1.1rem;
   width: 1px;
-  background: linear-gradient(to bottom, rgba(184,137,43,0.6), rgba(184,137,43,0.15));
+  background: #d5dbe1;
 }
 .dl-dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #b8892b;
-  box-shadow: 0 0 0 3px rgba(184,137,43,0.18);
+  background: #1f4e8c;
+  box-shadow: 0 0 0 3px rgba(31,78,140,0.15);
 }
 .dl-entry:last-child .dl-line { display: none; }
 
@@ -74,22 +88,24 @@ export const APP_STYLE = `
 }
 
 .dl-mic {
-  border: 1px solid rgba(36,29,16,0.25);
+  border: 1px solid #cbd2d9;
   border-radius: 8px;
-  color: #241d10;
-  background: rgba(16,21,28,0.04);
+  color: #33404d;
+  background: #ffffff;
+  min-height: 40px;
+  min-width: 44px;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
-.dl-mic:hover { background: rgba(16,21,28,0.08); }
+.dl-mic:hover { background: #eef1f4; }
 .dl-mic-live {
-  background: #8a3b1f;
-  border-color: #8a3b1f;
-  color: #efe3c0;
+  background: #b3362a;
+  border-color: #b3362a;
+  color: #ffffff;
   animation: dl-pulse 1.2s ease-in-out infinite;
 }
 @keyframes dl-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(138,59,31,0.45); }
-  50% { box-shadow: 0 0 0 5px rgba(138,59,31,0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(179,54,42,0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(179,54,42,0); }
 }
 
 .dl-spin { animation: dl-rotate 0.9s linear infinite; }
@@ -99,10 +115,11 @@ export const APP_STYLE = `
 .dl-tabs {
   display: flex;
   gap: 4px;
-  background: rgba(237,230,208,0.06);
-  border: 1px solid rgba(237,230,208,0.12);
+  background: #ffffff;
+  border: 1px solid #e3e7ec;
   border-radius: 11px;
   padding: 4px;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.05);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -114,105 +131,105 @@ export const APP_STYLE = `
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 9px 8px;
+  padding: 10px 8px;
+  min-height: 42px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #ede6d0;
-  opacity: 0.6;
+  color: #52606e;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s ease, opacity 0.12s ease, color 0.12s ease;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 @media (max-width: 480px) {
-  /* Met 7 tabbladen past niet alles op één rij op een telefoon. Wrap naar
-     een tweede rij in plaats van onzichtbaar horizontaal te laten scrollen
+  /* Met tien tabbladen past niet alles op één rij op een telefoon. Wrap naar
+     meerdere rijen in plaats van onzichtbaar horizontaal te laten scrollen
      (de scrollbalk is verborgen, dus scrollen zou geen enkele aanwijzing geven
      dat er meer tabbladen zijn). */
   .dl-tabs { flex-wrap: wrap; overflow-x: visible; }
-  .dl-tab { flex: 1 1 30%; padding: 9px 6px; font-size: 12px; }
+  .dl-tab { flex: 1 1 30%; padding: 10px 6px; font-size: 12px; }
 }
-.dl-tab:hover { opacity: 0.85; }
-.dl-tab-active {
-  background: #efe3c0;
-  color: #241d10;
-  opacity: 1;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.15);
+.dl-tab:hover { background: #eef1f4; color: #1f2937; }
+.dl-tab-active, .dl-tab-active:hover {
+  background: #1f4e8c;
+  color: #ffffff;
 }
 
 /* Agenda item states */
 .dl-ag-item {
-  border: 1px solid rgba(36,29,16,0.12);
+  border: 1px solid #e3e7ec;
   border-radius: 9px;
-  background: rgba(16,21,28,0.02);
+  background: #fafbfc;
   transition: border-color 0.12s ease, opacity 0.12s ease;
 }
-.dl-ag-over { border-color: rgba(138,59,31,0.55); background: rgba(138,59,31,0.06); }
-.dl-ag-done { opacity: 0.5; }
+.dl-ag-over { border-color: rgba(179,54,42,0.5); background: rgba(179,54,42,0.05); }
+.dl-ag-done { opacity: 0.55; }
 .dl-ag-done .dl-ag-title { text-decoration: line-through; }
 
 .dl-check {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
-  border: 1.6px solid rgba(36,29,16,0.35);
+  border: 1.6px solid #b3bcc5;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #efe3c0;
-  background: transparent;
+  color: #ffffff;
+  background: #ffffff;
   transition: background 0.12s ease, border-color 0.12s ease;
   flex-shrink: 0;
 }
-.dl-check:hover { border-color: #b8892b; }
-.dl-check-on { background: #2f7d5b; border-color: #2f7d5b; }
+.dl-check:hover { border-color: #1f4e8c; }
+.dl-check-on { background: #1e7a4f; border-color: #1e7a4f; }
 
 .dl-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
-  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(184,137,43,0.16);
-  color: #7a5a1a;
+  background: #e8eef6;
+  color: #1f4e8c;
 }
-.dl-badge-over { background: rgba(138,59,31,0.16); color: #8a3b1f; }
+.dl-badge-over { background: #f6e5e3; color: #b3362a; }
 
 /* Time-tracking quick buttons + analysis bars */
 .dl-qbtn {
-  background: #efe3c0;
-  color: #241d10;
-  border: 1px solid rgba(36,29,16,0.15);
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #cbd2d9;
   border-radius: 10px;
   padding: 14px 12px;
+  min-height: 48px;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.2;
-  transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
-.dl-qbtn:hover { background: #f3e9cc; }
-.dl-qbtn:active { transform: scale(0.97); }
-.dl-qbtn-active {
-  background: #2f7d5b;
-  color: #efe3c0;
-  border-color: #2f7d5b;
-  box-shadow: 0 0 0 3px rgba(47,125,91,0.22);
+.dl-qbtn:hover { background: #eef1f4; }
+.dl-qbtn:active { background: #e3e7ec; }
+.dl-qbtn-active, .dl-qbtn-active:hover {
+  background: #1e7a4f;
+  color: #ffffff;
+  border-color: #1e7a4f;
+  box-shadow: 0 0 0 3px rgba(30,122,79,0.18);
 }
 
 .dl-bar {
   height: 8px;
   border-radius: 999px;
-  background: rgba(36,29,16,0.1);
+  background: #e3e7ec;
   overflow: hidden;
 }
 .dl-bar-fill {
   height: 100%;
-  background: #b8892b;
+  background: #1f4e8c;
   border-radius: 999px;
   min-width: 2px;
 }
-.dl-bar-fill-over { background: #8a3b1f; }
+.dl-bar-fill-over { background: #b3362a; }
 
 @media (prefers-reduced-motion: reduce) {
   .dl-btn-primary, .dl-btn-ghost, .dl-mic, .dl-tab, .dl-ag-item, .dl-check, .dl-qbtn { transition: none; }
@@ -223,32 +240,32 @@ export const APP_STYLE = `
 .fl-map-wrap {
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(237,230,208,0.14);
-  box-shadow: 0 8px 20px -10px rgba(0,0,0,0.5);
+  border: 1px solid #e3e7ec;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.05);
 }
 .fl-map {
   height: 42vh;
   min-height: 260px;
-  background: #1f2a36;
+  background: #e3e7ec;
 }
 .fl-alert {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #7a5a1a;
-  color: #fff7e0;
+  background: #b46a10;
+  color: #ffffff;
   border-radius: 10px;
   padding: 12px 14px;
-  box-shadow: 0 8px 20px -10px rgba(0,0,0,0.6);
+  box-shadow: 0 2px 8px rgba(16,24,40,0.15);
   animation: fl-pulse 1.4s ease-in-out infinite;
 }
 .fl-alert-close {
-  background: #8a3b1f;
+  background: #b3362a;
   animation-duration: 0.7s;
 }
 @keyframes fl-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(122,90,26,0.4), 0 8px 20px -10px rgba(0,0,0,0.6); }
-  50% { box-shadow: 0 0 0 6px rgba(122,90,26,0), 0 8px 20px -10px rgba(0,0,0,0.6); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(180,106,16,0.35), 0 2px 8px rgba(16,24,40,0.15); }
+  50% { box-shadow: 0 0 0 6px rgba(180,106,16,0), 0 2px 8px rgba(16,24,40,0.15); }
 }
 @media (prefers-reduced-motion: reduce) {
   .fl-alert { animation: none; }
@@ -265,12 +282,11 @@ export const APP_STYLE = `
   aspect-ratio: 1 / 1;
   border-radius: 8px;
   overflow: hidden;
-  background: rgba(237,230,208,0.06);
-  border: 1px solid rgba(237,230,208,0.12);
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  background: #eef1f4;
+  border: 1px solid #e3e7ec;
+  transition: opacity 0.12s ease;
 }
 .dl-photo-thumb-wrap:hover { opacity: 0.9; }
-.dl-photo-thumb-wrap:active { transform: scale(0.97); }
 .dl-photo-thumb {
   width: 100%;
   height: 100%;
@@ -284,13 +300,13 @@ export const APP_STYLE = `
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 999px;
-  background: rgba(16,21,28,0.65);
-  color: #ede6d0;
+  background: rgba(31,41,55,0.72);
+  color: #ffffff;
 }
 .dl-photo-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8,10,14,0.88);
+  background: rgba(31,41,55,0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,22 +314,22 @@ export const APP_STYLE = `
   z-index: 50;
 }
 .dl-photo-modal {
-  background: #efe3c0;
-  color: #241d10;
+  background: #ffffff;
+  color: #1f2937;
   border-radius: 10px;
   padding: 12px;
   max-width: 520px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 8px 20px -10px rgba(0,0,0,0.6);
+  box-shadow: 0 8px 24px rgba(16,24,40,0.25);
 }
 .dl-photo-modal-img {
   width: 100%;
   max-height: 65vh;
   object-fit: contain;
   border-radius: 6px;
-  background: #10151c;
+  background: #eef1f4;
   display: block;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -327,7 +343,7 @@ export const APP_STYLE = `
   gap: 14px;
   border-radius: 10px;
   padding: 14px 16px;
-  box-shadow: 0 8px 20px -10px rgba(0,0,0,0.5);
+  box-shadow: 0 1px 2px rgba(16,24,40,0.08);
 }
 .cb-advice-icon {
   display: flex;
@@ -337,15 +353,15 @@ export const APP_STYLE = `
   height: 48px;
   border-radius: 999px;
   flex-shrink: 0;
-  background: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.16);
 }
 .cb-advice-open {
-  background: #2f7d5b;
-  color: #f2fbf6;
+  background: #1e7a4f;
+  color: #ffffff;
 }
 .cb-advice-closed {
-  background: #3a4552;
-  color: #ede6d0;
+  background: #47535f;
+  color: #ffffff;
 }
 
 .cb-stats {
@@ -354,8 +370,8 @@ export const APP_STYLE = `
   gap: 6px;
 }
 .cb-stat {
-  background: rgba(237,230,208,0.06);
-  border: 1px solid rgba(237,230,208,0.12);
+  background: #ffffff;
+  border: 1px solid #e3e7ec;
   border-radius: 9px;
   padding: 8px 6px;
   display: flex;
@@ -403,12 +419,12 @@ export const APP_STYLE = `
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: rgba(36,29,16,0.2);
+  background: #cbd2d9;
 }
 .cb-hour-open {
   opacity: 1;
 }
 .cb-hour-open .cb-hour-dot {
-  background: #2f7d5b;
+  background: #1e7a4f;
 }
 `;

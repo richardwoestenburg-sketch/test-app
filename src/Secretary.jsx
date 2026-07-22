@@ -276,7 +276,7 @@ export default function Secretary() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-16">
       {authError && (
-        <div className="dl-card p-3 mb-3 text-sm" style={{ color: "#8a3b1f" }}>
+        <div className="dl-card p-3 mb-3 text-sm" style={{ color: "#b3362a" }}>
           {authError}
         </div>
       )}
@@ -353,7 +353,7 @@ export default function Secretary() {
               <RefreshCw size={12} className={mailLoading ? "dl-spin" : ""} />
             </button>
           </div>
-          {mailError && <div className="text-xs mb-2" style={{ color: "#e0a27a" }}>{mailError}</div>}
+          {mailError && <div className="text-xs mb-2" style={{ color: "#b3362a" }}>{mailError}</div>}
           <div className="flex flex-col gap-2 mb-6">
             {!mailLoading && mail.length === 0 && <div className="dl-card p-3 text-sm opacity-70">Geen mail.</div>}
             {mail.map((m) => (
@@ -414,7 +414,7 @@ export default function Secretary() {
               </button>
             </div>
           </div>
-          {eventsError && <div className="text-xs mb-2" style={{ color: "#e0a27a" }}>{eventsError}</div>}
+          {eventsError && <div className="text-xs mb-2" style={{ color: "#b3362a" }}>{eventsError}</div>}
           {showNewEvent && (
             <div className="dl-card p-3 mb-2 flex flex-col gap-2">
               <input className="dl-input px-2 py-1.5 text-sm" placeholder="Titel" value={newEvent.subject} onChange={(e) => setNewEvent({ ...newEvent, subject: e.target.value })} />
