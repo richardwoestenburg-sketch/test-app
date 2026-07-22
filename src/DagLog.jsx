@@ -297,9 +297,9 @@ export default function DagLog() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-8">
-          <Anchor size={26} strokeWidth={1.6} color="#1f4e8c" />
+          <div className="dl-hero-icon"><Anchor size={22} strokeWidth={1.8} /></div>
           <div className="flex-1">
-            <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Daglog</h1>
+            <h1 className="dl-serif text-2xl">Daglog</h1>
             <p className="text-xs opacity-60 dl-mono">een journaal van hoe je je uren besteedt</p>
           </div>
           {synced && (
@@ -319,7 +319,7 @@ export default function DagLog() {
             aria-label="Sync-instellingen"
             title={synced ? "Sync aan" : "Sync-instellingen"}
           >
-            {synced ? <Cloud size={15} color="#1f4e8c" /> : <Settings size={15} />}
+            {synced ? <Cloud size={15} className="dl-ico-accent" /> : <Settings size={15} />}
           </button>
         </header>
 
@@ -327,7 +327,7 @@ export default function DagLog() {
         {showSettings && (
           <div className="dl-card p-4 mb-8">
             <div className="flex items-center gap-3 mb-3">
-              {synced ? <Cloud size={16} color="#1f4e8c" /> : <CloudOff size={16} color="#1f4e8c" />}
+              {synced ? <Cloud size={16} className="dl-ico-accent" /> : <CloudOff size={16} className="dl-ico-accent" />}
               <span className="text-xs uppercase dl-day-label opacity-70">Synchronisatie (Cloudflare)</span>
             </div>
             <p className="text-xs opacity-70 mb-3">
@@ -376,7 +376,7 @@ export default function DagLog() {
         {/* New entry card */}
         <div className="dl-card p-4 mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <Compass size={16} color="#1f4e8c" />
+            <Compass size={16} className="dl-ico-accent" />
             <span className="text-xs uppercase dl-day-label opacity-70">Nieuwe aantekening</span>
           </div>
           <div className="flex gap-2 mb-3">

@@ -153,7 +153,7 @@ export default function TimeLog() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-6">
-        <Timer size={26} strokeWidth={1.6} color="#1f4e8c" />
+        <div className="dl-hero-icon"><Timer size={22} strokeWidth={1.8} /></div>
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Tijd</h1>
           <p className="text-xs opacity-60 dl-mono">wat je doet en hoe lang · met daganalyse</p>
@@ -170,7 +170,7 @@ export default function TimeLog() {
               <RefreshCw size={15} className={refreshing ? "dl-spin" : ""} />
             </button>
             <span className="dl-btn-ghost p-2 inline-flex" title="Tijdregistratie wordt gesynchroniseerd">
-              <Cloud size={15} color="#1f4e8c" />
+              <Cloud size={15} className="dl-ico-accent" />
             </span>
           </>
         )}
