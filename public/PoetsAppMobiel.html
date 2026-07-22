@@ -137,7 +137,7 @@
 <body>
 
 <header>
-  <h1>🧽 Poets-App <span style="background:#2e7d32;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle;">versie 6 · chat-fix</span></h1>
+  <h1>🧽 Poets-App <span style="background:#2e7d32;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle;">versie 7 · foto-fix</span></h1>
   <p>Spider 916 &amp; Mito — log, voorraad, tips</p>
 </header>
 
@@ -1026,18 +1026,27 @@ function bewaarChatProvider() {
 // Foto-bijlage voor de chat (alleen in-memory, niet in localStorage/export).
 let chatBijlage = null;
 
-// Verklein de foto client-side naar max 1024px en JPEG, zodat de aanvraag
-// klein en snel blijft. Geeft { mimeType, data (base64 zonder prefix) }.
-function verkleinFoto(file) {
+function leesBestandAlsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('kon foto niet lezen'));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('kon foto niet openen'));
-      img.onload = () => {
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+// Probeer de foto te verkleinen naar max 1024px JPEG (klein & snel). Lukt dat
+// niet (bv. HEIC/HEIF die de browser niet kan tekenen), dan geeft dit null
+// terug en sturen we de originele foto ongewijzigd mee.
+function probeerVerkleinen(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onerror = () => resolve(null);
+    img.onload = () => {
+      try {
         const max = 1024;
         let { width, height } = img;
+        if (!width || !height) return resolve(null);
         if (width > max || height > max) {
           if (width >= height) { height = Math.round(height * max / width); width = max; }
           else { width = Math.round(width * max / height); height = max; }
@@ -1045,34 +1054,64 @@ function verkleinFoto(file) {
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        resolve({ mimeType: 'image/jpeg', data: dataUrl.split(',')[1], preview: dataUrl });
-      };
-      img.src = reader.result;
+        const out = canvas.toDataURL('image/jpeg', 0.8);
+        if (!out || out.length < 100) return resolve(null);
+        resolve(out);
+      } catch { resolve(null); }
     };
-    reader.readAsDataURL(file);
+    img.src = dataUrl;
   });
+}
+
+// MIME-type raden als de browser het leeg laat (komt voor bij HEIC).
+function gokMime(file, dataUrl) {
+  if (file.type) return file.type;
+  const naam = (file.name || '').toLowerCase();
+  if (naam.endsWith('.heic')) return 'image/heic';
+  if (naam.endsWith('.heif')) return 'image/heif';
+  if (naam.endsWith('.png')) return 'image/png';
+  if (naam.endsWith('.webp')) return 'image/webp';
+  const m = /^data:([^;]+);/.exec(dataUrl || '');
+  if (m && m[1] && m[1] !== 'application/octet-stream') return m[1];
+  return 'image/jpeg';
 }
 
 async function kiesBijlage(evt) {
   const file = evt.target.files[0];
   evt.target.value = '';
   if (!file) return;
-  if (!file.type.startsWith('image/')) { toast('Kies een afbeelding'); return; }
   try {
-    chatBijlage = await verkleinFoto(file);
-    document.getElementById('chat-bijlage-thumb').src = chatBijlage.preview;
-    document.getElementById('chat-bijlage-naam').textContent = file.name || 'foto';
+    const dataUrl = await leesBestandAlsDataUrl(file);
+    const verkleind = await probeerVerkleinen(dataUrl);
+    let mimeType, data, preview;
+    if (verkleind) {
+      mimeType = 'image/jpeg';
+      data = verkleind.split(',')[1];
+      preview = verkleind;
+    } else {
+      // Origineel meesturen — Gemini begrijpt ook HEIC/HEIF/PNG/WEBP.
+      mimeType = gokMime(file, dataUrl);
+      data = dataUrl.split(',')[1];
+      preview = null;
+    }
+    chatBijlage = { mimeType, data };
+    const thumb = document.getElementById('chat-bijlage-thumb');
+    if (preview) { thumb.src = preview; thumb.style.display = ''; }
+    else { thumb.src = ''; thumb.style.display = 'none'; }
+    document.getElementById('chat-bijlage-naam').textContent =
+      (file.name || 'foto') + (preview ? '' : ' — klaar om mee te sturen');
     document.getElementById('chat-bijlage-preview').style.display = 'flex';
+    toast('Foto toegevoegd');
   } catch (e) {
-    toast('Foto verwerken mislukt');
+    toast('Foto verwerken mislukt: ' + e.message);
   }
 }
 
 function verwijderBijlage() {
   chatBijlage = null;
   document.getElementById('chat-bijlage-preview').style.display = 'none';
-  document.getElementById('chat-bijlage-thumb').src = '';
+  const thumb = document.getElementById('chat-bijlage-thumb');
+  thumb.src = ''; thumb.style.display = '';
 }
 
 function chatSysteemPrompt() {
