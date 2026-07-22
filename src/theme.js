@@ -212,6 +212,7 @@ export const APP_STYLE = `
   border-radius: 999px;
   min-width: 2px;
 }
+.dl-bar-fill-over { background: #8a3b1f; }
 
 @media (prefers-reduced-motion: reduce) {
   .dl-btn-primary, .dl-btn-ghost, .dl-mic, .dl-tab, .dl-ag-item, .dl-check, .dl-qbtn { transition: none; }

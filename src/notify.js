@@ -48,6 +48,12 @@ function abs(path) {
   }
 }
 
+// Titel van de melding — standaard Agenda, maar andere tabbladen (Garage)
+// kunnen via item.heading hun eigen kop meegeven.
+function heading(item) {
+  return item.heading || "Agenda — herinnering";
+}
+
 function options(item, extra = {}) {
   return {
     body: item.timeLabel ? `${item.timeLabel} — ${item.title}` : item.title,
@@ -66,14 +72,14 @@ async function showNow(item) {
   const r = await reg();
   if (r) {
     try {
-      await r.showNotification("Agenda — herinnering", options(item));
+      await r.showNotification(heading(item), options(item));
       return;
     } catch {
       /* fall through */
     }
   }
   try {
-    new Notification("Agenda — herinnering", options(item));
+    new Notification(heading(item), options(item));
   } catch {
     /* ignore */
   }
@@ -114,7 +120,7 @@ export async function scheduleReminder(item) {
     const r = await reg();
     if (r) {
       try {
-        await r.showNotification("Agenda — herinnering", options(item, {
+        await r.showNotification(heading(item), options(item, {
           showTrigger: new window.TimestampTrigger(when),
         }));
         return;
