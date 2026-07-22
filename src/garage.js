@@ -28,19 +28,22 @@ function writeJson(key, value) {
 
 // -- Auto's ----------------------------------------------------------------
 
+// Startgegevens uit de eerdere "Auto Onderhoud Tracker" (stand 08-06-2026):
+// laatste APK en grote beurt waren op 2026-06-08 bij 202.765 km, met een
+// jaarinterval — vandaar de vervaldatums op 2027-06-08.
 const DEFAULT_CARS = [
   {
     id: "spider",
     name: "Spider 916",
-    fullName: "Alfa Romeo Spider 916 (1996)",
-    km: null,
+    fullName: "Alfa Romeo Spider 916 2.0 TS (1996) · 45-FX-SV",
+    km: 202765,
     // Belangrijke datums (ISO yyyy-mm-dd); null = nog niet ingesteld.
-    dates: { apk: null, verzekering: null, beurt: null },
+    dates: { apk: "2027-06-08", verzekering: null, beurt: "2027-06-08" },
   },
   {
     id: "mito",
     name: "MiTo",
-    fullName: "Alfa Romeo MiTo",
+    fullName: "Alfa Romeo MiTo (rood)",
     km: null,
     dates: { apk: null, verzekering: null, beurt: null },
   },
@@ -86,6 +89,114 @@ export function daysUntil(iso) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.round((target - today) / 86400000);
+}
+
+// -- Startdata (eenmalige seed) --------------------------------------------
+
+// Onderhoudshistorie van de Spider, overgenomen uit de eerdere standalone
+// "Auto Onderhoud Tracker". Wordt eenmalig aan het logboek toegevoegd
+// (marker in localStorage), ook als er al eigen aantekeningen staan.
+const KEY_SEED = "garage-seed-v1";
+
+const ts = (iso) => new Date(`${iso}T12:00:00`).getTime();
+
+const SEED_LOG = [
+  {
+    id: "seed-beurt-2026-06-08",
+    carId: "spider",
+    type: "apk",
+    km: 202765,
+    timestamp: ts("2026-06-08"),
+    text:
+      "Grote beurt 200.000 km + APK bij Garage Grand Prix (factuur 2624653): olie ververst " +
+      "(5L Eni i-sint 10W40), olie- en luchtfilter nieuw, 8 bougies vernieuwd (4x M14, 4x M10), " +
+      "overmaat carterstop (schroefdraad getapt + koperen ring), remlicht rechtsachter en " +
+      "kentekenverlichting hersteld, koplamp/mistlamp afgesteld, antenne afgekoppeld, Wepp " +
+      "brandstofsysteemreiniger toegevoegd, sloten gesmeerd en vloeistoffen bijgevuld. APK gratis meegenomen.",
+  },
+  {
+    id: "seed-vakantie-2026-05-27",
+    carId: "spider",
+    type: "onderhoud",
+    km: 199716,
+    timestamp: ts("2026-05-27"),
+    text:
+      "Vakantiecontrole Garage Grand Prix (factuur 2624652): achterbanden nieuw (Michelin Pilot " +
+      "Sport 5 XL 225/45/R17 94Y), motorkapdempers (gasveren) nieuw, gebruikte radiateurgrille en " +
+      "spiegelschakelaar gemonteerd, uitlaatrubber vernieuwd.",
+  },
+  {
+    id: "seed-olie-2026-05-18",
+    carId: "spider",
+    type: "onderhoud",
+    km: null,
+    timestamp: ts("2026-05-18"),
+    text:
+      "750 ml motorolie bijgevuld. Olieverbruik tot de beurt: ±1 liter per 15.218 km — uitstekend " +
+      "voor het 2.0 TS-blok. Sinds de beurt van 08-06-2026 geldt een nieuw startpunt voor metingen.",
+  },
+  {
+    id: "seed-startonderbreker-2026-05-15",
+    carId: "spider",
+    type: "overig",
+    km: null,
+    timestamp: ts("2026-05-15"),
+    text:
+      "Aandachtspunt garage: motor viel rijdend uit (02-05 en 15-05-2026), startonderbreker-lampje " +
+      "(sleutel) brandde; beide keren opgelost met sleutel eruit/erin. Navragen bij Garage Grand Prix " +
+      "of dit bij de beurt van 08-06-2026 structureel is verholpen.",
+  },
+  {
+    id: "seed-wielnaaf-2026-03-26",
+    carId: "spider",
+    type: "reparatie",
+    km: 196151,
+    timestamp: ts("2026-03-26"),
+    text:
+      "Garage Grand Prix (facturen 2624458 & 2624459): schroefdraad wielnaaf linksvoor hersteld (na " +
+      "te lange wielbouten reservewiel) + 5 nieuwe wielbouten, voorbanden nieuw (Michelin Pilot Sport " +
+      "5 XL 225/45/ZR17 94Y), zomerwielen gemonteerd en winterwielen gewassen de opslag in.",
+  },
+  {
+    id: "seed-olie-2025-04",
+    carId: "spider",
+    type: "onderhoud",
+    km: null,
+    timestamp: ts("2025-04-15"),
+    text: "April 2025: 0,75 liter motorolie bijgevuld door de garage.",
+  },
+];
+
+// Eenmalig: zet de bekende historie in het logboek en vul auto-gegevens aan
+// zonder eigen invoer te overschrijven. Veilig om vaker aan te roepen.
+export function ensureSeeded() {
+  try {
+    if (localStorage.getItem(KEY_SEED)) return;
+  } catch {
+    return;
+  }
+
+  const cars = loadCars().map((c) => {
+    const seed = DEFAULT_CARS.find((s) => s.id === c.id);
+    if (!seed) return c;
+    const dates = { ...c.dates };
+    for (const key of Object.keys(seed.dates)) {
+      if (!dates[key] && seed.dates[key]) dates[key] = seed.dates[key];
+    }
+    return { ...c, fullName: seed.fullName, km: c.km ?? seed.km, dates };
+  });
+  saveCars(cars);
+
+  const existing = loadLog();
+  const have = new Set(existing.map((e) => e.id));
+  const merged = [...existing, ...SEED_LOG.filter((e) => !have.has(e.id))].sort(
+    (a, b) => b.timestamp - a.timestamp
+  );
+  saveLog(merged);
+
+  try {
+    localStorage.setItem(KEY_SEED, "1");
+  } catch {}
 }
 
 // -- Onderhoudslogboek -----------------------------------------------------

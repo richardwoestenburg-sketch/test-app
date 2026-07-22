@@ -118,6 +118,10 @@ meldingen — ook met vergrendeld scherm).
 
 - **Twee auto's** (Spider 916 en MiTo), elk met eigen kilometerstand,
   logboek, datums, detailing-historie en foto's
+- Komt **voorgevuld** met de bekende historie van de Spider (o.a. de grote
+  200.000 km-beurt + APK van 08-06-2026, banden, bougies en het
+  startonderbreker-aandachtspunt) — eenmalig ingeladen, daarna gewoon
+  lokaal aan te vullen
 - **Onderhoudslogboek**: leg vast wat er is gedaan (onderhoud, reparatie,
   APK, overig) met kilometerstand — ook **in te spreken** met de microfoon,
   handig met vieze handen in de garage
