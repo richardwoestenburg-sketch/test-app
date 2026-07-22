@@ -823,19 +823,29 @@ function wisGeminiKey() {
 async function callGemini(systeemPrompt, berichten) {
   const key = getGeminiKey();
   if (!key) throw new Error('Geen Gemini API-key ingesteld (zie tab Inzicht).');
-  const resp = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systeemPrompt }] },
-      contents: berichten.map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      })),
-      generationConfig: { maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } }
-    })
-  });
-  const data = await resp.json();
+  let resp;
+  try {
+    resp = await fetch(GEMINI_API_URL + '?key=' + encodeURIComponent(key), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systeemPrompt }] },
+        contents: berichten.map(m => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }]
+        })),
+        generationConfig: { maxOutputTokens: 2048 }
+      })
+    });
+  } catch (e) {
+    throw new Error('Kon Gemini niet bereiken (' + e.message + '). Check je internetverbinding.');
+  }
+  let data;
+  try {
+    data = await resp.json();
+  } catch (e) {
+    throw new Error('Onverwacht antwoord van Gemini (HTTP ' + resp.status + ').');
+  }
   if (!resp.ok) {
     const msg = (data && data.error && data.error.message) ? data.error.message : ('HTTP ' + resp.status);
     throw new Error(msg);
@@ -1034,7 +1044,7 @@ async function stuurChatBericht() {
     status.textContent = '';
   } catch (e) {
     status.textContent = 'Fout: ' + e.message;
-    toast('Bericht versturen mislukt');
+    toast('Fout: ' + e.message);
   }
 }
 
