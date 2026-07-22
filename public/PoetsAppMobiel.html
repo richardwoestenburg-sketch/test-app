@@ -141,11 +141,17 @@
 <body>
 
 <header>
-  <h1>🧽 Poets-App <span style="background:#2e7d32;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle;">versie 8 · eigen app</span></h1>
+  <h1>🧽 Poets-App <span style="background:#2e7d32;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle;">versie 9 · installknop</span></h1>
   <p>Spider 916 &amp; Mito — log, voorraad, tips</p>
 </header>
 
 <main>
+
+  <!-- Installeer-balk: verschijnt als de app op het startscherm kan -->
+  <div id="install-balk" style="display:none;background:#1f3a1f;border:1px solid #3a6a3a;border-radius:12px;padding:12px;margin-bottom:12px;">
+    <div style="font-size:13px;color:#c9f2c2;margin-bottom:8px;">📲 Zet de Poets-App als eigen app op je startscherm.</div>
+    <button onclick="installeerApp()" style="width:100%;background:#2e7d32;">Zet op startscherm</button>
+  </div>
 
   <!-- ================= LOG ================= -->
   <section class="tab active" id="tab-log">
@@ -1246,6 +1252,43 @@ function importeer(evt) {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- App op startscherm zetten ----------
+let installPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  const balk = document.getElementById('install-balk');
+  if (balk) balk.style.display = 'block';
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  const balk = document.getElementById('install-balk');
+  if (balk) balk.style.display = 'none';
+  toast('Poets-App op je startscherm gezet!');
+});
+
+async function installeerApp() {
+  if (installPrompt) {
+    installPrompt.prompt();
+    try { await installPrompt.userChoice; } catch (e) {}
+    installPrompt = null;
+    const balk = document.getElementById('install-balk');
+    if (balk) balk.style.display = 'none';
+  } else {
+    toast('Tik op het Chrome-menu (⋮) → Toevoegen aan startscherm');
+  }
+}
+
+// Zorg dat de Daglog-service-worker deze losse pagina niet kan overnemen:
+// meld de eventueel actieve worker af (Poets-App heeft er geen nodig).
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then((regs) => regs.forEach((r) => r.unregister()))
+    .catch(() => {});
 }
 
 // ---------- Init ----------
