@@ -159,11 +159,11 @@ export default function Cabrio() {
         </button>
       </div>
       {geoError && (
-        <div className="text-xs mb-2" style={{ color: "#e0a27a" }}>
+        <div className="text-xs mb-2" style={{ color: "#b3362a" }}>
           {geoError}
         </div>
       )}
-      {fetchError && <div className="text-xs mb-2" style={{ color: "#e0a27a" }}>{fetchError}</div>}
+      {fetchError && <div className="text-xs mb-2" style={{ color: "#b3362a" }}>{fetchError}</div>}
 
       {advice && (
         <div className={`cb-advice mb-4 ${advice.ok ? "cb-advice-open" : "cb-advice-closed"}`}>

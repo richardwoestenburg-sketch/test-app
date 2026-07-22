@@ -297,7 +297,7 @@ export default function DagLog() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-8">
-          <Anchor size={26} strokeWidth={1.6} color="#b8892b" />
+          <Anchor size={26} strokeWidth={1.6} color="#1f4e8c" />
           <div className="flex-1">
             <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Daglog</h1>
             <p className="text-xs opacity-60 dl-mono">een journaal van hoe je je uren besteedt</p>
@@ -319,7 +319,7 @@ export default function DagLog() {
             aria-label="Sync-instellingen"
             title={synced ? "Sync aan" : "Sync-instellingen"}
           >
-            {synced ? <Cloud size={15} color="#b8892b" /> : <Settings size={15} />}
+            {synced ? <Cloud size={15} color="#1f4e8c" /> : <Settings size={15} />}
           </button>
         </header>
 
@@ -327,7 +327,7 @@ export default function DagLog() {
         {showSettings && (
           <div className="dl-card p-4 mb-8">
             <div className="flex items-center gap-3 mb-3">
-              {synced ? <Cloud size={16} color="#b8892b" /> : <CloudOff size={16} color="#b8892b" />}
+              {synced ? <Cloud size={16} color="#1f4e8c" /> : <CloudOff size={16} color="#1f4e8c" />}
               <span className="text-xs uppercase dl-day-label opacity-70">Synchronisatie (Cloudflare)</span>
             </div>
             <p className="text-xs opacity-70 mb-3">
@@ -360,7 +360,7 @@ export default function DagLog() {
                 <button
                   onClick={() => { setSyncUrl(""); setSyncKey(""); sync.setSyncConfig(null); setSynced(false); setSyncStatus("Sync uitgeschakeld."); }}
                   className="dl-btn-ghost text-xs px-3 py-2"
-                  style={{ color: "#241d10", borderColor: "rgba(36,29,16,0.25)" }}
+                 
                 >
                   Sync uitschakelen
                 </button>
@@ -376,7 +376,7 @@ export default function DagLog() {
         {/* New entry card */}
         <div className="dl-card p-4 mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <Compass size={16} color="#b8892b" />
+            <Compass size={16} color="#1f4e8c" />
             <span className="text-xs uppercase dl-day-label opacity-70">Nieuwe aantekening</span>
           </div>
           <div className="flex gap-2 mb-3">
@@ -409,7 +409,7 @@ export default function DagLog() {
             )}
           </div>
           {speechError && (
-            <p className="text-xs mb-3 -mt-1" style={{ color: "#8a3b1f" }}>{speechError}</p>
+            <p className="text-xs mb-3 -mt-1" style={{ color: "#b3362a" }}>{speechError}</p>
           )}
           {listening && (
             <p className="dl-mono text-[11px] mb-3 -mt-1 opacity-70">Aan het luisteren… spreek nu.</p>
@@ -419,7 +419,7 @@ export default function DagLog() {
               onClick={useLocation}
               disabled={locating}
               className="dl-btn-ghost text-xs px-3 py-1.5 flex items-center gap-1.5"
-              style={{ color: "#241d10", borderColor: "rgba(36,29,16,0.25)" }}
+             
             >
               <MapPin size={13} />
               {locating ? "Bezig…" : coords ? "Locatie toegevoegd ✓" : "Voeg locatie toe"}
@@ -432,7 +432,7 @@ export default function DagLog() {
               <Plus size={15} /> Opslaan
             </button>
           </div>
-          {locError && <p className="text-xs mt-2" style={{ color: "#8a3b1f" }}>{locError}</p>}
+          {locError && <p className="text-xs mt-2" style={{ color: "#b3362a" }}>{locError}</p>}
           {coords && (
             <p className="dl-mono text-[11px] mt-2 opacity-60">
               {coords.lat.toFixed(4)}, {coords.lon.toFixed(4)}
@@ -483,7 +483,7 @@ export default function DagLog() {
         )}
 
         {loadError && (
-          <p className="text-xs mt-2" style={{ color: "#c0654a" }}>
+          <p className="text-xs mt-2" style={{ color: "#b3362a" }}>
             Opslaan lukte niet. Probeer het nog eens.
           </p>
         )}

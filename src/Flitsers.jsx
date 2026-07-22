@@ -47,9 +47,9 @@ function fmtAgo(ts) {
 }
 
 function markerColor(kind) {
-  if (kind === "section") return "#8a3b1f";
-  if (kind === "custom") return "#2f7d5b";
-  return "#b8892b";
+  if (kind === "section") return "#b3362a";
+  if (kind === "custom") return "#1e7a4f";
+  return "#1f4e8c";
 }
 
 function camIcon(kind) {
@@ -57,7 +57,7 @@ function camIcon(kind) {
     className: "",
     html: `<div style="width:16px;height:16px;border-radius:50%;background:${markerColor(
       kind
-    )};border:2px solid #efe3c0;box-shadow:0 0 0 2px rgba(0,0,0,0.35)"></div>`,
+    )};border:2px solid #ffffff;box-shadow:0 0 0 2px rgba(0,0,0,0.35)"></div>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
   });
@@ -65,7 +65,7 @@ function camIcon(kind) {
 
 const meIcon = L.divIcon({
   className: "",
-  html: `<div style="width:14px;height:14px;border-radius:50%;background:#2f7d5b;border:3px solid #efe3c0;box-shadow:0 0 0 5px rgba(47,125,91,0.28)"></div>`,
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#1e7a4f;border:3px solid #ffffff;box-shadow:0 0 0 5px rgba(47,125,91,0.28)"></div>`,
   iconSize: [14, 14],
   iconAnchor: [7, 7],
 });
@@ -269,9 +269,9 @@ export default function Flitsers() {
           Ververs
         </button>
       </div>
-      {fetchError && <div className="text-xs mb-2" style={{ color: "#e0a27a" }}>{fetchError}</div>}
+      {fetchError && <div className="text-xs mb-2" style={{ color: "#b3362a" }}>{fetchError}</div>}
       {geoError && (
-        <div className="text-xs mb-2" style={{ color: "#e0a27a" }}>
+        <div className="text-xs mb-2" style={{ color: "#b3362a" }}>
           {geoError}
         </div>
       )}

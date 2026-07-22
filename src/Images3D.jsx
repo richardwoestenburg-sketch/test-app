@@ -120,7 +120,7 @@ export default function Images3D() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-8">
-        <Box size={26} strokeWidth={1.6} color="#b8892b" />
+        <Box size={26} strokeWidth={1.6} color="#1f4e8c" />
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Afbeeldingen</h1>
           <p className="text-xs opacity-60 dl-mono">
@@ -134,7 +134,7 @@ export default function Images3D() {
       {/* Prompt card */}
       <div className="dl-card p-4 mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <Wand2 size={16} color="#b8892b" />
+          <Wand2 size={16} color="#1f4e8c" />
           <span className="text-xs uppercase dl-day-label opacity-70">Nieuwe afbeelding</span>
         </div>
         <textarea
@@ -157,7 +157,7 @@ export default function Images3D() {
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
-          <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#241d10" }}>
+          <label className="inline-flex items-center gap-2 text-xs">
             <input
               type="checkbox"
               checked={style3d}
@@ -201,7 +201,7 @@ export default function Images3D() {
       )}
 
       {error && (
-        <p className="text-xs mt-3" style={{ color: "#c0654a" }}>{error}</p>
+        <p className="text-xs mt-3" style={{ color: "#b3362a" }}>{error}</p>
       )}
 
       <div className="mt-10 flex justify-end">

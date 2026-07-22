@@ -162,7 +162,7 @@ export default function Vakantie() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-8">
-        <Images size={26} strokeWidth={1.6} color="#b8892b" />
+        <Images size={26} strokeWidth={1.6} color="#1f4e8c" />
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Vakantie</h1>
           <p className="text-xs opacity-60 dl-mono">
@@ -176,7 +176,7 @@ export default function Vakantie() {
       {/* New photo card */}
       <div className="dl-card p-4 mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <Camera size={16} color="#b8892b" />
+          <Camera size={16} color="#1f4e8c" />
           <span className="text-xs uppercase dl-day-label opacity-70">Nieuwe foto</span>
         </div>
         <div className="flex gap-2 mb-3">
@@ -211,7 +211,7 @@ export default function Vakantie() {
             onClick={useLocation}
             disabled={locating}
             className="dl-btn-ghost text-xs px-3 py-1.5 flex items-center gap-1.5"
-            style={{ color: "#241d10", borderColor: "rgba(36,29,16,0.25)" }}
+           
           >
             <MapPin size={13} />
             {locating ? "Bezig…" : coords ? "Locatie toegevoegd ✓" : "Voeg locatie toe"}
@@ -262,7 +262,7 @@ export default function Vakantie() {
       )}
 
       {error && (
-        <p className="text-xs mt-2" style={{ color: "#c0654a" }}>{error}</p>
+        <p className="text-xs mt-2" style={{ color: "#b3362a" }}>{error}</p>
       )}
 
       <div className="mt-10 flex justify-end">

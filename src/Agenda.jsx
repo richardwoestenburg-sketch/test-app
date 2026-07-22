@@ -304,7 +304,7 @@ export default function Agenda() {
     if (perm === "granted") {
       return (
         <span className="dl-btn-ghost p-2 inline-flex" title="Meldingen staan aan">
-          <BellRing size={15} color="#b8892b" />
+          <BellRing size={15} color="#1f4e8c" />
         </span>
       );
     }
@@ -323,7 +323,7 @@ export default function Agenda() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-6">
-        <CalendarDays size={26} strokeWidth={1.6} color="#b8892b" />
+        <CalendarDays size={26} strokeWidth={1.6} color="#1f4e8c" />
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Agenda</h1>
           <p className="text-xs opacity-60 dl-mono">plan vooruit — met een seintje op tijd</p>
@@ -340,7 +340,7 @@ export default function Agenda() {
               <RefreshCw size={15} className={refreshing ? "dl-spin" : ""} />
             </button>
             <span className="dl-btn-ghost p-2 inline-flex" title="Agenda wordt gesynchroniseerd">
-              <Cloud size={15} color="#b8892b" />
+              <Cloud size={15} color="#1f4e8c" />
             </span>
           </>
         )}
@@ -350,7 +350,7 @@ export default function Agenda() {
       {/* Notification banner */}
       {perm === "default" && (
         <div className="dl-card p-3 mb-6 flex items-center gap-3">
-          <Bell size={16} color="#b8892b" className="shrink-0" />
+          <Bell size={16} color="#1f4e8c" className="shrink-0" />
           <p className="text-xs flex-1 opacity-80">
             Zet meldingen aan om een seintje te krijgen wanneer een afspraak eraan komt.
           </p>
@@ -371,7 +371,7 @@ export default function Agenda() {
       {/* New item card */}
       <div className="dl-card p-4 mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <Plus size={16} color="#b8892b" />
+          <Plus size={16} color="#1f4e8c" />
           <span className="text-xs uppercase dl-day-label opacity-70">Nieuwe afspraak</span>
         </div>
         <input
@@ -400,7 +400,7 @@ export default function Agenda() {
           />
         </div>
         <div className="flex items-center gap-3 gap-y-2 mb-3 flex-wrap">
-          <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#241d10" }}>
+          <label className="inline-flex items-center gap-2 text-xs">
             <Bell size={13} className="opacity-60" />
             <select
               value={String(remindOffset)}
@@ -416,7 +416,7 @@ export default function Agenda() {
               ))}
             </select>
           </label>
-          <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#241d10" }}>
+          <label className="inline-flex items-center gap-2 text-xs">
             <Repeat size={13} className="opacity-60" />
             <select
               value={repeat}
@@ -430,7 +430,7 @@ export default function Agenda() {
             </select>
           </label>
           {repeat !== "none" && (
-            <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#241d10" }}>
+            <label className="inline-flex items-center gap-2 text-xs">
               <span className="opacity-60">t/m</span>
               <input
                 type="date"
@@ -489,7 +489,7 @@ export default function Agenda() {
                     >
                       {it.done && <Check size={14} strokeWidth={3} />}
                     </button>
-                    <div className="flex-1 min-w-0" style={{ color: "#241d10" }}>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="dl-mono text-xs opacity-60 inline-flex items-center gap-1">
                           <Clock size={11} /> {it.timeLabel}
@@ -514,7 +514,7 @@ export default function Agenda() {
                     <button
                       onClick={() => deleteItem(it.id)}
                       className="opacity-30 hover:opacity-80 transition-opacity shrink-0 mt-0.5"
-                      style={{ color: "#241d10" }}
+                     
                       aria-label="Verwijder afspraak"
                     >
                       <Trash2 size={14} />

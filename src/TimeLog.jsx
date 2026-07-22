@@ -153,7 +153,7 @@ export default function TimeLog() {
   return (
     <div className="max-w-xl mx-auto px-5 pb-10">
       <header className="flex items-center gap-3 mb-6">
-        <Timer size={26} strokeWidth={1.6} color="#b8892b" />
+        <Timer size={26} strokeWidth={1.6} color="#1f4e8c" />
         <div className="flex-1">
           <h1 className="dl-serif text-2xl" style={{ letterSpacing: "0.01em" }}>Tijd</h1>
           <p className="text-xs opacity-60 dl-mono">wat je doet en hoe lang · met daganalyse</p>
@@ -170,7 +170,7 @@ export default function TimeLog() {
               <RefreshCw size={15} className={refreshing ? "dl-spin" : ""} />
             </button>
             <span className="dl-btn-ghost p-2 inline-flex" title="Tijdregistratie wordt gesynchroniseerd">
-              <Cloud size={15} color="#b8892b" />
+              <Cloud size={15} color="#1f4e8c" />
             </span>
           </>
         )}
@@ -226,7 +226,7 @@ export default function TimeLog() {
               {editing && (
                 <button
                   onClick={() => removePreset(label)}
-                  className="absolute -top-1.5 -right-1.5 bg-[#8a3b1f] text-[#efe3c0] rounded-full p-0.5"
+                  className="absolute -top-1.5 -right-1.5 bg-[#b3362a] text-white rounded-full p-0.5"
                   aria-label={`Verwijder knop ${label}`}
                 >
                   <X size={12} />
@@ -269,7 +269,7 @@ export default function TimeLog() {
           onClick={startAdhoc}
           disabled={!adhoc.trim()}
           className="dl-btn-ghost px-3 py-2 text-sm flex items-center gap-1"
-          style={{ color: "#241d10", borderColor: "rgba(36,29,16,0.25)" }}
+         
         >
           Start
         </button>
@@ -342,7 +342,7 @@ export default function TimeLog() {
           </div>
           <div className="flex flex-col gap-1.5">
             {stats.sessions.map((s) => (
-              <div key={s.id} className="dl-ag-item p-2.5 flex items-center gap-3" style={{ color: "#241d10" }}>
+              <div key={s.id} className="dl-ag-item p-2.5 flex items-center gap-3">
                 <span className="dl-mono text-xs opacity-60 shrink-0">
                   {formatClock(s.start)}–{s.end ? formatClock(s.end) : "…"}
                 </span>
