@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Poets-App — Spider 916</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:#141416;
+    color:#eee;
+    padding-bottom:78px;
+  }
+  header {
+    background:linear-gradient(135deg,#8b0000 0%,#2b0000 100%);
+    padding:18px 16px 14px;
+    position:sticky; top:0; z-index:10;
+    box-shadow:0 2px 10px rgba(0,0,0,.4);
+  }
+  header h1 { font-size:19px; }
+  header p { font-size:12px; opacity:.8; margin-top:2px; }
+
+  main { padding:14px; max-width:640px; margin:0 auto; }
+  .tab { display:none; }
+  .tab.active { display:block; }
+
+  .card {
+    background:#1f1f22;
+    border:1px solid #2c2c30;
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:12px;
+  }
+  .card h2 { font-size:15px; margin-bottom:10px; color:#e2b33b; }
+  .card h3 { font-size:13px; margin:10px 0 6px; color:#ccc; }
+
+  label { display:block; font-size:12px; color:#aaa; margin:8px 0 4px; }
+  input[type=text], input[type=date], textarea, select {
+    width:100%; padding:10px; border-radius:8px; border:1px solid #3a3a3f;
+    background:#101012; color:#eee; font-size:14px; font-family:inherit;
+  }
+  textarea { min-height:90px; resize:vertical; }
+
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .row > * { flex:1; min-width:120px; }
+
+  button {
+    background:#8b0000; color:#fff; border:none; padding:11px 16px;
+    border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  button.secondary { background:#333338; }
+  button.ghost { background:transparent; border:1px solid #555; }
+  button.small { padding:6px 10px; font-size:12px; font-weight:500; }
+  button.danger { background:#4a1111; }
+  .btn-row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+
+  .chip {
+    display:inline-flex; align-items:center; gap:4px;
+    background:#2c1414; border:1px solid #5a2a2a; color:#f2c2c2;
+    padding:4px 9px; border-radius:999px; font-size:11px; margin:2px 4px 2px 0;
+  }
+  .chip.on { background:#1f3a1f; border-color:#3a6a3a; color:#c9f2c2; }
+  .chip button { all:unset; cursor:pointer; font-size:11px; opacity:.7; }
+
+  .entry {
+    border-bottom:1px solid #2c2c30; padding:10px 0;
+  }
+  .entry:last-child { border-bottom:none; }
+  .entry .meta { font-size:11px; color:#888; margin-bottom:4px; }
+  .entry .tags { margin-bottom:4px; }
+  .entry .note { font-size:13px; color:#ddd; white-space:pre-wrap; }
+  .entry .actions { margin-top:6px; }
+
+  .frag {
+    background:#151517; border:1px dashed #444; border-radius:10px;
+    padding:10px; margin-bottom:10px;
+  }
+  .frag .src { font-size:11px; color:#888; white-space:pre-wrap; max-height:70px; overflow:auto; margin-bottom:8px; border-left:2px solid #444; padding-left:8px; }
+
+  .voorraad-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:9px 0; border-bottom:1px solid #2c2c30; gap:8px;
+  }
+  .voorraad-item:last-child { border-bottom:none; }
+  .voorraad-item .naam { font-size:13px; }
+  .voorraad-item .naam small { display:block; color:#888; font-size:11px; }
+  .voorraad-item .naam small.slecht { color:#f0a0a0; }
+  .voorraad-edit { width:100%; }
+  .voorraad-edit label input[type=checkbox] { width:auto; margin-right:6px; }
+  .toggle {
+    width:42px; height:24px; border-radius:999px; background:#333; position:relative;
+    border:none; cursor:pointer; flex-shrink:0;
+  }
+  .toggle.on { background:#2e7d32; }
+  .toggle .dot { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.15s; }
+  .toggle.on .dot { left:20px; }
+
+  details { border:1px solid #2c2c30; border-radius:10px; margin-bottom:8px; overflow:hidden; }
+  summary { padding:10px 12px; cursor:pointer; font-size:13px; font-weight:600; background:#1f1f22; color:#e2b33b; list-style:none; }
+  summary::-webkit-details-marker { display:none; }
+  .details-body { padding:10px 12px; font-size:13px; line-height:1.6; color:#ddd; }
+  .details-body ol, .details-body ul { padding-left:18px; margin:6px 0; }
+  .details-body .note-box { background:#251515; border-left:3px solid #8b0000; padding:8px 10px; margin-top:8px; font-size:12px; color:#f0c2c2; border-radius:4px; }
+
+  nav.bottom {
+    position:fixed; bottom:0; left:0; right:0;
+    background:#1a1a1c; border-top:1px solid #2c2c30;
+    display:flex; padding:6px env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    z-index:20;
+  }
+  nav.bottom button {
+    flex:1; background:none; border:none; color:#888; font-size:11px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 2px;
+    border-radius:0; font-weight:500;
+  }
+  nav.bottom button .ic { font-size:19px; }
+  nav.bottom button.active { color:#e2b33b; }
+
+  #chat-berichten { height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-bottom:4px; }
+  .msg { max-width:85%; padding:8px 11px; border-radius:12px; font-size:13px; line-height:1.5; white-space:pre-wrap; }
+  .msg.user { align-self:flex-end; background:#5a2ea6; color:#fff; border-bottom-right-radius:2px; }
+  .msg.assistant { align-self:flex-start; background:#26262a; color:#eee; border-bottom-left-radius:2px; }
+  .chat-input-row { display:flex; gap:8px; margin-top:10px; }
+  .chat-input-row textarea { min-height:44px; max-height:120px; }
+
+  .empty { color:#777; font-size:13px; text-align:center; padding:16px 0; }
+  .toast {
+    position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+    background:#2e7d32; color:#fff; padding:8px 16px; border-radius:20px;
+    font-size:12px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:30;
+  }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧽 Poets-App</h1>
+  <p>Spider 916 &amp; Mito — log, voorraad, tips</p>
+</header>
+
+<main>
+
+  <!-- ================= LOG ================= -->
+  <section class="tab active" id="tab-log">
+    <div class="card">
+      <h2>Wasstatus</h2>
+      <div id="wasstatus"></div>
+    </div>
+
+    <div class="card">
+      <h2>Nieuwe poetsbeurt</h2>
+      <label>Datum</label>
+      <input type="date" id="f-datum">
+      <label>Auto</label>
+      <select id="f-auto">
+        <option value="spider">Spider 916 (zwart)</option>
+        <option value="mito">Mito (rood)</option>
+      </select>
+      <label>Gebruikte producten / acties</label>
+      <div id="f-producten-chips"></div>
+      <label>Notitie</label>
+      <textarea id="f-notitie" placeholder="Wat is er gedaan, resultaat, aandachtspunten..."></textarea>
+      <div class="btn-row">
+        <button onclick="opslaanHandmatig()">➕ Toevoegen aan log</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Geschiedenis</h2>
+      <label>Overzicht per auto</label>
+      <select id="log-auto-filter" onchange="renderLog()">
+        <option value="alle">Alle auto's</option>
+        <option value="spider">Spider 916</option>
+        <option value="mito">Mito</option>
+      </select>
+      <div id="log-lijst" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <!-- ================= PLAKKEN ================= -->
+  <section class="tab" id="tab-plak">
+    <div class="card">
+      <h2>Tekst plakken &amp; analyseren</h2>
+      <p style="font-size:12px;color:#999;margin-bottom:8px;">
+        Plak hier je bestaande poets-overzicht of een stuk chatgeschiedenis. De app zoekt automatisch naar data,
+        producten en acties en maakt daar voorstellen van — jij kiest per fragment of het in je log komt.
+      </p>
+      <textarea id="plak-tekst" style="min-height:140px;" placeholder="Plak hier tekst of chatgeschiedenis..."></textarea>
+      <div class="btn-row">
+        <button onclick="analyseerTekst()">🔍 Analyseer (trefwoorden)</button>
+        <button onclick="analyseerTekstMetAI()" style="background:#5a2ea6;">🤖 Analyseer met AI</button>
+        <button class="secondary" onclick="document.getElementById('plak-tekst').value=''">Leegmaken</button>
+      </div>
+      <p id="ai-plak-status" style="font-size:11px;color:#999;margin-top:6px;"></p>
+    </div>
+
+    <div class="card" id="plak-resultaten-card" style="display:none;">
+      <h2>Gevonden fragmenten</h2>
+      <div id="plak-resultaten"></div>
+    </div>
+  </section>
+
+  <!-- ================= VOORRAAD ================= -->
+  <section class="tab" id="tab-voorraad">
+    <div class="card">
+      <h2>Voorraad</h2>
+      <p style="font-size:12px;color:#999;margin-bottom:6px;">Zet uit wat op is — dan verschijnt het niet meer als snelle keuze bij een nieuwe log-entry.</p>
+      <div id="voorraad-lijst"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Product toevoegen</h3>
+      <div class="row">
+        <input type="text" id="v-naam" placeholder="Productnaam">
+        <button onclick="voorraadToevoegen()">➕</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= AI-INZICHT ================= -->
+  <section class="tab" id="tab-inzicht">
+    <div class="card">
+      <h2>AI-instellingen</h2>
+      <p style="font-size:12px;color:#999;margin-bottom:8px;">
+        Nodig voor AI-tekstanalyse en trendinzicht. Je Claude API-key wordt alleen lokaal op dit toestel opgeslagen (nooit in de export/back-up).
+      </p>
+      <label>Claude API-key</label>
+      <input type="text" id="api-key-input" placeholder="sk-ant-...">
+      <div class="btn-row">
+        <button onclick="opslaanApiKey()">Opslaan</button>
+        <button class="secondary" onclick="wisApiKey()">Verwijderen</button>
+      </div>
+      <p id="api-key-status" style="font-size:11px;color:#999;margin-top:6px;"></p>
+      <details style="margin-top:10px;">
+        <summary>Hoe kom ik aan een API-key?</summary>
+        <div class="details-body">
+          <ol>
+            <li>Ga naar <b>console.anthropic.com</b> en log in of maak een account</li>
+            <li>Ga naar <b>Settings → API Keys</b> en klik "Create Key"</li>
+            <li>Kopieer de key direct (wordt maar één keer getoond) en plak 'm hierboven</li>
+            <li>Onder <b>Settings → Billing</b> moet je eerst wat credit opladen — er is geen gratis standaardtarief. Voor dit soort korte tekstanalyses (Haiku-model) kost een aanvraag maar een fractie van een cent</li>
+          </ol>
+          <div class="note-box">Behandel je API-key als een wachtwoord — deel 'm met niemand.</div>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Trend- en effectanalyse</h2>
+      <p style="font-size:12px;color:#999;margin-bottom:8px;">
+        Laat AI je log analyseren: welke aanpak/producten lijken het beste effect te hebben, patronen in je routine, en concrete aanbevelingen.
+      </p>
+      <label>Auto</label>
+      <select id="inzicht-auto-filter">
+        <option value="alle">Alle auto's</option>
+        <option value="spider">Spider 916</option>
+        <option value="mito">Mito</option>
+      </select>
+      <div class="btn-row">
+        <button onclick="genereerInzicht()">✨ Genereer inzicht</button>
+      </div>
+      <p id="inzicht-status" style="font-size:11px;color:#999;margin-top:6px;"></p>
+      <div id="inzicht-resultaat" style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#ddd;margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <!-- ================= CHAT ================= -->
+  <section class="tab" id="tab-chat">
+    <div class="card">
+      <h2>Vraag het de AI</h2>
+      <p style="font-size:12px;color:#999;margin-bottom:8px;">
+        Leg een probleem of vraag voor over je Spider 916 of Mito — de AI kent je producten, workflow en bekende aandachtspunten.
+      </p>
+      <div id="chat-berichten"></div>
+      <div class="chat-input-row">
+        <textarea id="chat-input" placeholder="Bv. mijn raamrubber trekt naar binnen, wat kan ik doen?"></textarea>
+        <button onclick="stuurChatBericht()" style="background:#5a2ea6;align-self:flex-end;">➤</button>
+      </div>
+      <div class="btn-row">
+        <button class="secondary" onclick="wisChat()">Chat wissen</button>
+      </div>
+      <p id="chat-status" style="font-size:11px;color:#999;margin-top:6px;"></p>
+    </div>
+  </section>
+
+  <!-- ================= TIPS ================= -->
+  <section class="tab" id="tab-tips">
+    <div class="card">
+      <h2>Vaste volgorde — Exterieur</h2>
+      <details open><summary>Wasbeurt t/m afwerklaag (6 stappen)</summary>
+        <div class="details-body">
+          <ol>
+            <li><b>Wasbox-run</b> (bv. Baran Carwash, Almere Buiten) — voordroog, liefst vroeg op de dag</li>
+            <li><b>Turtle Wax Insect Remover</b> — insecten verwijderen</li>
+            <li><b>Bilt Hamber Korrosol</b> — ijzer-fallout verwijderen</li>
+            <li><b>Klei-behandeling</b> — kleischijf op Makita DPO600 (snelheid 1–4), met Auto Finesse Glide als kleismeermiddel</li>
+            <li><b>Meguiar's Ultimate Polish</b> — handmatig aanbrengen</li>
+            <li><b>Turtle Wax Seal N Shine</b> — afwerklaag</li>
+          </ol>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Vaste volgorde — Leerverzorging</h2>
+      <details><summary>Kleurloze aanpak Spider 916 (géén verven)</summary>
+        <div class="details-body">
+          <ol>
+            <li><b>Colourlock Mild Cleaner</b> — reinigen</li>
+            <li><b>Colourlock Leather Shield</b> aanbrengen</li>
+            <li>15 minuten laten intrekken</li>
+            <li><b>Colourlock Leather Care</b> aanbrengen</li>
+            <li>1 uur laten drogen</li>
+            <li><b>Valma Rubber Stick</b> voor detailwerk</li>
+          </ol>
+          <div class="note-box">Stuurwiel: Shield en Care zeer spaarzaam aanbrengen — altijd grip-check voor het rijden.</div>
+          <div class="note-box">Bewuste keuze voor kleurloos herstel i.p.v. herverven. TRG Renovating Balm zwart (300ml) bewust niet gebruikt vanwege kleurverschil-risico. Colourlock Leder Verzegeling vervangen door Leather Shield.</div>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Bekende aandachtspunten</h2>
+      <details><summary>Spider 916 — technisch</summary>
+        <div class="details-body">
+          <ul>
+            <li>Raamrubber bestuurderskant trekt naar binnen bij het laten zakken in koud weer</li>
+            <li>Softtop-vervanging onderzocht: richtprijs €1.300–2.200 (Cabrio Care Naarden als specialist genoteerd)</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Back-up</h3>
+      <div class="btn-row">
+        <button class="secondary" onclick="exporteer()">📥 Exporteer data</button>
+        <label class="secondary" style="display:inline-flex;align-items:center;padding:11px 16px;border-radius:8px;cursor:pointer;">
+          📤 Importeer
+          <input type="file" id="import-file" accept="application/json" style="display:none;" onchange="importeer(event)">
+        </label>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="bottom">
+  <button class="active" onclick="wisselTab('log', this)"><span class="ic">📋</span>Log</button>
+  <button onclick="wisselTab('plak', this)"><span class="ic">📥</span>Plakken</button>
+  <button onclick="wisselTab('voorraad', this)"><span class="ic">🧴</span>Voorraad</button>
+  <button onclick="wisselTab('inzicht', this)"><span class="ic">🤖</span>Inzicht</button>
+  <button onclick="wisselTab('chat', this)"><span class="ic">💬</span>Chat</button>
+  <button onclick="wisselTab('tips', this)"><span class="ic">💡</span>Tips</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'poetsAppData';
+
+const DEFAULT_VOORRAAD = [
+  { naam:'Bilt Hamber Korrosol', op:true },
+  { naam:'Turtle Wax Insect Remover', op:true },
+  { naam:"Meguiar's Ultimate Polish", op:true },
+  { naam:'Turtle Wax Seal N Shine', op:true },
+  { naam:'Hybrid Ceramic Black Wax', op:true },
+  { naam:'Carnauba Wax', op:true },
+  { naam:'Color Magic Jet Black Wax', op:true },
+  { naam:'Wax & Dry', op:true },
+  { naam:'Hybrid Ceramic Spray Coating', op:true },
+  { naam:'Auto Finesse Glide (kleismeermiddel)', op:true },
+  { naam:'Kleischijf', op:true },
+  { naam:'Makita DPO600', op:true },
+  { naam:'Kärcher SE3-18 sproei-extractor', op:true },
+  { naam:'Isopropanol 99,9%', op:true },
+  { naam:'Colourlock Mild Cleaner', op:true },
+  { naam:'Colourlock Leather Shield', op:true },
+  { naam:'Colourlock Leather Care', op:true },
+  { naam:'Valma Rubber Stick', op:true },
+  { naam:'TRG Renovating Balm zwart 300ml', op:true, notitie:'bewust niet gebruikt — kleurverschil-risico' },
+  { naam:'Colourlock Leder Verzegeling', op:true, notitie:'vervangen door Leather Shield' }
+];
+
+const ACTIE_KEYWORDS = ['wasbox','wassen','gewassen','voordroog','insecten','ijzer','klei','kleien',
+  'polijst','polijsten','wax','waxen','seal','sealen','coating','leer','leder','stuurwiel',
+  'softtop','kap','raamrubber','detailing','poetsen','gepoetst','carnauba'];
+
+const MAANDEN = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+
+let data = laadData();
+
+function laadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { entries: [], voorraad: JSON.parse(JSON.stringify(DEFAULT_VOORRAAD)) };
+}
+function bewaarData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+// ---------- Tabs ----------
+function wisselTab(naam, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+naam).classList.add('active');
+  document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ---------- Log ----------
+let geselecteerdeProducten = new Set();
+
+function renderProductChips() {
+  const cont = document.getElementById('f-producten-chips');
+  cont.innerHTML = '';
+  data.voorraad.filter(p=>p.op !== false).forEach(p=>{
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (geselecteerdeProducten.has(p.naam) ? ' on' : '');
+    chip.textContent = p.naam;
+    chip.style.cursor = 'pointer';
+    chip.onclick = () => {
+      if (geselecteerdeProducten.has(p.naam)) geselecteerdeProducten.delete(p.naam);
+      else geselecteerdeProducten.add(p.naam);
+      renderProductChips();
+    };
+    cont.appendChild(chip);
+  });
+}
+
+function opslaanHandmatig() {
+  const datum = document.getElementById('f-datum').value || new Date().toISOString().slice(0,10);
+  const auto = document.getElementById('f-auto').value;
+  const notitie = document.getElementById('f-notitie').value.trim();
+  if (!notitie && geselecteerdeProducten.size === 0) {
+    toast('Vul een notitie of kies producten');
+    return;
+  }
+  data.entries.unshift({
+    id: Date.now(),
+    datum, auto,
+    producten: Array.from(geselecteerdeProducten),
+    acties: [],
+    notitie,
+    bron: 'handmatig'
+  });
+  bewaarData();
+  geselecteerdeProducten = new Set();
+  document.getElementById('f-notitie').value = '';
+  renderProductChips();
+  renderLog();
+  renderWasstatus();
+  toast('Toegevoegd aan log');
+}
+
+function renderLog() {
+  const cont = document.getElementById('log-lijst');
+  const filterEl = document.getElementById('log-auto-filter');
+  const filter = filterEl ? filterEl.value : 'alle';
+  const lijst = filter === 'alle' ? data.entries : data.entries.filter(e => e.auto === filter);
+  if (lijst.length === 0) {
+    cont.innerHTML = '<div class="empty">Nog geen entries</div>';
+    return;
+  }
+  cont.innerHTML = '';
+  lijst.forEach(e=>{
+    const div = document.createElement('div');
+    div.className = 'entry';
+    const autoLabel = e.auto === 'mito' ? 'Mito' : 'Spider 916';
+    const tags = [...(e.producten||[]), ...(e.acties||[])];
+    div.innerHTML = `
+      <div class="meta">${e.datum} · ${autoLabel}${e.bron==='plakken' ? ' · uit tekst' : ''}</div>
+      <div class="tags">${tags.map(t=>`<span class="chip on">${t}</span>`).join('')}</div>
+      ${e.notitie ? `<div class="note">${escapeHtml(e.notitie)}</div>` : ''}
+      <div class="actions"><button class="small danger" onclick="verwijderEntry(${e.id})">Verwijderen</button></div>
+    `;
+    cont.appendChild(div);
+  });
+}
+function verwijderEntry(id) {
+  data.entries = data.entries.filter(e=>e.id !== id);
+  bewaarData();
+  renderLog();
+  renderWasstatus();
+}
+
+// ---------- Wasstatus ----------
+function dagenGeledenTekst(datumStr) {
+  const d = new Date(datumStr + 'T00:00:00');
+  const vandaag = new Date(); vandaag.setHours(0,0,0,0);
+  const diff = Math.round((vandaag - d) / 86400000);
+  if (diff === 0) return 'vandaag';
+  if (diff === 1) return 'gisteren';
+  if (diff < 0) return 'in de toekomst';
+  return diff + ' dagen geleden';
+}
+function laatsteWasbeurt(auto) {
+  const wasRegex = /was/i;
+  const relevante = data.entries.filter(e => e.auto === auto && [...(e.producten||[]), ...(e.acties||[])].some(t => wasRegex.test(t)));
+  if (relevante.length === 0) return null;
+  return relevante.reduce((max, e) => e.datum > max.datum ? e : max, relevante[0]).datum;
+}
+function renderWasstatus() {
+  const cont = document.getElementById('wasstatus');
+  const autos = [{ id: 'spider', label: 'Spider 916' }, { id: 'mito', label: 'Mito' }];
+  cont.innerHTML = autos.map(a => {
+    const datum = laatsteWasbeurt(a.id);
+    const info = datum ? (datum + ' — ' + dagenGeledenTekst(datum)) : 'nog niet geregistreerd';
+    return '<div class="voorraad-item"><div class="naam">' + a.label + '<small>' + info + '</small></div>' +
+      '<button class="small" onclick="markeerGewassen(\'' + a.id + '\')">✅ Vandaag</button></div>';
+  }).join('');
+}
+function markeerGewassen(auto) {
+  const vandaag = new Date().toISOString().slice(0,10);
+  data.entries.unshift({ id: Date.now(), datum: vandaag, auto, producten: ['wassen'], acties: [], notitie: '', bron: 'handmatig' });
+  bewaarData();
+  renderLog();
+  renderWasstatus();
+  toast('Wasbeurt genoteerd');
+}
+
+// ---------- Plakken & analyseren ----------
+let fragmentTeller = 0;
+let pendingFragmenten = [];
+
+function gokDatum(tekst) {
+  const vandaag = new Date();
+  if (/\bvandaag\b/i.test(tekst)) return vandaag.toISOString().slice(0,10);
+  if (/\bgisteren\b/i.test(tekst)) {
+    const g = new Date(vandaag); g.setDate(g.getDate()-1);
+    return g.toISOString().slice(0,10);
+  }
+  let m = tekst.match(/\b(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})\b/);
+  if (m) {
+    let [ , d, mo, y ] = m;
+    if (y.length === 2) y = '20'+y;
+    d = d.padStart(2,'0'); mo = mo.padStart(2,'0');
+    return `${y}-${mo}-${d}`;
+  }
+  m = tekst.match(new RegExp('\\b(\\d{1,2})\\s+('+MAANDEN.join('|')+')(?:\\s+(\\d{4}))?\\b','i'));
+  if (m) {
+    const d = m[1].padStart(2,'0');
+    const moIdx = MAANDEN.indexOf(m[2].toLowerCase());
+    const mo = String(moIdx+1).padStart(2,'0');
+    const y = m[3] || String(vandaag.getFullYear());
+    return `${y}-${mo}-${d}`;
+  }
+  return '';
+}
+
+function gokAuto(tekst) {
+  if (/\bmito\b/i.test(tekst)) return 'mito';
+  return 'spider';
+}
+
+function vindTags(tekst) {
+  const laag = tekst.toLowerCase();
+  const gevonden = new Set();
+  data.voorraad.forEach(p=>{
+    if (laag.includes(p.naam.toLowerCase())) gevonden.add(p.naam);
+  });
+  ACTIE_KEYWORDS.forEach(k=>{
+    if (laag.includes(k)) gevonden.add(k);
+  });
+  return Array.from(gevonden);
+}
+
+function analyseerTekst() {
+  const ruw = document.getElementById('plak-tekst').value;
+  if (!ruw.trim()) { toast('Plak eerst tekst'); return; }
+
+  let stukken = ruw.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+  if (stukken.length <= 1) {
+    stukken = ruw.split(/\n/).map(s=>s.trim()).filter(Boolean);
+  }
+
+  pendingFragmenten = [];
+  stukken.forEach(stuk => {
+    const tags = vindTags(stuk);
+    const datum = gokDatum(stuk);
+    if (tags.length === 0 && !datum) return;
+    fragmentTeller++;
+    pendingFragmenten.push({
+      fid: fragmentTeller,
+      bron: stuk,
+      datum: datum || new Date().toISOString().slice(0,10),
+      auto: gokAuto(stuk),
+      tags
+    });
+  });
+
+  const card = document.getElementById('plak-resultaten-card');
+  if (pendingFragmenten.length === 0) {
+    card.style.display = 'block';
+    document.getElementById('plak-resultaten').innerHTML = '<div class="empty">Niets herkend — pas evt. je voorraadlijst aan of vul de log handmatig aan.</div>';
+    return;
+  }
+  card.style.display = 'block';
+  renderFragmenten();
+}
+
+function renderFragmenten() {
+  const cont = document.getElementById('plak-resultaten');
+  cont.innerHTML = '';
+  pendingFragmenten.forEach(f=>{
+    const div = document.createElement('div');
+    div.className = 'frag';
+    div.innerHTML = `
+      <div class="src">${escapeHtml(f.bron.slice(0,400))}</div>
+      <label>Datum</label>
+      <input type="date" value="${f.datum}" onchange="pendingFragmenten.find(x=>x.fid===${f.fid}).datum=this.value">
+      <label>Auto</label>
+      <select onchange="pendingFragmenten.find(x=>x.fid===${f.fid}).auto=this.value">
+        <option value="spider" ${f.auto==='spider'?'selected':''}>Spider 916</option>
+        <option value="mito" ${f.auto==='mito'?'selected':''}>Mito</option>
+      </select>
+      <div style="margin-top:8px;">${f.tags.map(t=>`<span class="chip on">${t}</span>`).join('') || '<span class="chip">geen tags</span>'}</div>
+      <div class="btn-row">
+        <button class="small" onclick="fragmentOpslaan(${f.fid})">✅ Toevoegen aan log</button>
+        <button class="small ghost" onclick="fragmentNegeren(${f.fid})">✖ Negeren</button>
+      </div>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+function fragmentOpslaan(fid) {
+  const f = pendingFragmenten.find(x=>x.fid===fid);
+  if (!f) return;
+  data.entries.unshift({
+    id: Date.now()+fid,
+    datum: f.datum,
+    auto: f.auto,
+    producten: f.tags,
+    acties: [],
+    notitie: f.bron,
+    bron: 'plakken'
+  });
+  bewaarData();
+  pendingFragmenten = pendingFragmenten.filter(x=>x.fid!==fid);
+  renderFragmenten();
+  renderLog();
+  renderWasstatus();
+  toast('Fragment toegevoegd aan log');
+}
+function fragmentNegeren(fid) {
+  pendingFragmenten = pendingFragmenten.filter(x=>x.fid!==fid);
+  renderFragmenten();
+}
+
+// ---------- Voorraad ----------
+let bewerkVoorraadIndex = null;
+
+function bewerkVoorraad(i) {
+  bewerkVoorraadIndex = i;
+  renderVoorraad();
+}
+
+function opslaanVoorraadBewerking(i) {
+  const naam = document.getElementById('edit-naam-' + i).value.trim();
+  if (!naam) { toast('Naam mag niet leeg zijn'); return; }
+  data.voorraad[i].naam = naam;
+  data.voorraad[i].slechteErvaring = document.getElementById('edit-slecht-' + i).checked;
+  data.voorraad[i].notitie = document.getElementById('edit-reden-' + i).value.trim();
+  bewaarData();
+  bewerkVoorraadIndex = null;
+  renderVoorraad();
+  renderProductChips();
+  toast('Product bijgewerkt');
+}
+
+function renderVoorraad() {
+  const cont = document.getElementById('voorraad-lijst');
+  cont.innerHTML = '';
+  data.voorraad.forEach((p,i)=>{
+    const div = document.createElement('div');
+    div.className = 'voorraad-item';
+    if (i === bewerkVoorraadIndex) {
+      div.innerHTML = `
+        <div class="voorraad-edit">
+          <label>Product</label>
+          <input type="text" id="edit-naam-${i}" value="${escapeHtml(p.naam)}">
+          <label style="margin-top:8px;"><input type="checkbox" id="edit-slecht-${i}" ${p.slechteErvaring ? 'checked' : ''}>⚠️ Slechte ervaring met dit product</label>
+          <label>Reden / notitie</label>
+          <textarea id="edit-reden-${i}" placeholder="Wat ging er mis, of andere opmerking...">${escapeHtml(p.notitie || '')}</textarea>
+          <div class="btn-row">
+            <button class="small" onclick="opslaanVoorraadBewerking(${i})">Opslaan</button>
+            <button class="small secondary" onclick="bewerkVoorraadIndex=null; renderVoorraad();">Annuleren</button>
+          </div>
+        </div>
+      `;
+    } else {
+      const waarschuwing = p.slechteErvaring ? ' <span style="color:#ff6b6b;">⚠️</span>' : '';
+      const notitieHtml = p.notitie ? `<small class="${p.slechteErvaring ? 'slecht' : ''}">${p.slechteErvaring ? '⚠️ ' : ''}${escapeHtml(p.notitie)}</small>` : '';
+      div.innerHTML = `
+        <div class="naam">${escapeHtml(p.naam)}${waarschuwing}${notitieHtml}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          <button class="small ghost" onclick="bewerkVoorraad(${i})">✏️</button>
+          <button class="toggle ${p.op !== false ? 'on':''}" onclick="toggleVoorraad(${i})"><span class="dot"></span></button>
+        </div>
+      `;
+    }
+    cont.appendChild(div);
+  });
+}
+function toggleVoorraad(i) {
+  data.voorraad[i].op = data.voorraad[i].op === false ? true : false;
+  bewaarData();
+  renderVoorraad();
+  renderProductChips();
+}
+function voorraadToevoegen() {
+  const inp = document.getElementById('v-naam');
+  const naam = inp.value.trim();
+  if (!naam) return;
+  data.voorraad.push({ naam, op:true });
+  bewaarData();
+  inp.value = '';
+  renderVoorraad();
+  renderProductChips();
+  toast('Product toegevoegd');
+}
+
+// ---------- AI (Claude API, direct vanuit de browser) ----------
+const CLAUDE_MODEL = 'claude-haiku-4-5';
+const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+const API_KEY_STORAGE = 'poetsAppApiKey';
+
+function getApiKey() {
+  return localStorage.getItem(API_KEY_STORAGE) || '';
+}
+function opslaanApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { toast('Vul eerst een key in'); return; }
+  localStorage.setItem(API_KEY_STORAGE, key);
+  document.getElementById('api-key-status').textContent = 'API-key opgeslagen op dit toestel.';
+  toast('API-key opgeslagen');
+}
+function wisApiKey() {
+  localStorage.removeItem(API_KEY_STORAGE);
+  document.getElementById('api-key-input').value = '';
+  document.getElementById('api-key-status').textContent = 'API-key verwijderd.';
+  toast('API-key verwijderd');
+}
+
+async function callClaude(body) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('Geen API-key ingesteld (zie tab Inzicht).');
+  const resp = await fetch(CLAUDE_API_URL, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  const data = await resp.json();
+  if (!resp.ok) {
+    const msg = (data && data.error && data.error.message) ? data.error.message : ('HTTP ' + resp.status);
+    throw new Error(msg);
+  }
+  return data;
+}
+
+const EXTRACTIE_SCHEMA = {
+  type: 'object',
+  properties: {
+    fragmenten: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          datum: { type: 'string', description: 'Datum in YYYY-MM-DD formaat. Gebruik de datum van vandaag als er geen datum genoemd wordt.' },
+          auto: { type: 'string', enum: ['spider', 'mito'], description: 'Welke auto het betreft; standaard spider als onduidelijk.' },
+          tags: { type: 'array', items: { type: 'string' }, description: "Gebruikte producten en/of acties, bv. 'Bilt Hamber Korrosol', 'klei', 'wassen', 'leer'." },
+          bronfragment: { type: 'string', description: 'Het originele tekstfragment (verkort tot max 300 tekens) waarop deze entry gebaseerd is.' }
+        },
+        required: ['datum', 'auto', 'tags', 'bronfragment'],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ['fragmenten'],
+  additionalProperties: false
+};
+
+async function analyseerTekstMetAI() {
+  const ruw = document.getElementById('plak-tekst').value;
+  if (!ruw.trim()) { toast('Plak eerst tekst'); return; }
+  const status = document.getElementById('ai-plak-status');
+  if (!getApiKey()) {
+    status.textContent = 'Geen API-key ingesteld — ga naar tab Inzicht om er een toe te voegen.';
+    return;
+  }
+  status.textContent = 'AI analyseert de tekst...';
+  try {
+    const bekendeProducten = data.voorraad.map(p => p.naam).join(', ');
+    const result = await callClaude({
+      model: CLAUDE_MODEL,
+      max_tokens: 2048,
+      system: 'Je haalt poets- en onderhoudsinformatie over auto\'s (Spider 916, Mito) uit vrije tekst of chatgeschiedenis (bv. een gesprek met Gemini). ' +
+        'Bekende producten/materialen: ' + bekendeProducten + '. ' +
+        'Neem alleen fragmenten op die echt over poetsen, detailing of onderhoud gaan — negeer irrelevante tekst.',
+      messages: [{ role: 'user', content: ruw }],
+      output_config: { format: { type: 'json_schema', schema: EXTRACTIE_SCHEMA } }
+    });
+    const tekstBlok = result.content.find(b => b.type === 'text');
+    const parsed = JSON.parse(tekstBlok.text);
+    pendingFragmenten = (parsed.fragmenten || []).map(f => {
+      fragmentTeller++;
+      return { fid: fragmentTeller, bron: f.bronfragment, datum: f.datum, auto: f.auto === 'mito' ? 'mito' : 'spider', tags: f.tags || [] };
+    });
+    document.getElementById('plak-resultaten-card').style.display = 'block';
+    if (pendingFragmenten.length === 0) {
+      document.getElementById('plak-resultaten').innerHTML = '<div class="empty">AI vond geen relevante poets-informatie in deze tekst.</div>';
+    } else {
+      renderFragmenten();
+    }
+    status.textContent = pendingFragmenten.length + ' fragment(en) gevonden door AI.';
+  } catch (e) {
+    status.textContent = 'Fout: ' + e.message;
+    toast('AI-analyse mislukt');
+  }
+}
+
+async function genereerInzicht() {
+  const status = document.getElementById('inzicht-status');
+  const uitvoer = document.getElementById('inzicht-resultaat');
+  if (!getApiKey()) {
+    status.textContent = 'Geen API-key ingesteld — vul die hierboven in.';
+    return;
+  }
+  if (data.entries.length === 0) {
+    status.textContent = 'Nog geen log-entries om te analyseren.';
+    return;
+  }
+  const autoFilter = document.getElementById('inzicht-auto-filter').value;
+  const bronEntries = autoFilter === 'alle' ? data.entries : data.entries.filter(e => e.auto === autoFilter);
+  if (bronEntries.length === 0) {
+    status.textContent = 'Geen log-entries voor deze selectie.';
+    return;
+  }
+  status.textContent = 'AI analyseert je log...';
+  uitvoer.textContent = '';
+  try {
+    const compacteLog = bronEntries.slice(0, 100).map(e => ({
+      datum: e.datum, auto: e.auto, tags: [...(e.producten || []), ...(e.acties || [])], notitie: e.notitie
+    }));
+    const autoLabel = autoFilter === 'alle' ? 'beide auto\'s (Spider 916 en Mito)' : (autoFilter === 'mito' ? 'de Mito' : 'de Spider 916');
+    const result = await callClaude({
+      model: CLAUDE_MODEL,
+      max_tokens: 800,
+      system: 'Je bent een data-analist die trends analyseert in onderhouds-/detailinglog van ' + autoLabel + '. ' +
+        'Geef een kort, concreet verslag in het Nederlands: welke aanpak/producten het beste effect lijken te hebben, patronen in frequentie of volgorde, ' +
+        'en 2-3 concrete aanbevelingen. Wees bondig (maximaal ~200 woorden), gewoon platte tekst zonder markdown-opmaak.',
+      messages: [{ role: 'user', content: JSON.stringify(compacteLog) }]
+    });
+    const tekst = result.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    uitvoer.textContent = tekst;
+    status.textContent = 'Klaar.';
+  } catch (e) {
+    status.textContent = 'Fout: ' + e.message;
+    toast('Inzicht genereren mislukt');
+  }
+}
+
+// ---------- Chat ----------
+if (!data.chat) data.chat = [];
+
+function chatSysteemPrompt() {
+  const voorraadNamen = data.voorraad.filter(p => p.op !== false && !p.slechteErvaring).map(p => p.naam).join(', ');
+  const slechteErvaringen = data.voorraad.filter(p => p.slechteErvaring)
+    .map(p => p.naam + (p.notitie ? ' (' + p.notitie + ')' : ''));
+  const slechteErvaringTekst = slechteErvaringen.length
+    ? "- Producten waar Richard een SLECHTE ervaring mee had (raad deze niet aan, of waarschuw expliciet als ze toch relevant zijn): " + slechteErvaringen.join('; ') + ".\n"
+    : "";
+  return "Je bent een behulpzame assistent voor Richard rond onderhoud en detailing van zijn Alfa Romeo Spider 916 (1996, 2.0i Twin Spark, zwart cabrio) en Mito (rood).\n" +
+    "Achtergrondinformatie:\n" +
+    "- Vaste exterieur-poetsvolgorde: wasbox (voordroog) -> Turtle Wax Insect Remover -> Bilt Hamber Korrosol (ijzer-fallout) -> klei-behandeling (kleischijf op Makita DPO600, met Auto Finesse Glide als kleismeermiddel) -> Meguiar's Ultimate Polish -> Turtle Wax Seal N Shine.\n" +
+    "- Vaste leerverzorging (kleurloze aanpak, geen verven): Colourlock Mild Cleaner -> Colourlock Leather Shield -> 15 min intrekken -> Colourlock Leather Care -> 1 uur drogen -> Valma Rubber Stick voor detailwerk. Stuurwiel: spaarzaam, grip-check voor het rijden.\n" +
+    "- Bekende technische aandachtspunten Spider 916: raamrubber bestuurderskant trekt naar binnen bij het laten zakken in koud weer; softtop-vervanging kost ca. €1.300-2.200 (Cabrio Care Naarden is genoteerd als specialist).\n" +
+    "- Producten die Richard in voorraad heeft: " + voorraadNamen + ".\n" +
+    slechteErvaringTekst +
+    "Help met troubleshooten van problemen, productadvies en poets/detailing-technieken. Wees bondig en praktisch, geen overbodige inleidingen.";
+}
+
+function renderChat() {
+  const cont = document.getElementById('chat-berichten');
+  if (data.chat.length === 0) {
+    cont.innerHTML = '<div class="empty">Stel hieronder je vraag</div>';
+    return;
+  }
+  cont.innerHTML = '';
+  data.chat.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'msg ' + m.role;
+    div.textContent = m.content;
+    cont.appendChild(div);
+  });
+  cont.scrollTop = cont.scrollHeight;
+}
+
+async function stuurChatBericht() {
+  const inp = document.getElementById('chat-input');
+  const tekst = inp.value.trim();
+  if (!tekst) return;
+  const status = document.getElementById('chat-status');
+  if (!getApiKey()) {
+    status.textContent = 'Geen API-key ingesteld — ga naar tab Inzicht om er een toe te voegen.';
+    return;
+  }
+  data.chat.push({ role: 'user', content: tekst });
+  inp.value = '';
+  renderChat();
+  bewaarData();
+  status.textContent = 'AI denkt na...';
+  try {
+    const recente = data.chat.slice(-20).map(m => ({ role: m.role, content: m.content }));
+    const result = await callClaude({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system: chatSysteemPrompt(),
+      messages: recente
+    });
+    const antwoord = result.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    data.chat.push({ role: 'assistant', content: antwoord });
+    bewaarData();
+    renderChat();
+    status.textContent = '';
+  } catch (e) {
+    status.textContent = 'Fout: ' + e.message;
+    toast('Bericht versturen mislukt');
+  }
+}
+
+function wisChat() {
+  data.chat = [];
+  bewaarData();
+  renderChat();
+}
+
+// ---------- Export/import ----------
+function exporteer() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'poets-app-data-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importeer(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const nieuw = JSON.parse(reader.result);
+      if (!nieuw.entries || !nieuw.voorraad) throw new Error('ongeldig bestand');
+      if (!nieuw.chat) nieuw.chat = [];
+      data = nieuw;
+      bewaarData();
+      renderLog(); renderVoorraad(); renderProductChips(); renderChat(); renderWasstatus();
+      toast('Data geïmporteerd');
+    } catch(e) {
+      toast('Kon bestand niet lezen');
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- Init ----------
+document.getElementById('f-datum').value = new Date().toISOString().slice(0,10);
+renderProductChips();
+renderLog();
+renderVoorraad();
+renderChat();
+renderWasstatus();
+if (getApiKey()) {
+  document.getElementById('api-key-input').value = getApiKey();
+  document.getElementById('api-key-status').textContent = 'API-key ingesteld.';
+}
+</script>
+</body>
+</html>
