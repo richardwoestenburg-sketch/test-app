@@ -251,8 +251,9 @@
       <div class="btn-row">
         <button onclick="opslaanGeminiKey()">Opslaan</button>
         <button class="secondary" onclick="wisGeminiKey()">Verwijderen</button>
+        <button class="secondary" onclick="testGeminiVerbinding()">🔌 Test verbinding</button>
       </div>
-      <p id="gemini-key-status" style="font-size:11px;color:#999;margin-top:6px;"></p>
+      <p id="gemini-key-status" style="font-size:12px;color:#999;margin-top:6px;white-space:pre-wrap;"></p>
       <details style="margin-top:10px;">
         <summary>Hoe kom ik aan een Gemini API-key?</summary>
         <div class="details-body">
@@ -825,6 +826,40 @@ function wisGeminiKey() {
   document.getElementById('gemini-key-input').value = '';
   document.getElementById('gemini-key-status').textContent = 'Gemini API-key verwijderd.';
   toast('Gemini API-key verwijderd');
+}
+
+// Diagnose-knop: doet één kleine Gemini-aanroep en toont het exacte
+// resultaat of de exacte foutmelding op het scherm (blijft staan).
+async function testGeminiVerbinding() {
+  const st = document.getElementById('gemini-key-status');
+  // Gebruik de key uit het invoerveld als die is ingevuld, anders de opgeslagen.
+  const ingevuld = document.getElementById('gemini-key-input').value.trim();
+  const key = ingevuld || getGeminiKey();
+  if (!key) { st.textContent = '❌ Geen key ingevuld. Plak eerst je Gemini-key (begint met AIza...).'; return; }
+  st.textContent = '⏳ Verbinding testen...';
+  let resp;
+  try {
+    resp = await fetch(GEMINI_API_URL + '?key=' + encodeURIComponent(key), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'zeg alleen: ok' }] }] })
+    });
+  } catch (e) {
+    st.textContent = '❌ Kon Google niet bereiken: ' + e.message +
+      '\n→ Dit is meestal een netwerk-/verbindingsprobleem (bv. de manier waarop de pagina geopend is, of geen internet).';
+    return;
+  }
+  let d = {};
+  try { d = await resp.json(); } catch (e) {}
+  if (resp.ok) {
+    st.textContent = '✅ Verbinding werkt! Je key en internet zijn in orde. De chat zou nu moeten werken.';
+    if (!ingevuld) return;
+    localStorage.setItem(GEMINI_KEY_STORAGE, key); // gelijk opslaan als het werkt
+    return;
+  }
+  const msg = (d && d.error && d.error.message) ? d.error.message : ('HTTP ' + resp.status);
+  const status = (d && d.error && d.error.status) ? (' [' + d.error.status + ']') : '';
+  st.textContent = '❌ Google gaf een fout (HTTP ' + resp.status + status + '):\n' + msg;
 }
 
 async function callGemini(systeemPrompt, berichten, bijlage) {
