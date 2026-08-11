@@ -411,7 +411,7 @@ export default function Garage() {
         </div>
         <div className="flex gap-2 mt-2">
           <input
-            className="dl-input px-3 py-2 text-sm flex-1"
+            className="dl-input px-3 py-2 text-sm flex-1 min-w-0"
             placeholder="Wat is er gedaan?"
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, 300))}
@@ -558,7 +558,7 @@ export default function Garage() {
             <Wrench size={13} /> Onderhoudslogboek ({carLog.length})
           </div>
           <div className="flex gap-2 mb-3">
-            <div className="flex items-center gap-2 dl-input px-2 py-1.5 flex-1">
+            <div className="flex items-center gap-2 dl-input px-2 py-1.5 flex-1 min-w-0">
               <Search size={13} className="opacity-50 shrink-0" />
               <input
                 className="bg-transparent border-0 outline-none text-sm flex-1 min-w-0"
