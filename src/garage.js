@@ -455,21 +455,38 @@ const MONTHS_NL = {
   jul: 7, aug: 8, sep: 9, okt: 10, nov: 11, dec: 12,
 };
 
+// dd-mm-yyyy (of dd/mm/yyyy) ergens in `text`, of null.
+function findNumericDate(text) {
+  const m = text.match(/\b(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})\b/);
+  if (!m) return null;
+  const [, d, mo, y] = m;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
 export function parseInvoiceText(text) {
   const result = { date: null, km: null, type: "reparatie", amount: null };
   if (!text) return result;
 
-  let m = text.match(/\b(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})\b/);
-  if (m) {
-    const [, d, mo, y] = m;
+  // De servicedatum ("wanneer is het gedaan") staat vaak los van de
+  // factuurdatum — bv. "voor u uitgevoerd op: 23-06-2026" terwijl de factuur
+  // pas weken later is opgemaakt. PDF-tekstextractie haalt kolommen door
+  // elkaar, dus zoek dit specifiek op vóór een generieke eerste-datum-gok.
+  const workedMatch = text.match(/uitgevoerd\s*op\s*:?\s*(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/i);
+  if (workedMatch) {
+    const [, d, mo, y] = workedMatch;
     result.date = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   } else {
-    m = text.match(/\b(\d{1,2})\s+(jan|feb|mrt|apr|mei|jun|jul|aug|sep|okt|nov|dec)[a-z]*\.?\s+(\d{4})\b/i);
-    if (m) {
-      const mo = MONTHS_NL[m[2].toLowerCase()];
-      if (mo) result.date = `${m[3]}-${String(mo).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
+    result.date = findNumericDate(text);
+    if (!result.date) {
+      const m = text.match(/\b(\d{1,2})\s+(jan|feb|mrt|apr|mei|jun|jul|aug|sep|okt|nov|dec)[a-z]*\.?\s+(\d{4})\b/i);
+      if (m) {
+        const mo = MONTHS_NL[m[2].toLowerCase()];
+        if (mo) result.date = `${m[3]}-${String(mo).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
+      }
     }
   }
+
+  let m;
 
   // Km-stand: een getal (evt. met duizendtal-scheiding) direct gevolgd door de
   // eenheid "km" (kleine letters — een label als "Km-stand:" begint met een
