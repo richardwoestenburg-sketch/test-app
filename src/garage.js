@@ -464,7 +464,7 @@ function findNumericDate(text) {
 }
 
 export function parseInvoiceText(text) {
-  const result = { date: null, km: null, type: "reparatie", amount: null };
+  const result = { date: null, km: null, type: "reparatie", amount: null, summary: "" };
   if (!text) return result;
 
   // De servicedatum ("wanneer is het gedaan") staat vaak los van de
@@ -485,6 +485,21 @@ export function parseInvoiceText(text) {
       }
     }
   }
+
+  // Omschrijving: het stuk mét de uitgevoerde werkzaamheden (bv. "Accu
+  // controleren & vernieuwen"), niet de klantnaam/adres/factuurkop die door
+  // de kolom-extractie er in de ruwe tekst vóór staat. Bij voorkeur alles ná
+  // "uitgevoerd op: <datum>"; anders ná het label "Omschrijving"; anders het
+  // begin van de tekst als niets herkend wordt. Zo blijft een latere zoekactie
+  // in het logboek (op bv. "accu") bruikbaar.
+  let descStart = 0;
+  if (workedMatch) {
+    descStart = workedMatch.index + workedMatch[0].length;
+  } else {
+    const omschrIdx = text.search(/omschrijving/i);
+    if (omschrIdx >= 0) descStart = omschrIdx + "omschrijving".length;
+  }
+  result.summary = text.slice(descStart).replace(/\s+/g, " ").trim().slice(0, 280);
 
   let m;
 

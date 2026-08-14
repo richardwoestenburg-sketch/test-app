@@ -49,9 +49,8 @@ export default function GarageInvoice({ carName, defaultKm, onSave, onClose }) {
       setType(parsed.type);
       setDate(parsed.date || today());
       setAmount(parsed.amount);
-      const summary = raw.replace(/\s+/g, " ").trim().slice(0, 280);
-      setText(`Rekening${parsed.amount != null ? ` (€${parsed.amount.toFixed(2)})` : ""}: ${summary || f.name}`);
-      if (!summary) setError("Geen tekst gevonden in deze PDF (waarschijnlijk een scan). Vul zelf in.");
+      setText(`Rekening${parsed.amount != null ? ` (€${parsed.amount.toFixed(2)})` : ""}: ${parsed.summary || f.name}`);
+      if (!parsed.summary) setError("Geen tekst gevonden in deze PDF (waarschijnlijk een scan). Vul zelf in.");
     } catch {
       setError("Kon de PDF niet lezen. Vul de gegevens zelf in — de bon wordt wel bewaard.");
       setDate(today());
