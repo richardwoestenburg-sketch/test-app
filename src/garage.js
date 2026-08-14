@@ -213,14 +213,17 @@ export function saveLog(items) {
   return items;
 }
 
-export function addLogEntry({ carId, text, km, type }) {
+// `timestamp` mag expliciet worden meegegeven zodat een ingelezen rekening
+// op de factuurdatum in het logboek komt te staan, niet op vandaag. De
+// nieuwe aantekening staat na het opslaan vooraan (entries[0]).
+export function addLogEntry({ carId, text, km, type, timestamp }) {
   const entry = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     carId,
     text,
     km: km ?? null,
     type: LOG_TYPES.includes(type) ? type : "overig",
-    timestamp: Date.now(),
+    timestamp: timestamp ?? Date.now(),
   };
   return saveLog([entry, ...loadLog()]);
 }
@@ -308,8 +311,9 @@ export function computeWashAdvice(current, hours) {
 // -- Foto's (IndexedDB) ----------------------------------------------------
 
 const DB_NAME = "garage-db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = "photos";
+const DOC_STORE = "documents";
 
 const MAX_DIM = 1600;
 const JPEG_QUALITY = 0.82;
@@ -321,6 +325,9 @@ function openDB() {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) {
         db.createObjectStore(STORE, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(DOC_STORE)) {
+        db.createObjectStore(DOC_STORE, { keyPath: "id" });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -385,4 +392,101 @@ export async function deletePhoto(id) {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+}
+
+// -- Rekeningen / documenten (IndexedDB) ------------------------------------
+//
+// PDF-rekeningen worden ongewijzigd bewaard (geen verkleining zoals bij
+// foto's) en gekoppeld aan een logboek-aantekening via `entryId`, zodat je
+// vanuit het logboek de originele bon kunt openen.
+
+export async function addDocument({ file, carId, entryId, filename }) {
+  const db = await openDB();
+  const entry = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    carId,
+    entryId,
+    filename: filename || file.name || "rekening.pdf",
+    mime: file.type || "application/pdf",
+    timestamp: Date.now(),
+    blob: file,
+  };
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(DOC_STORE, "readwrite");
+    tx.objectStore(DOC_STORE).add(entry);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  return entry;
+}
+
+export async function getAllDocuments() {
+  const db = await openDB();
+  const result = await new Promise((resolve, reject) => {
+    const tx = db.transaction(DOC_STORE, "readonly");
+    const req = tx.objectStore(DOC_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+  db.close();
+  return result;
+}
+
+export async function deleteDocument(id) {
+  const db = await openDB();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(DOC_STORE, "readwrite");
+    tx.objectStore(DOC_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+// -- Rekening uitlezen --------------------------------------------------------
+//
+// Heuristisch: haalt datum, km-stand, totaalbedrag en waarschijnlijke soort
+// uit de platte tekst van een PDF. Nooit blind vertrouwen — de UI laat dit
+// altijd eerst controleren/aanpassen voor het opslaan.
+
+const MONTHS_NL = {
+  jan: 1, feb: 2, mrt: 3, apr: 4, mei: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, okt: 10, nov: 11, dec: 12,
+};
+
+export function parseInvoiceText(text) {
+  const result = { date: null, km: null, type: "reparatie", amount: null };
+  if (!text) return result;
+
+  let m = text.match(/\b(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})\b/);
+  if (m) {
+    const [, d, mo, y] = m;
+    result.date = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  } else {
+    m = text.match(/\b(\d{1,2})\s+(jan|feb|mrt|apr|mei|jun|jul|aug|sep|okt|nov|dec)[a-z]*\.?\s+(\d{4})\b/i);
+    if (m) {
+      const mo = MONTHS_NL[m[2].toLowerCase()];
+      if (mo) result.date = `${m[3]}-${String(mo).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
+    }
+  }
+
+  // Km-stand: een getal (evt. met duizendtal-scheiding) direct gevolgd door de
+  // eenheid "km" (kleine letters — een label als "Km-stand:" begint met een
+  // hoofdletter en mag dus niet meetellen als eenheid na een willekeurig getal).
+  m = text.match(/\b(\d{1,3}(?:[.\s]\d{3})+|\d{4,7})\s*km(?![a-zA-Z])/);
+  if (m) result.km = parseInt(m[1].replace(/[.\s]/g, ""), 10);
+
+  // Bedrag: pak het hoogste €-bedrag in de tekst (meestal het totaal).
+  const amounts = [...text.matchAll(/€\s*([\d.,]+)/g)]
+    .map((x) => parseFloat(x[1].replace(/\./g, "").replace(",", ".")))
+    .filter((n) => !isNaN(n));
+  if (amounts.length) result.amount = Math.max(...amounts);
+
+  const low = text.toLowerCase();
+  if (low.includes("apk")) result.type = "apk";
+  else if (low.includes("onderhoud") || low.includes("beurt") || low.includes("service")) result.type = "onderhoud";
+  else if (low.includes("reparatie") || low.includes("herstel")) result.type = "reparatie";
+
+  return result;
 }

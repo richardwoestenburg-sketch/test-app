@@ -2,17 +2,18 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Wrench, Gauge, Droplets, Sun, Wind, Thermometer, MapPin, RefreshCw, Plus,
   Trash2, Mic, Check, ImagePlus, X, CalendarClock, Sparkles, Search, AlertTriangle,
-  Camera,
+  Camera, FileText, Paperclip,
 } from "lucide-react";
 import { fetchWeather } from "./cabrio.js";
 import {
   DATE_LABELS, LOG_TYPES, ensureSeeded, loadCars, saveCars, loadActiveCarId,
   saveActiveCarId, daysUntil, loadLog, addLogEntry, deleteLogEntry, stepsForCar,
   loadDetailing, markStepDone, clearStep, daysSince, computeWashAdvice, addPhoto,
-  getAllPhotos, deletePhoto,
+  getAllPhotos, deletePhoto, addDocument, getAllDocuments,
 } from "./garage.js";
 import { permission, requestPermission, scheduleReminder, cancelReminder } from "./notify.js";
 import KmScan from "./KmScan.jsx";
+import GarageInvoice from "./GarageInvoice.jsx";
 
 // ?scan=1 opent de km-scanner meteen (bv. vanuit een Bluetooth-automatisering
 // die bij het instappen deze URL opent), zonder eerst door de app te hoeven.
@@ -110,6 +111,8 @@ export default function Garage() {
   const [lightbox, setLightbox] = useState(null);
   const [kmDraft, setKmDraft] = useState("");
   const [scanOpen, setScanOpen] = useState(scanRequested);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [docs, setDocs] = useState([]);
 
   // Nieuw logboek-item
   const [text, setText] = useState("");
@@ -233,6 +236,9 @@ export default function Garage() {
     getAllPhotos()
       .then((all) => setPhotos(all.sort((a, b) => b.timestamp - a.timestamp)))
       .catch(() => {});
+    getAllDocuments()
+      .then(setDocs)
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -254,6 +260,32 @@ export default function Garage() {
     setKmDraft(String(km));
     setLog(addLogEntry({ carId: activeCar.id, text: "Km-stand gescand", km, type: "overig" }));
     setScanOpen(false);
+  };
+
+  // Rekening komt op haar eigen (vaak eerdere) datum in het logboek, en de
+  // PDF zelf wordt gekoppeld aan die aantekening zodat 'm terug te vinden is.
+  const saveInvoice = async ({ file, text, km, type, date }) => {
+    const timestamp = date ? new Date(`${date}T12:00:00`).getTime() : Date.now();
+    const updated = addLogEntry({ carId: activeCar.id, text, km, type, timestamp });
+    setLog(updated);
+    const entry = updated[0];
+    if (km != null && (activeCar.km == null || km > activeCar.km)) {
+      setCars(saveCars(cars.map((c) => (c.id === activeCar.id ? { ...c, km } : c))));
+      setKmDraft(String(km));
+    }
+    try {
+      const doc = await addDocument({ file, carId: activeCar.id, entryId: entry.id, filename: file.name });
+      setDocs((d) => [doc, ...d]);
+    } catch {
+      /* opslag vol of geblokkeerd — de logboekregel blijft wel staan */
+    }
+    setInvoiceOpen(false);
+  };
+
+  const openDoc = (doc) => {
+    const url = URL.createObjectURL(doc.blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   const changeDate = (key) => async (e) => {
@@ -313,8 +345,15 @@ export default function Garage() {
   };
 
   // -- Afgeleide data ------------------------------------------------------
-  const carLog = useMemo(() => log.filter((e) => e.carId === activeCar.id), [log, activeCar.id]);
+  // Op timestamp sorteren (niet op invoegvolgorde): een nagedateerde rekening
+  // (factuurdatum in het verleden) moet tussen de andere aantekeningen van
+  // die periode staan, niet vooraan omdat hij als laatste is toegevoegd.
+  const carLog = useMemo(
+    () => log.filter((e) => e.carId === activeCar.id).sort((a, b) => b.timestamp - a.timestamp),
+    [log, activeCar.id]
+  );
   const carPhotos = useMemo(() => photos.filter((p) => p.carId === activeCar.id), [photos, activeCar.id]);
+  const docByEntry = useMemo(() => new Map(docs.map((d) => [d.entryId, d])), [docs]);
   const carDetailing = detailing[activeCar.id] || {};
   const advice = weather ? computeWashAdvice(weather.current, weather.hours) : null;
 
@@ -603,6 +642,13 @@ export default function Garage() {
                 </button>
               )}
             </div>
+            <button
+              className="dl-btn-ghost text-xs px-2.5 py-1.5 flex items-center gap-1.5 shrink-0"
+              onClick={() => setInvoiceOpen(true)}
+              title="Rekening (PDF) inlezen en toevoegen"
+            >
+              <FileText size={13} /> Rekening
+            </button>
           </div>
 
           {filteredLog.length === 0 ? (
@@ -619,6 +665,15 @@ export default function Garage() {
                       <span>{fmtDate(e.timestamp)}</span>
                       <span className="dl-badge">{TYPE_LABELS[e.type] || e.type}</span>
                       {e.km != null && <span>{e.km.toLocaleString("nl-NL")} km</span>}
+                      {docByEntry.has(e.id) && (
+                        <button
+                          className="flex items-center gap-1 underline"
+                          style={{ color: "var(--dl-accent)" }}
+                          onClick={() => openDoc(docByEntry.get(e.id))}
+                        >
+                          <Paperclip size={11} /> Rekening
+                        </button>
+                      )}
                     </div>
                   </div>
                   <button
@@ -721,6 +776,15 @@ export default function Garage() {
           carName={activeCar.name}
           onSave={saveScannedKm}
           onClose={() => setScanOpen(false)}
+        />
+      )}
+
+      {invoiceOpen && (
+        <GarageInvoice
+          carName={activeCar.name}
+          defaultKm={activeCar.km}
+          onSave={saveInvoice}
+          onClose={() => setInvoiceOpen(false)}
         />
       )}
 
