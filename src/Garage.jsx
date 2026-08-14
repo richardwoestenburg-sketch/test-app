@@ -112,6 +112,7 @@ export default function Garage() {
   const [kmDraft, setKmDraft] = useState("");
   const [scanOpen, setScanOpen] = useState(scanRequested);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [scanForEntryOpen, setScanForEntryOpen] = useState(false);
   const [docs, setDocs] = useState([]);
 
   // Nieuw logboek-item
@@ -260,6 +261,14 @@ export default function Garage() {
     setKmDraft(String(km));
     setLog(addLogEntry({ carId: activeCar.id, text: "Km-stand gescand", km, type: "overig" }));
     setScanOpen(false);
+  };
+
+  // Vult alleen het km-veld van de aantekening die je aan het invullen bent —
+  // in tegenstelling tot saveScannedKm slaat dit niets meteen op, want de
+  // omschrijving en het soort moeten er nog bij vóór je op Toevoegen drukt.
+  const fillEntryKmFromScan = (km) => {
+    setEntryKm(String(km));
+    setScanForEntryOpen(false);
   };
 
   // Rekening komt op haar eigen (vaak eerdere) datum in het logboek, en de
@@ -470,13 +479,21 @@ export default function Garage() {
             ))}
           </select>
           <input
-            className="dl-input px-2 py-2 text-xs w-24"
+            className="dl-input px-2 py-2 text-xs w-20"
             inputMode="numeric"
             placeholder="km"
             value={entryKm}
             onChange={(e) => setEntryKm(e.target.value.replace(/\D/g, ""))}
             aria-label="Kilometerstand bij dit onderhoud"
           />
+          <button
+            className="dl-check shrink-0"
+            onClick={() => setScanForEntryOpen(true)}
+            title="Km-stand fotograferen voor deze aantekening"
+            aria-label="Km-stand fotograferen voor deze aantekening"
+          >
+            <Camera size={14} color="#52606e" />
+          </button>
         </div>
         <div className="flex gap-2 mt-2">
           <input
@@ -785,6 +802,14 @@ export default function Garage() {
           defaultKm={activeCar.km}
           onSave={saveInvoice}
           onClose={() => setInvoiceOpen(false)}
+        />
+      )}
+
+      {scanForEntryOpen && (
+        <KmScan
+          carName={activeCar.name}
+          onSave={fillEntryKmFromScan}
+          onClose={() => setScanForEntryOpen(false)}
         />
       )}
 
