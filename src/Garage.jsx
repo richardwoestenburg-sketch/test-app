@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Wrench, Gauge, Droplets, Sun, Wind, Thermometer, MapPin, RefreshCw, Plus,
   Trash2, Mic, Check, ImagePlus, X, CalendarClock, Sparkles, Search, AlertTriangle,
+  Camera,
 } from "lucide-react";
 import { fetchWeather } from "./cabrio.js";
 import {
@@ -11,6 +12,17 @@ import {
   getAllPhotos, deletePhoto,
 } from "./garage.js";
 import { permission, requestPermission, scheduleReminder, cancelReminder } from "./notify.js";
+import KmScan from "./KmScan.jsx";
+
+// ?scan=1 opent de km-scanner meteen (bv. vanuit een Bluetooth-automatisering
+// die bij het instappen deze URL opent), zonder eerst door de app te hoeven.
+function scanRequested() {
+  try {
+    return new URLSearchParams(window.location.search).get("scan") === "1";
+  } catch {
+    return false;
+  }
+}
 
 const REFRESH_MS = 15 * 60 * 1000; // ververs weerdata elke 15 minuten
 const REMIND_DAYS_BEFORE = 14; // herinnering: 2 weken voor een vervaldatum
@@ -97,6 +109,7 @@ export default function Garage() {
   const [photos, setPhotos] = useState([]);
   const [lightbox, setLightbox] = useState(null);
   const [kmDraft, setKmDraft] = useState("");
+  const [scanOpen, setScanOpen] = useState(scanRequested);
 
   // Nieuw logboek-item
   const [text, setText] = useState("");
@@ -234,6 +247,15 @@ export default function Garage() {
     setCars(saveCars(cars.map((c) => (c.id === activeCar.id ? { ...c, km } : c))));
   };
 
+  // Een gescande km-stand is een directe aflezing (niet "hoger dan"-logica
+  // zoals bij commitEntry), en komt ook als aantekening in het logboek.
+  const saveScannedKm = (km) => {
+    setCars(saveCars(cars.map((c) => (c.id === activeCar.id ? { ...c, km } : c))));
+    setKmDraft(String(km));
+    setLog(addLogEntry({ carId: activeCar.id, text: "Km-stand gescand", km, type: "overig" }));
+    setScanOpen(false);
+  };
+
   const changeDate = (key) => async (e) => {
     const value = e.target.value || null;
     const nextCar = { ...activeCar, dates: { ...activeCar.dates, [key]: value } };
@@ -368,6 +390,14 @@ export default function Garage() {
           />
           km
         </label>
+        <button
+          className="dl-check shrink-0"
+          onClick={() => setScanOpen(true)}
+          title="Km-stand scannen met de camera"
+          aria-label="Km-stand scannen met de camera"
+        >
+          <Camera size={14} color="#52606e" />
+        </button>
       </div>
 
       {/* Snel toevoegen — bovenaan en op elk tabblad, want dit is wat je het
@@ -685,6 +715,14 @@ export default function Garage() {
         Alles wordt lokaal op dit apparaat bewaard. Het wasdag-advies gebruikt Open-Meteo
         (gratis, geen account) en kijkt naar regen, temperatuur, wind en UV op jouw locatie.
       </div>
+
+      {scanOpen && (
+        <KmScan
+          carName={activeCar.name}
+          onSave={saveScannedKm}
+          onClose={() => setScanOpen(false)}
+        />
+      )}
 
       {lightbox && (
         <div className="dl-photo-overlay" onClick={() => setLightbox(null)}>
