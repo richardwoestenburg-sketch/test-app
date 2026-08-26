@@ -167,7 +167,7 @@ export default function Meldingen() {
       // zelf toe als bijlage (een mailto-link kan dat niet automatisch).
       await downloadDocx(entry);
       if (settings.qualityEmail) {
-        window.location.href = meldingen.buildMailtoUrl(entry, settings.qualityEmail);
+        window.location.href = meldingen.buildMailtoUrl(entry, settings.qualityEmail, settings.extraEmails);
         await meldingen.markVerstuurd(entry.id);
         setItems((prev) => prev.map((p) => (p.id === entry.id ? { ...p, verstuurd: true } : p)));
       } else {
@@ -205,7 +205,7 @@ export default function Meldingen() {
       setError("Vul eerst het e-mailadres van quality in bij instellingen.");
       return;
     }
-    window.location.href = meldingen.buildMailtoUrl(entry, settings.qualityEmail);
+    window.location.href = meldingen.buildMailtoUrl(entry, settings.qualityEmail, settings.extraEmails);
     await meldingen.markVerstuurd(entry.id);
     setItems((prev) => prev.map((p) => (p.id === entry.id ? { ...p, verstuurd: true } : p)));
   };
@@ -278,6 +278,17 @@ export default function Meldingen() {
             placeholder="quality@eurosort.com"
             className="dl-input dl-mono px-3 py-2 text-sm w-full mb-3"
             aria-label="E-mailadres quality"
+          />
+          <label className="block text-[11px] uppercase dl-day-label opacity-60 mb-1">
+            Extra e-mailadressen (cc, optioneel)
+          </label>
+          <input
+            type="text"
+            value={settings.extraEmails}
+            onChange={saveSetting("extraEmails")}
+            placeholder="bv. voorman@eurosort.com, hse@eurosort.com"
+            className="dl-input dl-mono px-3 py-2 text-sm w-full mb-3"
+            aria-label="Extra e-mailadressen"
           />
           <label className="block text-[11px] uppercase dl-day-label opacity-60 mb-1">Naam melder</label>
           <input

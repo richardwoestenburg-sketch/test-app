@@ -25,9 +25,19 @@ export function typeLabel(key) {
 
 const DEFAULT_SETTINGS = {
   qualityEmail: "quality@eurosort.com",
+  extraEmails: "",
   melderNaam: "Richard Woestenburg",
   melderFunctie: "Supervisor assembly",
 };
+
+// Zet een komma/puntkomma/nieuwe-regel-gescheiden lijst om in losse,
+// gevalideerde e-mailadressen.
+export function parseEmailList(value) {
+  return (value || "")
+    .split(/[,;\n]/)
+    .map((s) => s.trim())
+    .filter((s) => /\S+@\S+\.\S+/.test(s));
+}
 
 export function loadSettings() {
   try {
@@ -222,9 +232,11 @@ export function buildEmailBody(entry) {
   return lines.join("\n");
 }
 
-export function buildMailtoUrl(entry, toEmail) {
+export function buildMailtoUrl(entry, toEmail, ccEmails) {
   const subject = encodeURIComponent(buildEmailSubject(entry));
   const body = encodeURIComponent(buildEmailBody(entry));
   const to = encodeURIComponent(toEmail || "");
-  return `mailto:${to}?subject=${subject}&body=${body}`;
+  const cc = parseEmailList(ccEmails).join(",");
+  const ccParam = cc ? `&cc=${encodeURIComponent(cc)}` : "";
+  return `mailto:${to}?subject=${subject}&body=${body}${ccParam}`;
 }
