@@ -1,6 +1,6 @@
 // Simple offline-first service worker for Daglog.
 // Bump CACHE when you ship new assets so old caches are cleared.
-const CACHE = "daglog-v7";
+const CACHE = "daglog-v8";
 // Relative to the service worker's own location, so the same worker caches
 // correctly whether served from a domain root or a subpath (/test-app/).
 const APP_KEYS = [
@@ -19,6 +19,9 @@ const CORE = [
   // en opstartbaar blijven.
   ...APP_KEYS.map((k) => `manifest-${k}.webmanifest`),
   ...APP_KEYS.map((k) => `icons/${k}.svg`),
+  // Meldingen: het ongevallenmeldingsformulier-sjabloon, zodat een melding
+  // ook offline als 1-op-1 .docx-kopie gedownload kan worden.
+  "templates/ongevallen-melding-template.docx",
 ];
 
 self.addEventListener("install", (event) => {

@@ -182,6 +182,10 @@ export function buildEmailSubject(entry) {
 
 export function buildEmailBody(entry) {
   const lines = [
+    "Het ingevulde ongevallenmeldingsformulier (.docx) is zojuist gedownload —",
+    "voeg dat bestand hier toe als bijlage voordat je verstuurt.",
+    "Hieronder ter controle dezelfde gegevens als platte tekst.",
+    "",
     `Naam melder: ${entry.melderNaam || "-"}`,
     `Functie: ${entry.melderFunctie || "-"}`,
     `Datum en tijd: ${formatDatum(entry.date)} ${entry.timeLabel}`,
@@ -213,7 +217,7 @@ export function buildEmailBody(entry) {
     lines.push("", "Actie leidinggevende:", entry.actieLeidinggevende);
   }
   if (entry.blob) {
-    lines.push("", "(Let op: er hoort een foto bij deze melding — voeg die zelf toe als bijlage.)");
+    lines.push("", "(Let op: er hoort ook een foto bij deze melding — voeg die zelf toe als bijlage.)");
   }
   return lines.join("\n");
 }

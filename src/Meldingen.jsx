@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   AlertTriangle, Camera, Send, Trash2, X, RotateCcw, Check,
-  Settings, ChevronDown, ChevronRight, Mail,
+  Settings, ChevronDown, ChevronRight, Mail, FileDown,
 } from "lucide-react";
 import * as meldingen from "./meldingen.js";
 import { INCIDENT_TYPES, typeLabel } from "./meldingen.js";
+import { fillTemplate, downloadFilename } from "./meldingenDocx.js";
 
 function todayKey(d = new Date()) {
   return d.toISOString().slice(0, 10);
@@ -61,6 +62,7 @@ export default function Meldingen() {
   const [error, setError] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
   const [openId, setOpenId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const fileInputRef = useRef(null);
   const omschrijvingRef = useRef(null);
   const urlMapRef = useRef(new Map());
@@ -172,7 +174,10 @@ export default function Meldingen() {
       setJustSent(true);
       setTimeout(() => setJustSent(false), 2200);
       omschrijvingRef.current?.focus();
-      // Meteen doorsturen naar quality: opent de mail-app met alles al ingevuld.
+      // Downloadt het echte formulier (1-op-1 kopie, ingevuld) en opent
+      // meteen de mail-app naar quality; het gedownloade bestand voeg je
+      // zelf toe als bijlage (een mailto-link kan dat niet automatisch).
+      await downloadDocx(entry);
       if (settings.qualityEmail) {
         window.location.href = meldingen.buildMailtoUrl(entry, settings.qualityEmail);
         await meldingen.markVerstuurd(entry.id);
@@ -185,6 +190,25 @@ export default function Meldingen() {
       setError("Melding opslaan lukte niet. Probeer het nog eens.");
     }
     setSaving(false);
+  };
+
+  const downloadDocx = async (entry) => {
+    setDownloadingId(entry.id);
+    setError("");
+    try {
+      const blob = await fillTemplate(entry);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = downloadFilename(entry);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (err) {
+      setError("Het formulier (.docx) downloaden lukte niet.");
+    }
+    setDownloadingId(null);
   };
 
   const sendExisting = async (entry) => {
@@ -416,12 +440,11 @@ export default function Meldingen() {
           {justSent ? <Check size={17} /> : <Send size={16} />}
           {justSent ? "Verstuurd naar quality" : saving ? "Bezig…" : "Opslaan & versturen naar quality"}
         </button>
-        {!settings.qualityEmail && (
-          <p className="text-[11px] mt-2 opacity-60">
-            Er is nog geen e-mailadres voor quality ingesteld (tandwiel rechtsboven) — de melding
-            wordt dan alleen lokaal bewaard.
-          </p>
-        )}
+        <p className="text-[11px] mt-2 opacity-60">
+          {settings.qualityEmail
+            ? "Het ingevulde formulier (1-op-1, .docx) wordt gedownload en je mail-app opent naar quality — voeg het gedownloade bestand zelf toe als bijlage voordat je verstuurt."
+            : "Er is nog geen e-mailadres voor quality ingesteld (tandwiel rechtsboven) — het formulier wordt dan wel gedownload, maar niet automatisch klaargezet in een e-mail."}
+        </p>
       </div>
 
       {/* Overzicht */}
@@ -524,12 +547,21 @@ export default function Meldingen() {
             {open.locatie && <p className="text-xs opacity-70 mb-2">{open.locatie}</p>}
             <p className="text-sm mb-3 whitespace-pre-wrap">{open.omschrijving || "(geen omschrijving)"}</p>
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <button
-                onClick={() => sendExisting(open)}
-                className="dl-btn-ghost text-xs px-3 py-2 flex items-center gap-1.5"
-              >
-                <Mail size={13} /> {open.verstuurd ? "Opnieuw versturen" : "Versturen naar quality"}
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => downloadDocx(open)}
+                  disabled={downloadingId === open.id}
+                  className="dl-btn-ghost text-xs px-3 py-2 flex items-center gap-1.5"
+                >
+                  <FileDown size={13} /> {downloadingId === open.id ? "Bezig…" : "Formulier (.docx)"}
+                </button>
+                <button
+                  onClick={() => sendExisting(open)}
+                  className="dl-btn-ghost text-xs px-3 py-2 flex items-center gap-1.5"
+                >
+                  <Mail size={13} /> {open.verstuurd ? "Opnieuw versturen" : "Versturen naar quality"}
+                </button>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => removeItem(open.id)}
