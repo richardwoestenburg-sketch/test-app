@@ -217,7 +217,7 @@ export function buildEmailBody(entry) {
     lines.push("", "Actie leidinggevende:", entry.actieLeidinggevende);
   }
   if (entry.blob) {
-    lines.push("", "(Let op: er hoort ook een foto bij deze melding — voeg die zelf toe als bijlage.)");
+    lines.push("", "(De foto van de situatie staat al in het bijgevoegde formulier.)");
   }
   return lines.join("\n");
 }

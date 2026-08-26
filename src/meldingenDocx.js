@@ -54,6 +54,77 @@ function formatDatum(dateStr) {
   return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
 }
 
+// De paragraaf met de omschrijving heeft in het sjabloon dit vaste paraId —
+// een foto wordt daar direct achter geplakt, in dezelfde tabelcel.
+const OMSCHRIJVING_PARA_ID = "4225DD84";
+const FOTO_REL_ID = "rIdMeldingFoto";
+const FOTO_MEDIA_PATH = "word/media/melding-foto.jpg";
+const EMU_PER_INCH = 914400;
+const MAX_PHOTO_WIDTH_EMU = Math.round(4.4 * EMU_PER_INCH);
+
+function imageSize(blob) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth || 800, height: img.naturalHeight || 600 });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Foto-afmetingen lezen lukte niet"));
+    };
+    img.src = url;
+  });
+}
+
+async function embedPhoto(zip, xml, blob) {
+  const { width, height } = await imageSize(blob);
+  const cx = MAX_PHOTO_WIDTH_EMU;
+  const cy = Math.round(cx * (height / width));
+
+  zip.file(FOTO_MEDIA_PATH, blob);
+
+  const contentTypesPath = "[Content_Types].xml";
+  let contentTypes = await zip.file(contentTypesPath).async("string");
+  if (!contentTypes.includes('Extension="jpg"') && !contentTypes.includes('Extension="jpeg"')) {
+    contentTypes = contentTypes.replace(
+      "</Types>",
+      '<Default Extension="jpg" ContentType="image/jpeg"/></Types>'
+    );
+  }
+  zip.file(contentTypesPath, contentTypes);
+
+  const relsPath = "word/_rels/document.xml.rels";
+  let rels = await zip.file(relsPath).async("string");
+  rels = rels.replace(
+    "</Relationships>",
+    `<Relationship Id="${FOTO_REL_ID}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/melding-foto.jpg"/></Relationships>`
+  );
+  zip.file(relsPath, rels);
+
+  const photoParagraphs =
+    '<w:p><w:pPr><w:pStyle w:val="Broodtekst"/><w:spacing w:before="120"/><w:ind w:left="0"/></w:pPr>' +
+    '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">Foto van de situatie:</w:t></w:r></w:p>' +
+    '<w:p><w:pPr><w:pStyle w:val="Broodtekst"/><w:ind w:left="0"/></w:pPr><w:r><w:drawing>' +
+    `<wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0">` +
+    `<wp:extent cx="${cx}" cy="${cy}"/>` +
+    '<wp:effectExtent l="0" t="0" r="0" b="0"/>' +
+    '<wp:docPr id="9001" name="MeldingFoto"/>' +
+    '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>' +
+    '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' +
+    '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+    '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+    '<pic:nvPicPr><pic:cNvPr id="9001" name="MeldingFoto"/><pic:cNvPicPr/></pic:nvPicPr>' +
+    `<pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${FOTO_REL_ID}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+    `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
+    "</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>";
+
+  const anchor = new RegExp(`(<w:p w14:paraId="${OMSCHRIJVING_PARA_ID}"[\\s\\S]*?</w:p>)`);
+  if (!anchor.test(xml)) throw new Error("Kon de plek voor de foto in het sjabloon niet vinden");
+  return xml.replace(anchor, `$1${photoParagraphs}`);
+}
+
 export async function fillTemplate(entry) {
   const res = await fetch(TEMPLATE_URL);
   if (!res.ok) throw new Error("Sjabloon laden lukte niet");
@@ -78,6 +149,10 @@ export async function fillTemplate(entry) {
 
   for (const [key, sdtId] of Object.entries(CHECKBOX_IDS)) {
     xml = toggleCheckbox(xml, sdtId, entry.soorten.includes(key));
+  }
+
+  if (entry.blob) {
+    xml = await embedPhoto(zip, xml, entry.blob);
   }
 
   zip.file("word/document.xml", xml);
