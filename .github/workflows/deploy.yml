@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - claude/app-from-script-ys622z
+      - claude/app-meldingen-gevaar-8pixl9
   workflow_dispatch:
 
 # Allow the workflow token to publish to Pages.
