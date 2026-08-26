@@ -80,10 +80,12 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   // Network-first for navigations so updates are picked up when online,
-  // falling back to the cached app shell when offline.
+  // falling back to the cached app shell when offline. no-store bypasses
+  // the browser's own HTTP cache (GitHub Pages sends a short max-age on
+  // index.html), otherwise a recent deploy can stay invisible for minutes.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: "no-store" })
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(request, copy));
