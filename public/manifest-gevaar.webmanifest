@@ -1,0 +1,37 @@
+{
+  "id": "./?app=gevaar",
+  "name": "Meldingen",
+  "short_name": "Meldingen",
+  "description": "meld direct een gevaarlijke situatie",
+  "lang": "nl",
+  "start_url": "./?app=gevaar",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f8fc",
+  "theme_color": "#dc2626",
+  "icons": [
+    {
+      "src": "icons/gevaar.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

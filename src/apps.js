@@ -7,11 +7,12 @@
 // gradient-partner ervan.
 import {
   BookOpen, CalendarDays, Timer, Images, Camera, Car, Wrench, Box,
-  AudioLines, UserRound,
+  AudioLines, UserRound, AlertTriangle,
 } from "lucide-react";
 
 export const APPS = [
   { key: "log", name: "Daglog", tagline: "journaal van je uren", icon: BookOpen, accent: "#4f46e5", bright: "#818cf8" },
+  { key: "gevaar", name: "Meldingen", tagline: "meld direct een gevaarlijke situatie", icon: AlertTriangle, accent: "#dc2626", bright: "#f87171" },
   { key: "agenda", name: "Agenda", tagline: "plannen mét melding", icon: CalendarDays, accent: "#e11d48", bright: "#fb7185" },
   { key: "tijd", name: "Tijd", tagline: "tijdregistratie per dag", icon: Timer, accent: "#d97706", bright: "#fbbf24" },
   { key: "vakantie", name: "Vakantie", tagline: "fototijdlijn van je reis", icon: Images, accent: "#0d9488", bright: "#2dd4bf" },
