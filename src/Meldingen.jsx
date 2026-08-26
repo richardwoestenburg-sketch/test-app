@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   AlertTriangle, Camera, Send, Trash2, X, RotateCcw, Check,
-  Settings, ChevronDown, ChevronRight, Mail, FileDown,
+  Settings, Mail, FileDown,
 } from "lucide-react";
 import * as meldingen from "./meldingen.js";
 import { INCIDENT_TYPES, typeLabel } from "./meldingen.js";
@@ -31,16 +31,6 @@ function nowHHMM() {
   return new Date().toTimeString().slice(0, 5);
 }
 
-const emptyBetrokkene = {
-  betrokkeneNaam: "",
-  betrokkeneAdres: "",
-  betrokkenePostcode: "",
-  betrokkeneGeboortedatum: "",
-  betrokkeneIndiensttreding: "",
-  betrokkeneAfdeling: "",
-  betrokkeneEigenOfAnders: "",
-};
-
 export default function Meldingen() {
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -50,8 +40,7 @@ export default function Meldingen() {
   const [locatie, setLocatie] = useState("");
   const [soorten, setSoorten] = useState([]);
   const [omschrijving, setOmschrijving] = useState("");
-  const [betrokkene, setBetrokkene] = useState(emptyBetrokkene);
-  const [showBetrokkene, setShowBetrokkene] = useState(false);
+  const [betrokkeneNaam, setBetrokkeneNaam] = useState("");
   const [maatregelen, setMaatregelen] = useState("");
   const [actieLeidinggevende, setActieLeidinggevende] = useState("");
   const [photoFile, setPhotoFile] = useState(null);
@@ -136,8 +125,7 @@ export default function Meldingen() {
     setLocatie("");
     setSoorten([]);
     setOmschrijving("");
-    setBetrokkene(emptyBetrokkene);
-    setShowBetrokkene(false);
+    setBetrokkeneNaam("");
     setMaatregelen("");
     setActieLeidinggevende("");
     clearPhoto();
@@ -164,7 +152,7 @@ export default function Meldingen() {
         locatie: locatie.trim(),
         soorten,
         omschrijving: omschrijving.trim(),
-        ...betrokkene,
+        betrokkeneNaam: betrokkeneNaam.trim(),
         maatregelen: maatregelen.trim(),
         actieLeidinggevende: actieLeidinggevende.trim(),
         photo: photoFile,
@@ -388,27 +376,20 @@ export default function Meldingen() {
           </button>
         </div>
 
-        <button
-          onClick={() => setShowBetrokkene((s) => !s)}
-          className="flex items-center gap-1.5 text-xs uppercase dl-day-label opacity-70 mb-2"
-        >
-          {showBetrokkene ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-          Gegevens betrokkene (optioneel)
-        </button>
-        {showBetrokkene && (
-          <div className="mb-3 flex flex-col gap-2">
-            <input type="text" value={betrokkene.betrokkeneNaam} onChange={(e) => setBetrokkene((b) => ({ ...b, betrokkeneNaam: e.target.value }))} placeholder="Naam" className="dl-input px-3 py-2 text-sm w-full" aria-label="Naam betrokkene" />
-            <input type="text" value={betrokkene.betrokkeneAdres} onChange={(e) => setBetrokkene((b) => ({ ...b, betrokkeneAdres: e.target.value }))} placeholder="Adres" className="dl-input px-3 py-2 text-sm w-full" aria-label="Adres" />
-            <input type="text" value={betrokkene.betrokkenePostcode} onChange={(e) => setBetrokkene((b) => ({ ...b, betrokkenePostcode: e.target.value }))} placeholder="Postcode en woonplaats" className="dl-input px-3 py-2 text-sm w-full" aria-label="Postcode en woonplaats" />
-            <input type="text" value={betrokkene.betrokkeneGeboortedatum} onChange={(e) => setBetrokkene((b) => ({ ...b, betrokkeneGeboortedatum: e.target.value }))} placeholder="Geboortedatum" className="dl-input px-3 py-2 text-sm w-full" aria-label="Geboortedatum" />
-            <input type="text" value={betrokkene.betrokkeneIndiensttreding} onChange={(e) => setBetrokkene((b) => ({ ...b, betrokkeneIndiensttreding: e.target.value }))} placeholder="Datum indiensttreding" className="dl-input px-3 py-2 text-sm w-full" aria-label="Datum indiensttreding" />
-            <input type="text" value={betrokkene.betrokkeneAfdeling} onChange={(e) => setBetrokkene((b) => ({ ...b, betrokkeneAfdeling: e.target.value }))} placeholder="Afdeling" className="dl-input px-3 py-2 text-sm w-full" aria-label="Afdeling" />
-            <input type="text" value={betrokkene.betrokkeneEigenOfAnders} onChange={(e) => setBetrokkene((b) => ({ ...b, betrokkeneEigenOfAnders: e.target.value }))} placeholder="Eigen medewerker/anders" className="dl-input px-3 py-2 text-sm w-full" aria-label="Eigen medewerker/anders" />
-          </div>
-        )}
+        <label className="block text-[11px] uppercase dl-day-label opacity-60 mb-1">
+          Betrokkene
+        </label>
+        <input
+          type="text"
+          value={betrokkeneNaam}
+          onChange={(e) => setBetrokkeneNaam(e.target.value)}
+          placeholder="Naam (bv. iedereen die langs loopt)"
+          className="dl-input px-3 py-2 text-sm w-full mb-3"
+          aria-label="Naam betrokkene"
+        />
 
         <label className="block text-[11px] uppercase dl-day-label opacity-60 mb-1">
-          Genomen of te nemen maatregelen om herhaling te voorkomen (optioneel)
+          Genomen of te nemen maatregelen om herhaling te voorkomen
         </label>
         <textarea
           value={maatregelen}
@@ -420,7 +401,7 @@ export default function Meldingen() {
         />
 
         <label className="block text-[11px] uppercase dl-day-label opacity-60 mb-1">
-          Actie leidinggevende (optioneel)
+          Actie leidinggevende
         </label>
         <textarea
           value={actieLeidinggevende}
