@@ -1,10 +1,10 @@
 // Simple offline-first service worker for Daglog.
 // Bump CACHE when you ship new assets so old caches are cleared.
-const CACHE = "daglog-v6";
+const CACHE = "daglog-v7";
 // Relative to the service worker's own location, so the same worker caches
 // correctly whether served from a domain root or a subpath (/test-app/).
 const APP_KEYS = [
-  "log", "agenda", "tijd", "vakantie", "flitsers",
+  "log", "gevaar", "agenda", "tijd", "vakantie", "flitsers",
   "cabrio", "garage", "afbeeldingen", "stem", "secretaresse",
 ];
 const CORE = [

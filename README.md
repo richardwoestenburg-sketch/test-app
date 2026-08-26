@@ -10,7 +10,8 @@ server of account nodig.
 
 De app opent met een **startscherm met app-tegels** — elke module heeft een
 eigen kleur en icoon, en is ook **als losse app** te installeren op je
-startscherm (zie *Op je startscherm zetten*). De tien apps: **Daglog** (terugkijken — wat deed je),
+startscherm (zie *Op je startscherm zetten*). De elf apps: **Daglog** (terugkijken — wat deed je),
+**Meldingen** (direct een gevaarlijke situatie melden en doorsturen naar quality),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
@@ -36,6 +37,26 @@ meldingen — ook met vergrendeld scherm).
   browser én een Wear OS-horloge dezelfde daglog delen
 - Inspreken: microfoon-knop in de app (Web Speech API), en een `/log`-eindpunt
   om vanaf een smartwatch in te spreken
+
+**Meldingen**
+
+- Het officiële **ongevallenmeldingsformulier** (ongeval, bijna-ongeval/incident,
+  onveilige situatie/handeling, materiaal-/milieuschade) als mobiele app —
+  meteen open bij het starten, zo min mogelijk tikken tot versturen
+- Velden: locatie, soort incident (aan te vinken), omschrijving, optioneel een
+  foto (rechtstreeks vanaf de camera), gegevens betrokkene (inklapbaar,
+  meestal niet nodig bij een bijna-ongeval), genomen/te nemen maatregelen en
+  actie leidinggevende
+- **Direct doorsturen naar quality**: na het opslaan opent de app je mail-app
+  met een kant-en-klare e-mail (onderwerp + volledige formuliertekst) naar het
+  ingestelde adres — jij hoeft alleen nog op *verstuur* te tikken. Een foto kan
+  een mailto-link niet automatisch meesturen; die voeg je zelf toe in je
+  mail-app
+- E-mailadres van quality en je standaard naam/functie stel je één keer in
+  via het tandwiel ⚙️
+- Meldingen blijven ook lokaal bewaard (met foto, IndexedDB) als overzicht/
+  bewijs, met een "verstuurd"-label; opnieuw versturen en verwijderen kan
+  altijd
 
 **Agenda / planner**
 
@@ -254,6 +275,8 @@ src/main.jsx                  React root
 src/App.jsx                   app-shell: startscherm met tegels + standalone-modus (?app=…)
 src/apps.js                   registry van alle mini-apps (naam, kleur, icoon)
 src/DagLog.jsx                het daglog-component (UI + logica)
+src/Meldingen.jsx              het meldingen-component (ongevallenmeldingsformulier)
+src/meldingen.js               opslag (IndexedDB), instellingen & mailto-opbouw voor meldingen
 src/Agenda.jsx                het agenda/planner-component (UI + logica)
 src/agenda.js                 opslag & helpers voor agenda-items
 src/TimeLog.jsx               het tijdregistratie-component (UI + logica)

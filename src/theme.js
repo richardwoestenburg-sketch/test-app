@@ -502,4 +502,44 @@ export const APP_STYLE = `
 .cb-hour-open .cb-hour-dot {
   background: #1e7a4f;
 }
+
+/* Meldingen: gevaar-melding + ernst-kiezer */
+.mg-sev-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1.6px solid #d4d9e6;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #33404d;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.mg-sev-btn:hover { background: #f2f4fa; }
+.mg-sev-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.mg-item {
+  border: 1px solid #e6e9f2;
+  border-left: 4px solid #d4d9e6;
+  border-radius: 12px;
+  background: #fafbfd;
+}
+.mg-btn-report {
+  width: 100%;
+  justify-content: center;
+  font-size: 15px;
+  padding: 13px 16px;
+  border-radius: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mg-sev-btn { transition: none; }
+}
 `;

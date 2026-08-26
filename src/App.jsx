@@ -3,6 +3,7 @@ import { ChevronLeft, ExternalLink } from "lucide-react";
 import { APP_STYLE } from "./theme.js";
 import { APPS, findApp } from "./apps.js";
 import DagLog from "./DagLog.jsx";
+import Meldingen from "./Meldingen.jsx";
 import Agenda from "./Agenda.jsx";
 import TimeLog from "./TimeLog.jsx";
 import Vakantie from "./Vakantie.jsx";
@@ -15,6 +16,7 @@ import Garage from "./Garage.jsx";
 
 const COMPONENTS = {
   log: DagLog,
+  gevaar: Meldingen,
   agenda: Agenda,
   tijd: TimeLog,
   vakantie: Vakantie,
