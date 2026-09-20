@@ -76,6 +76,42 @@ function emptyActivity(platform) {
   return { id: null, platform: platform || "ps5", kind: "raid", name: "", status: "todo", notes: "" };
 }
 
+// Legt uit waaróm er niets gevonden is. De app weet van Bungie of de
+// inventaris meekwam, hoeveel dingen er waren en of de namen ophalen lukte.
+function legeUitleg(diag) {
+  if (!diag) return "Er kwam niets terug van Bungie.";
+  if (diag.ruw === 0) {
+    if (!diag.karakters) {
+      return (
+        "Dit profiel gaf geen karakters én geen spullen terug. Waarschijnlijk hoort dit " +
+        "platform-account niet bij het account waarop je Destiny speelt — koppel hierboven een " +
+        "ander gevonden profiel aan dit platform."
+      );
+    }
+    if (!diag.kluisAanwezig && !diag.karakterInventarisAanwezig) {
+      return (
+        "Bungie gaf wel je profiel terug, maar geen inventaris. Dat betekent bijna altijd dat " +
+        "je Bungie-app niet het recht heeft om je kluis te lezen. Zet op bungie.net bij je app " +
+        "de leesrechten voor je Destiny-gegevens aan, en log daarna hier opnieuw in " +
+        "(⚙️ → Uitloggen → Inloggen bij Bungie)."
+      );
+    }
+    return (
+      `Je hebt ${diag.karakters} karakters, maar Bungie gaf geen wapens of armor terug. ` +
+      "Speel je op dit platform met een ander account, of staat je kluis leeg?"
+    );
+  }
+  if (diag.zonderNaam >= diag.ruw) {
+    return (
+      `Bungie gaf ${diag.ruw} dingen terug, maar de namen erbij ophalen lukte niet` +
+      (diag.naamFout ? ` (${diag.naamFout})` : "") +
+      ". Probeer het zo nog eens. Blijft het misgaan, dan klopt de API-key of de Origin Header " +
+      "van je Bungie-app niet."
+    );
+  }
+  return `Van de ${diag.ruw} dingen bleven er na filtering geen wapens of armor over.`;
+}
+
 function dateLabel(ts) {
   return new Date(ts).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -1100,12 +1136,32 @@ export default function Destiny() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              <p className="text-sm">
-                {sync.items.length} wapens en armor gevonden. Aangevinkt staat wat je in de
-                game <strong>vergrendeld</strong> hebt, plus je exotics — dat is meestal
-                precies wat je wilt bijhouden.
-              </p>
-              <div className="flex flex-wrap gap-1.5">
+              {sync.items.length === 0 ? (
+                <>
+                  <p className="text-sm">Niets gevonden om over te nemen.</p>
+                  <p className="text-sm opacity-80 leading-relaxed">{legeUitleg(sync.items.diagnose)}</p>
+                  <p className="text-[11px] opacity-55 dl-mono leading-relaxed">
+                    Bungie gaf: {sync.items.diagnose?.karakters ?? 0} karakters ·{" "}
+                    {sync.items.diagnose?.ruw ?? 0} dingen ·{" "}
+                    {sync.items.diagnose?.namenMislukt ?? 0} namen mislukt · kluis{" "}
+                    {sync.items.diagnose?.kluisAanwezig ? "ja" : "nee"} · inventaris{" "}
+                    {sync.items.diagnose?.karakterInventarisAanwezig ? "ja" : "nee"}
+                  </p>
+                  <button
+                    onClick={() => startSync(sync.slot)}
+                    className="dl-btn-ghost px-3 py-2 text-sm flex items-center gap-1.5 self-start"
+                  >
+                    <RefreshCw size={14} /> Opnieuw proberen
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm">
+                  {sync.items.length} wapens en armor gevonden. Aangevinkt staat wat je in de
+                  game <strong>vergrendeld</strong> hebt, plus je exotics — dat is meestal
+                  precies wat je wilt bijhouden.
+                </p>
+              )}
+              <div className={`flex flex-wrap gap-1.5 ${sync.items.length ? "" : "hidden"}`}>
                 <button
                   className="dt-chip"
                   onClick={() => setSync((s) => ({ ...s, selected: new Set(s.items.map((i) => i.instanceId)) }))}
@@ -1129,16 +1185,20 @@ export default function Destiny() {
                   Vergrendeld + exotics
                 </button>
               </div>
-              <input
-                className="dl-input px-3 py-2 text-sm w-full"
-                value={syncSearch}
-                onChange={(e) => setSyncSearch(e.target.value)}
-                placeholder="Zoek op naam of soort…"
-                aria-label="Zoek in gevonden spullen"
-              />
-              <div className="text-[11px] uppercase dl-day-label opacity-55">
-                {sync.selected.size} geselecteerd
-              </div>
+              {!!sync.items.length && (
+                <>
+                  <input
+                    className="dl-input px-3 py-2 text-sm w-full"
+                    value={syncSearch}
+                    onChange={(e) => setSyncSearch(e.target.value)}
+                    placeholder="Zoek op naam of soort…"
+                    aria-label="Zoek in gevonden spullen"
+                  />
+                  <div className="text-[11px] uppercase dl-day-label opacity-55">
+                    {sync.selected.size} geselecteerd
+                  </div>
+                </>
+              )}
               <div className="flex flex-col gap-1.5 max-h-[50vh] overflow-y-auto">
                 {syncVisible.map((i) => {
                   const on = sync.selected.has(i.instanceId);
@@ -1169,10 +1229,13 @@ export default function Destiny() {
               </div>
               <button
                 onClick={applySync}
-                disabled={!sync.selected.size}
+                disabled={!sync.selected.size && !sync.chars?.length}
                 className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5"
               >
-                <Link2 size={15} /> {sync.selected.size} overnemen in mijn kluis
+                <Link2 size={15} />{" "}
+                {sync.selected.size
+                  ? `${sync.selected.size} overnemen in mijn kluis`
+                  : `Alleen je ${sync.chars?.length || 0} karakters overnemen`}
               </button>
             </div>
           )}

@@ -288,11 +288,23 @@ async function api(path, { auth = true } = {}) {
   } catch {
     throw new BungieError("Geen verbinding met Bungie. Ben je online?");
   }
-  if (res.status === 401) {
-    logout();
-    throw new BungieError("Je Bungie-sessie is verlopen. Log opnieuw in.", { status: 401, needsLogin: true });
-  }
   const json = await res.json().catch(() => null);
+  if (res.status === 401) {
+    // Niet elke 401 is een verlopen sessie: bij een verkeerde Origin Header of
+    // API-key antwoordt Bungie ook met 401. Dan uitloggen zou de échte oorzaak
+    // verbergen, dus geven we de melding van Bungie zelf door.
+    const status = json?.ErrorStatus || "";
+    const sessieProbleem = !status || /auth|token|expired|login|unauthorized/i.test(status);
+    if (sessieProbleem) {
+      logout();
+      throw new BungieError(json?.Message || "Je Bungie-sessie is verlopen. Log opnieuw in.", {
+        status: 401, code: json?.ErrorCode, needsLogin: true,
+      });
+    }
+    throw new BungieError(json?.Message || `Bungie weigerde het verzoek (${status}).`, {
+      status: 401, code: json?.ErrorCode,
+    });
+  }
   if (!json) throw new BungieError(`Onverwacht antwoord van Bungie (status ${res.status}).`, { status: res.status });
   if (json.ErrorCode && json.ErrorCode !== 1) {
     throw new BungieError(json.Message || `Bungie gaf een fout (${json.ErrorStatus}).`, { code: json.ErrorCode });
@@ -408,15 +420,25 @@ export async function getDefinitions(entityType, hashes, onProgress) {
 
   const CHUNK = 6;
   const fresh = [];
+  let failed = 0;
+  let error = null;
   for (let i = 0; i < missing.length; i += CHUNK) {
     const part = missing.slice(i, i + CHUNK);
     const results = await Promise.all(
       part.map((hash) =>
-        api(`/Destiny2/Manifest/${entityType}/${hash}/`, { auth: false }).catch(() => null)
+        api(`/Destiny2/Manifest/${entityType}/${hash}/`, { auth: false }).catch((err) => {
+          // Niet stilletjes doorgaan: onthoud waaróm het misging, anders zou
+          // een mislukte naam-ophaal onzichtbaar tot een lege lijst leiden.
+          if (!error) error = err;
+          return null;
+        })
       )
     );
     results.forEach((def, idx) => {
-      if (!def) return;
+      if (!def) {
+        failed += 1;
+        return;
+      }
       const hash = part[idx];
       out.set(hash, def);
       fresh.push([`${entityType}:${hash}`, def]);
@@ -425,6 +447,8 @@ export async function getDefinitions(entityType, hashes, onProgress) {
     onProgress?.(Math.min(done, unique.length), unique.length);
   }
   await writeCachedDefs(fresh);
+  out.failed = failed;
+  out.error = error;
   return out;
 }
 
@@ -479,10 +503,14 @@ export async function mapItems(profile, { onProgress, platform } = {}) {
   );
   const instances = profile?.itemComponents?.instances?.data || {};
 
+  let zonderNaam = 0;
   const items = [];
   for (const row of raw) {
     const def = defs.get(row.itemHash);
-    if (!def) continue;
+    if (!def) {
+      zonderNaam += 1;
+      continue;
+    }
     const kind = def.itemType === 3 ? "wapen" : def.itemType === 2 ? "armor" : null;
     if (!kind) continue;
 
@@ -510,6 +538,17 @@ export async function mapItems(profile, { onProgress, platform } = {}) {
       icon: def.displayProperties?.icon || "",
     });
   }
+
+  // Wat Bungie wél en niet teruggaf — zodat een lege lijst uit te leggen is.
+  items.diagnose = {
+    ruw: raw.length,
+    zonderNaam,
+    namenMislukt: defs.failed || 0,
+    naamFout: defs.error ? defs.error.message : null,
+    kluisAanwezig: Boolean(profile?.profileInventory?.data),
+    karakterInventarisAanwezig: Boolean(profile?.characterInventories?.data),
+    karakters: Object.keys(profile?.characters?.data || {}).length,
+  };
   return items;
 }
 
