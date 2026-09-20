@@ -9,6 +9,7 @@
 // same shape the web app uses: { id, date, timeLabel, timestamp, text, lat, lon }.
 
 import { handleSecretary, runScheduled } from "./secretary.js";
+import { handleBungie } from "./bungie.js";
 
 const KV_KEY = "entries";
 const AGENDA_KEY = "agenda";
@@ -223,6 +224,12 @@ export default {
 
     if (path.startsWith("/secretary/")) {
       return handleSecretary(request, env, ctx, url, origin, path);
+    }
+
+    // Destiny: het client_secret van Bungie blijft hier, zodat de app een
+    // refresh-token krijgt en je niet elk uur opnieuw hoeft in te loggen.
+    if (path.startsWith("/bungie/")) {
+      return handleBungie(request, env, url, origin, path);
     }
 
     // GET /entries -> all entries

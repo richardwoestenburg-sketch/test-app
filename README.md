@@ -233,11 +233,19 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
   profielen, die je elk aan een platform-vakje koppelt.
 
   Eenmalig instellen: maak op [bungie.net/en/Application](https://www.bungie.net/en/Application)
-  een app aan met OAuth-type **Public** en als Redirect URL de URL van deze app;
-  vul de API-key en het client_id in bij ⚙️. Zo'n sessie duurt een uur — daarna
-  log je opnieuw in als je weer wilt ophalen (een public app krijgt geen
-  refresh-token van Bungie). Namen en soorten worden één keer opgehaald en
-  daarna lokaal bewaard, dus een tweede synchronisatie is snel
+  een app aan en vul de API-key en het client_id in bij ⚙️; als Redirect URL vul
+  je de URL van deze app in (de app toont hem). Namen en soorten worden één keer
+  opgehaald en daarna lokaal bewaard, dus een tweede synchronisatie is snel.
+
+  Voor het inloggen zijn er twee manieren, te kiezen bij ⚙️:
+
+  - **Deze app** — je Bungie-app is van het type *Public*. Niets extra's nodig,
+    maar Bungie geeft dan geen refresh-token: na een uur log je opnieuw in.
+  - **Mijn Worker** — je Bungie-app is van het type *Confidential* en het
+    `client_secret` staat als secret op je eigen Cloudflare Worker (zie
+    [`worker/DEPLOY.md`](worker/DEPLOY.md)). De Worker ververst je sessie, dus je
+    **blijft ingelogd** (het refresh-token is ongeveer 90 dagen geldig). Het
+    geheim komt nooit in de app terecht
 
 **Algemeen**
 
