@@ -492,6 +492,17 @@ export const APP_STYLE = `
   padding: 8px 10px;
 }
 .fl-sec-row:active { background: #eef0f7; }
+.fl-knop-log {
+  font-size: 11px;
+  line-height: 1.6;
+  background: #f7f8fc;
+  border: 1px solid #e6e9f2;
+  border-radius: 10px;
+  padding: 8px 10px;
+  max-height: 120px;
+  overflow-y: auto;
+  word-break: break-word;
+}
 @media (prefers-reduced-motion: reduce) {
   .fl-live-over, .fl-dot-live { animation: none; }
   .fl-live-bar span { transition: none; }

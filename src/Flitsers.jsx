@@ -15,6 +15,7 @@ import {
   Search,
   Gauge,
   Route,
+  Radio,
 } from "lucide-react";
 import {
   loadSettings,
@@ -34,6 +35,14 @@ import {
   KIND_LABEL,
 } from "./flitsers.js";
 import { permission as notifyPermission, requestPermission } from "./notify.js";
+import {
+  loadKnop,
+  saveKnop,
+  bluetoothSupported,
+  connectBleButton,
+  listenKeyButton,
+  claimMediaButtons,
+} from "./knop.js";
 
 const STALE_MS = 7 * 24 * 3600 * 1000; // ververs stilletjes als cache ouder is dan een week
 const FORWARD_CONE = 70; // graden — "voor je" bij bekende rijrichting
@@ -96,6 +105,9 @@ export default function Flitsers() {
   const [doneTrip, setDoneTrip] = useState(null); // net afgerond traject
   const [view, setView] = useState("dichtbij"); // dichtbij | trajecten
   const [query, setQuery] = useState("");
+  const [knop, setKnop] = useState(loadKnop);
+  const [knopLog, setKnopLog] = useState([]);
+  const [knopStatus, setKnopStatus] = useState({ connected: false, name: "", channels: 0 });
 
   const mapRef = useRef(null);
   const mapDivRef = useRef(null);
@@ -108,6 +120,10 @@ export default function Flitsers() {
   const tripRef = useRef(null);
   const lostRef = useRef(0);
   const wakeRef = useRef(null);
+  const pressRef = useRef(() => {});
+  const keyStopRef = useRef(null);
+  const mediaStopRef = useRef(null);
+  const bleRef = useRef(null);
 
   const cameras = useMemo(() => [...osm.cameras, ...custom], [osm.cameras, custom]);
 
@@ -572,6 +588,88 @@ export default function Flitsers() {
     setSettings(saveSettings({ notify: state === "granted" }));
   };
 
+  // -- Externe knop (bluetooth) --------------------------------------------
+
+  const knopSay = useCallback((line) => {
+    setKnopLog((prev) => [`${new Date().toLocaleTimeString("nl-NL")} · ${line}`, ...prev].slice(0, 6));
+  }, []);
+
+  // De luisteraars worden één keer opgezet, maar moeten wel de laatste stand
+  // van je locatie en de gekozen actie zien — die houden we in een ref bij.
+  useEffect(() => {
+    pressRef.current = (source) => {
+      knopSay(`Druk ontvangen (${source})`);
+      if (knop.action === "dempen") {
+        setSettings(saveSettings({ muted: !settings.muted }));
+        vibrateAlert(1);
+        return;
+      }
+      if (!pos) {
+        knopSay("Nog geen locatie — niets vastgelegd.");
+        return;
+      }
+      setCustom(addCustomCamera(pos.lat, pos.lon));
+      knopSay("Controle vastgelegd op je huidige positie.");
+      playAlertSound(1);
+      vibrateAlert(1);
+    };
+  }, [knop.action, pos, settings.muted, knopSay]);
+
+  const onPress = useCallback((source) => pressRef.current(source), []);
+
+  const stopListeners = useCallback(() => {
+    if (keyStopRef.current) {
+      keyStopRef.current();
+      keyStopRef.current = null;
+    }
+    if (mediaStopRef.current) {
+      mediaStopRef.current();
+      mediaStopRef.current = null;
+    }
+  }, []);
+
+  // Aan- en uitzetten gebeurt vanuit een tik op de schakelaar: dat telt als
+  // handeling, en zonder handeling mag het stille geluidje niet starten.
+  const toggleKnop = async () => {
+    if (knop.enabled) {
+      stopListeners();
+      if (bleRef.current && bleRef.current.gatt && bleRef.current.gatt.connected) {
+        bleRef.current.gatt.disconnect();
+      }
+      bleRef.current = null;
+      setKnopStatus({ connected: false, name: "", channels: 0 });
+      setKnop(saveKnop({ enabled: false }));
+      knopSay("Knop uitgeschakeld.");
+      return;
+    }
+    setKnop(saveKnop({ enabled: true }));
+    // Haal de focus van de schakelaar af: anders landt een toetsdruk van de
+    // knop op die knop in plaats van bij de luisteraar.
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    keyStopRef.current = listenKeyButton(onPress);
+    mediaStopRef.current = await claimMediaButtons(onPress);
+    knopSay("Luistert naar toetsen- en mediaknoppen. Druk op je knop om te testen.");
+  };
+
+  useEffect(() => stopListeners, [stopListeners]);
+
+  const koppelBle = async () => {
+    try {
+      knopSay("Bluetooth-apparaat kiezen…");
+      const device = await connectBleButton({
+        serviceUuid: knop.serviceUuid,
+        onPress,
+        onLog: knopSay,
+        onStatus: setKnopStatus,
+      });
+      bleRef.current = device;
+      setKnop(saveKnop({ enabled: true, deviceName: device.name || "" }));
+      if (!keyStopRef.current) keyStopRef.current = listenKeyButton(onPress);
+    } catch (e) {
+      knopSay(e && e.name === "NotFoundError" ? "Geen apparaat gekozen." : `Mislukt: ${e.message}`);
+    }
+  };
+
   const speedKmh = pos && pos.speed != null ? Math.max(0, pos.speed * 3.6) : null;
   const alerting = nearest && !settings.muted && nearest.dist <= settings.warnDistance;
 
@@ -805,6 +903,78 @@ export default function Flitsers() {
           </div>
         </div>
       )}
+
+      {/* Externe knop: bedienen zonder je telefoon aan te raken. */}
+      <div className="dl-card p-4 mb-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="text-xs font-semibold uppercase tracking-wide opacity-60 flex items-center gap-1.5">
+            <Radio size={13} /> Externe knop
+          </div>
+          <button
+            className={knop.enabled ? "dl-btn-primary text-xs px-3 py-1.5" : "dl-btn-ghost text-xs px-3 py-1.5"}
+            onClick={toggleKnop}
+          >
+            {knop.enabled ? "Aan" : "Uit"}
+          </button>
+        </div>
+
+        <p className="text-xs opacity-70 mb-3 leading-relaxed">
+          Koppel een bluetooth-knop uit je auto en leg met één druk een controle vast — zonder je
+          telefoon aan te raken. Een knop die als toetsenbord of mediaknop gekoppeld is (via de
+          bluetooth-instellingen van je telefoon) werkt meteen zodra dit aan staat. Een knop met
+          eigen bluetooth-protocol koppel je hieronder; hij kan maar met één app tegelijk praten,
+          dus verbreek hem eerst in de andere app.
+        </p>
+
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <select
+            className="dl-input text-xs px-2 py-2"
+            value={knop.action}
+            onChange={(e) => setKnop(saveKnop({ action: e.target.value }))}
+          >
+            <option value="camera">Druk = controle hier vastleggen</option>
+            <option value="dempen">Druk = geluid aan/uit</option>
+          </select>
+          {bluetoothSupported() ? (
+            <button className="dl-btn-ghost text-xs px-3 py-2" onClick={koppelBle}>
+              Bluetooth-knop koppelen
+            </button>
+          ) : (
+            <span className="text-xs opacity-60">
+              Deze browser kan niet rechtstreeks met bluetooth praten (alleen Chrome op Android).
+            </span>
+          )}
+        </div>
+
+        {knopStatus.connected && (
+          <div className="text-xs mb-2" style={{ color: "#1e7a4f" }}>
+            Verbonden met {knopStatus.name || "je knop"} · {knopStatus.channels} kanaal(en)
+          </div>
+        )}
+
+        {knopLog.length > 0 && (
+          <div className="fl-knop-log dl-mono mb-3">
+            {knopLog.map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
+          </div>
+        )}
+
+        <details className="text-xs opacity-70">
+          <summary>Knop wordt niet herkend?</summary>
+          <p className="mt-2 leading-relaxed">
+            Een knop met een eigen protocol geeft alleen iets door als de browser de bijbehorende
+            service-UUID vooraf kent. Zoek die op met een app als nRF Connect (de knop mag dan niet
+            met een andere app verbonden zijn) en vul hem hier in, daarna opnieuw koppelen.
+          </p>
+          <input
+            className="dl-input text-xs px-2 py-1.5 mt-2 w-full"
+            placeholder="service-UUID, bijv. 0000fff0-0000-1000-8000-00805f9b34fb"
+            value={knop.serviceUuid}
+            onChange={(e) => setKnop(saveKnop({ serviceUuid: e.target.value }))}
+          />
+        </details>
+      </div>
 
       <div className="text-xs opacity-50 flex items-start gap-1.5">
         <MapPin size={13} className="mt-0.5 flex-shrink-0" />

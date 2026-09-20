@@ -132,6 +132,13 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
   ingestelde afstand komt (instelbaar: 300 m – 1,5 km), met een duidelijke banner
 - Optioneel **systeemmeldingen** als de app op de achtergrond staat, en het
   **scherm blijft aan** zolang de app open is (Wake Lock)
+- **Externe knop**: koppel een bluetooth-knop uit je auto en leg met één druk een
+  controle vast op je huidige positie (of dempt het geluid), zonder je telefoon
+  aan te raken. Een knop die als toetsenbord of mediaknop gekoppeld is werkt
+  meteen; voor een knop met een eigen bluetooth-protocol is er een koppelscherm
+  met testlogboek (Web Bluetooth, dus Chrome op Android). Er is geen publieke API
+  voor de Flitsmeister ONE — of die meedoet moet je ter plekke testen, en een
+  bluetooth-knop praat met één app tegelijk
 - Waarschuwt bij voorkeur alleen voor camera's **in je rijrichting** (op basis
   van je GPS-koers), zodat je niet gestoord wordt door camera's op een andere weg
 - **Zelf camera's toevoegen** op je huidige locatie (bijv. mobiele controles die
@@ -357,6 +364,7 @@ src/Vakantie.jsx               het vakantie-component (fototijdlijn + lightbox)
 src/vakantie.js                opslag (IndexedDB) & verkleinen/comprimeren van foto's
 src/Flitsers.jsx               het flitsers-component (kaart, GPS, live trajectmeter)
 src/flitsers.js                opslag, OSM-databron (Overpass), trajectroutes & geo
+src/knop.js                    externe bluetooth-/media-/toetsenbordknop
 src/Cabrio.jsx                  de cabrio-tab (weeradvies kap open/dicht)
 src/cabrio.js                   instellingen, Open-Meteo-databron & advieslogica
 src/Images3D.jsx                de afbeeldingen-tab (prompt → 3D-afbeelding, galerij)
