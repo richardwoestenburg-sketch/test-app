@@ -451,6 +451,102 @@ async function dataUrlToBlob(dataUrl) {
   return res.blob();
 }
 
+// -- Samenvoegen met gegevens van Bungie -----------------------------------
+//
+// Uitgangspunt: wat jíj hebt toegevoegd is heilig. Labels, notities, perks en
+// foto's blijven staan; alleen de spelgegevens (naam, soort, power, waar het
+// staat) worden bijgewerkt. Herkennen gaat op het instantie-id van Bungie, dat
+// uniek is per exemplaar in je kluis.
+
+export function mergeCharactersFromBungie(existing, incoming, platform) {
+  const list = existing.slice();
+  let added = 0;
+  let updated = 0;
+
+  for (const inc of incoming) {
+    let idx = list.findIndex((c) => c.platform === platform && c.bungieId === inc.bungieId);
+    // Nog niet gekoppeld? Dan een karakter van dezelfde klasse adopteren dat
+    // je zelf had ingevoerd, zodat je notities meeverhuizen.
+    if (idx < 0) {
+      idx = list.findIndex(
+        (c) => c.platform === platform && !c.bungieId && norm(c.cls) === norm(inc.cls)
+      );
+    }
+    if (idx < 0) {
+      list.push({
+        id: newId(),
+        platform,
+        cls: inc.cls,
+        name: "",
+        subclass: "",
+        power: inc.power,
+        notes: "",
+        bungieId: inc.bungieId,
+      });
+      added += 1;
+    } else {
+      list[idx] = { ...list[idx], cls: inc.cls, power: inc.power, bungieId: inc.bungieId };
+      updated += 1;
+    }
+  }
+  return { list, added, updated };
+}
+
+// `locationFor` vertaalt het karakter-id van Bungie naar het karakter in de
+// app; geeft het niets terug, dan komt het ding in de kluis te staan.
+export function mergeItemsFromBungie(existing, incoming, platform, locationFor) {
+  const list = existing.slice();
+  let added = 0;
+  let updated = 0;
+
+  for (const inc of incoming) {
+    const location = inc.location === "kluis" ? "kluis" : locationFor(inc.location) || "kluis";
+    const idx = list.findIndex((i) => i.platform === platform && i.instanceId === inc.instanceId);
+    const fromGame = {
+      platform,
+      instanceId: inc.instanceId,
+      bungieHash: inc.bungieHash,
+      kind: inc.kind,
+      name: inc.name,
+      type: inc.type,
+      element: inc.element,
+      rarity: inc.rarity,
+      charClass: inc.charClass,
+      power: inc.power,
+      location,
+      source: "bungie",
+    };
+
+    if (idx < 0) {
+      list.unshift({
+        ...emptyFields(),
+        ...fromGame,
+        id: newId(),
+        createdAt: Date.now(),
+        perks: inc.perks || "",
+        tags: [...new Set(inc.tags || [])],
+      });
+      added += 1;
+    } else {
+      const old = list[idx];
+      list[idx] = {
+        ...old,
+        ...fromGame,
+        // Van jou, dus blijft staan:
+        notes: old.notes,
+        perks: old.perks || inc.perks || "",
+        tags: [...new Set([...(old.tags || []), ...(inc.tags || [])])],
+      };
+      updated += 1;
+    }
+  }
+  return { list, added, updated };
+}
+
+function emptyFields() {
+  return { perks: "", notes: "", tags: [] };
+}
+
 // -- Statistieken ----------------------------------------------------------
 
 export function stats(data, platform) {

@@ -37,7 +37,13 @@ const TAB_KEY = "daglog-tab";
 // (met eigen naam, kleur en icoon) op het startscherm te installeren is.
 function standaloneKey() {
   try {
-    const k = new URLSearchParams(window.location.search).get("app");
+    const params = new URLSearchParams(window.location.search);
+    // Terugkomst van het inloggen bij Bungie (Destiny): Bungie stuurt je naar
+    // de app-URL zonder ?app=, dus herkennen we het aan de state-parameter en
+    // openen we meteen de Destiny-app, die het inloggen afmaakt.
+    const state = params.get("state");
+    if (params.get("code") && state && state.startsWith("dst-")) return "destiny";
+    const k = params.get("app");
     return findApp(k) ? k : null;
   } catch {
     return null;
