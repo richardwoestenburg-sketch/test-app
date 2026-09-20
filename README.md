@@ -222,6 +222,22 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
 - **Back-up**: via het tandwiel ⚙️ sla je alles op als JSON-bestand en lees je
   het weer in (samenvoegen, nooit overschrijven) — handig bij een nieuw toestel.
   Foto's gaan mee in de back-up
+- **Koppeling met Destiny 2 zelf** (optioneel): log via het tandwiel ⚙️ in met je
+  Bungie-account en haal je karakters en je kluis rechtstreeks op — naam, soort,
+  rarity, element, power, waar iets staat en de perks van wat je importeert.
+  Na het ophalen kies je zelf wat je overneemt; standaard staat aangevinkt wat je
+  in de game vergrendeld hebt, plus je exotics. **Je eigen labels, notities en
+  foto's blijven daarbij altijd staan** — alleen de spelgegevens worden
+  bijgewerkt (herkenning op het instantie-id van Bungie). De app leest alleen;
+  er verandert niets in je game. Zonder cross save zijn PS5 en Xbox twee losse
+  profielen, die je elk aan een platform-vakje koppelt.
+
+  Eenmalig instellen: maak op [bungie.net/en/Application](https://www.bungie.net/en/Application)
+  een app aan met OAuth-type **Public** en als Redirect URL de URL van deze app;
+  vul de API-key en het client_id in bij ⚙️. Zo'n sessie duurt een uur — daarna
+  log je opnieuw in als je weer wilt ophalen (een public app krijgt geen
+  refresh-token van Bungie). Namen en soorten worden één keer opgehaald en
+  daarna lokaal bewaard, dus een tweede synchronisatie is snel
 
 **Algemeen**
 

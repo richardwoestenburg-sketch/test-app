@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Gamepad2, Plus, Trash2, Pencil, X, Check, Search, Sparkles, Mic, Settings,
   Download, Upload, Boxes, Users, Trophy, StickyNote, MessageSquare, Clock,
-  ExternalLink, Camera, Images,
+  ExternalLink, Camera, Images, LogIn, LogOut, RefreshCw, Link2,
 } from "lucide-react";
 import * as d from "./destiny.js";
+import * as b from "./bungie.js";
 
 const KEY_VIEW = "destiny-view-tab";
 const KEY_VIEW_PLATFORM = "destiny-view-platform";
@@ -444,6 +445,159 @@ export default function Destiny() {
     setNoteDraftId(d.newId());
   };
 
+  // ---- Bungie-koppeling --------------------------------------------------
+  const [bungieCfg, setBungieCfg] = useState(() => b.getConfig());
+  const [cfgForm, setCfgForm] = useState(null);
+  const [loggedIn, setLoggedIn] = useState(() => b.isLoggedIn());
+  const [memberships, setMemberships] = useState([]);
+  const [links, setLinks] = useState(() => b.getLinks());
+  const [bungieMsg, setBungieMsg] = useState("");
+  const [sync, setSync] = useState(null);
+
+  const loadMemberships = async () => {
+    try {
+      const list = await b.getMemberships();
+      setMemberships(list);
+      // Eerste keer: platform alvast invullen op basis van het soort account.
+      const current = b.getLinks();
+      let changed = false;
+      for (const m of list) {
+        const slot = m.suggestedPlatform;
+        if (slot && !current[slot]) {
+          current[slot] = { membershipType: m.membershipType, membershipId: m.membershipId, displayName: m.displayName };
+          changed = true;
+        }
+      }
+      if (changed) setLinks(b.saveLinks(current));
+      return list;
+    } catch (err) {
+      setBungieMsg(err.message);
+      if (err.needsLogin) setLoggedIn(false);
+      return [];
+    }
+  };
+
+  // Terug van Bungie: de code uit de URL omwisselen voor een token.
+  useEffect(() => {
+    const pending = b.pendingRedirect();
+    if (!pending) {
+      if (b.isLoggedIn()) loadMemberships();
+      return;
+    }
+    setShowSettings(true);
+    setBungieMsg("Bezig met inloggen bij Bungie…");
+    b.completeLogin(pending)
+      .then(() => {
+        setLoggedIn(true);
+        setBungieMsg("Ingelogd bij Bungie.");
+        return loadMemberships();
+      })
+      .catch((err) => setBungieMsg(err.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveBungieConfig = () => {
+    const next = b.saveConfig(cfgForm || {});
+    setBungieCfg(next);
+    setCfgForm(null);
+    setBungieMsg(next.apiKey && next.clientId ? "Sleutels opgeslagen. Je kunt nu inloggen." : "");
+  };
+
+  const linkMembership = (m, slot) => {
+    const next = { ...b.getLinks() };
+    // Eén profiel hoort bij één platform-vakje.
+    for (const key of ["ps5", "xbox"]) {
+      if (next[key]?.membershipId === m.membershipId) next[key] = null;
+    }
+    if (slot) next[slot] = { membershipType: m.membershipType, membershipId: m.membershipId, displayName: m.displayName };
+    setLinks(b.saveLinks(next));
+  };
+
+  const slotOf = (m) => {
+    if (links.ps5?.membershipId === m.membershipId) return "ps5";
+    if (links.xbox?.membershipId === m.membershipId) return "xbox";
+    return "";
+  };
+
+  // Ophalen: profiel bij Bungie opvragen en er een keuzelijst van maken.
+  const startSync = async (slot) => {
+    const link = links[slot];
+    if (!link) return;
+    setBungieMsg("");
+    setSync({ slot, phase: "ophalen", progress: null });
+    try {
+      const profile = await b.getProfile(link.membershipType, link.membershipId);
+      const chars = b.mapCharacters(profile);
+      const items = await b.mapItems(profile, {
+        platform: slot,
+        onProgress: (done, total) => setSync((s) => (s ? { ...s, progress: { done, total } } : s)),
+      });
+      // Standaard aangevinkt: wat je in de game vergrendeld hebt, plus exotics.
+      const selected = new Set(
+        items.filter((i) => i.locked || d.norm(i.rarity) === "exotic").map((i) => i.instanceId)
+      );
+      setSync({ slot, phase: "kiezen", profile, chars, items, selected, progress: null });
+    } catch (err) {
+      setSync(null);
+      setBungieMsg(err.message);
+      if (err.needsLogin) setLoggedIn(false);
+    }
+  };
+
+  const toggleSelected = (instanceId) => {
+    setSync((s) => {
+      if (!s) return s;
+      const selected = new Set(s.selected);
+      if (selected.has(instanceId)) selected.delete(instanceId);
+      else selected.add(instanceId);
+      return { ...s, selected };
+    });
+  };
+
+  const applySync = async () => {
+    const s = sync;
+    if (!s || s.phase !== "kiezen") return;
+    setSync({ ...s, phase: "importeren", progress: null });
+    try {
+      // Eerst de karakters, want dingen kunnen op een karakter staan.
+      const charResult = d.mergeCharactersFromBungie(characters, s.chars, s.slot);
+      commitChars(charResult.list);
+      const localIdFor = (bungieId) => charResult.list.find((c) => c.bungieId === bungieId)?.id || null;
+
+      const chosen = s.items.filter((i) => s.selected.has(i.instanceId));
+      const withPerks = [];
+      for (let i = 0; i < chosen.length; i++) {
+        const item = chosen[i];
+        setSync((cur) => (cur ? { ...cur, progress: { done: i, total: chosen.length } } : cur));
+        const perks = item.kind === "wapen" ? await b.perksFor(s.profile, item.instanceId).catch(() => "") : "";
+        withPerks.push({ ...item, perks });
+      }
+
+      const itemResult = d.mergeItemsFromBungie(items, withPerks, s.slot, localIdFor);
+      commitItems(itemResult.list);
+      setSync({
+        ...s,
+        phase: "klaar",
+        summary: {
+          items: itemResult.added,
+          updated: itemResult.updated,
+          chars: charResult.added + charResult.updated,
+        },
+      });
+    } catch (err) {
+      setSync(null);
+      setBungieMsg(err.message);
+      if (err.needsLogin) setLoggedIn(false);
+    }
+  };
+
+  const doLogout = () => {
+    b.logout();
+    setLoggedIn(false);
+    setMemberships([]);
+    setBungieMsg("Uitgelogd bij Bungie. Je gegevens in de app blijven gewoon staan.");
+  };
+
   // ---- Instellingen ------------------------------------------------------
   const [showSettings, setShowSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
@@ -505,6 +659,17 @@ export default function Destiny() {
   };
 
   // ---- Weergave ----------------------------------------------------------
+
+  const [syncSearch, setSyncSearch] = useState("");
+  const LIMIT = 150;
+  const syncMatches = useMemo(() => {
+    if (!sync?.items) return [];
+    const q = d.norm(syncSearch);
+    if (!q) return sync.items;
+    return sync.items.filter((i) => d.norm(`${i.name} ${i.type} ${i.rarity} ${i.element}`).includes(q));
+  }, [sync, syncSearch]);
+  const syncVisible = syncMatches.slice(0, LIMIT);
+  const syncHidden = Math.max(0, syncMatches.length - LIMIT);
 
   const platformOptions = [
     { id: "", name: "Beide" },
@@ -703,6 +868,118 @@ export default function Destiny() {
             inbegrepen. Maak af en toe een back-up als je de app opnieuw installeert of
             overzet naar een ander toestel — foto's gaan mee in het back-upbestand.
           </p>
+
+          <div className="pt-3 border-t" style={{ borderColor: "#e6e9f2" }}>
+            <div className="text-xs uppercase dl-day-label opacity-60 mb-1">Bungie-koppeling</div>
+            <p className="text-[11px] opacity-60 leading-relaxed mb-3">
+              Haal je karakters en je kluis rechtstreeks uit Destiny 2 op, in plaats van
+              alles met de hand in te voeren. Je eigen labels, notities en foto's blijven
+              daarbij staan.
+            </p>
+
+            {!b.isConfigured() || cfgForm ? (
+              <div className="flex flex-col gap-3">
+                <p className="text-[11px] opacity-60 leading-relaxed">
+                  Eenmalig instellen: maak op{" "}
+                  <a
+                    className="underline"
+                    href="https://www.bungie.net/en/Application"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    bungie.net/en/Application
+                  </a>{" "}
+                  een app aan. Kies OAuth-type <strong>Public</strong> en vul als
+                  Redirect&nbsp;URL exact dit in:
+                </p>
+                <code className="dl-mono text-[11px] break-all dl-input px-3 py-2">{b.redirectUrl()}</code>
+                <Field label="API-key">
+                  <input
+                    className="dl-input px-3 py-2 text-sm w-full"
+                    value={(cfgForm || bungieCfg).apiKey}
+                    onChange={(e) => setCfgForm({ ...(cfgForm || bungieCfg), apiKey: e.target.value })}
+                    placeholder="uit je Bungie-app"
+                  />
+                </Field>
+                <Field label="OAuth client_id">
+                  <input
+                    className="dl-input px-3 py-2 text-sm w-full"
+                    value={(cfgForm || bungieCfg).clientId}
+                    onChange={(e) => setCfgForm({ ...(cfgForm || bungieCfg), clientId: e.target.value })}
+                    placeholder="bijv. 12345"
+                  />
+                </Field>
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveBungieConfig}
+                    disabled={!(cfgForm || bungieCfg).apiKey?.trim() || !(cfgForm || bungieCfg).clientId?.trim()}
+                    className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5"
+                  >
+                    <Check size={14} /> Opslaan
+                  </button>
+                  {cfgForm && b.isConfigured() && (
+                    <button onClick={() => setCfgForm(null)} className="dl-btn-ghost px-3 py-2 text-sm">
+                      Annuleren
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : !loggedIn ? (
+              <div className="flex flex-wrap gap-2">
+                <button onClick={b.startLogin} className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5">
+                  <LogIn size={14} /> Inloggen bij Bungie
+                </button>
+                <button onClick={() => setCfgForm(bungieCfg)} className="dl-btn-ghost px-3 py-2 text-sm">
+                  Sleutels wijzigen
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="text-[11px] uppercase dl-day-label opacity-60">Gevonden profielen</div>
+                {!memberships.length ? (
+                  <p className="text-sm opacity-60">Profielen ophalen…</p>
+                ) : (
+                  memberships.map((m) => (
+                    <div key={m.membershipId} className="dt-row p-3">
+                      <div className="text-sm font-semibold truncate">{m.displayName || m.typeName}</div>
+                      <div className="text-[11px] opacity-60 dl-mono mb-2">{m.typeName}</div>
+                      <Segment
+                        options={[
+                          { id: "", name: "Niet gebruiken" },
+                          { id: "ps5", name: "PS5" },
+                          { id: "xbox", name: "Xbox" },
+                        ]}
+                        value={slotOf(m)}
+                        onChange={(slot) => linkMembership(m, slot)}
+                        label={`Koppel ${m.typeName} aan een platform`}
+                      />
+                    </div>
+                  ))
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {d.PLATFORMS.map((pf) =>
+                    links[pf.id] ? (
+                      <button
+                        key={pf.id}
+                        onClick={() => startSync(pf.id)}
+                        className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5"
+                      >
+                        <RefreshCw size={14} /> Ophalen voor {pf.short}
+                      </button>
+                    ) : null
+                  )}
+                  <button onClick={doLogout} className="dl-btn-ghost px-3 py-2 text-sm flex items-center gap-1.5">
+                    <LogOut size={14} /> Uitloggen
+                  </button>
+                </div>
+              </div>
+            )}
+            {bungieMsg && <p className="text-xs opacity-75 mt-3">{bungieMsg}</p>}
+            <p className="text-[11px] opacity-50 leading-relaxed mt-3">
+              Zo'n Bungie-sessie duurt een uur; daarna log je opnieuw in als je weer wilt
+              ophalen. De app leest alleen — er wordt niets in je game gewijzigd.
+            </p>
+          </div>
         </div>
       )}
 
@@ -730,6 +1007,135 @@ export default function Destiny() {
 
       {!loaded ? (
         <p className="text-sm opacity-50">Laden…</p>
+      ) : sync ? (
+        <div className="dl-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs uppercase dl-day-label opacity-60">
+              Uit Destiny 2 · {d.platformLabel(sync.slot)}
+            </span>
+            {sync.phase !== "importeren" && (
+              <button onClick={() => setSync(null)} className="dl-btn-ghost p-1.5" aria-label="Sluiten">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {sync.phase === "ophalen" || sync.phase === "importeren" ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <RefreshCw size={15} className="dl-spin dl-ico-accent" />
+                {sync.phase === "ophalen" ? "Je kluis ophalen bij Bungie…" : "Perks ophalen en importeren…"}
+              </div>
+              {sync.progress && (
+                <>
+                  <div className="dl-bar">
+                    <div
+                      className="dl-bar-fill"
+                      style={{ width: `${Math.round((sync.progress.done / Math.max(1, sync.progress.total)) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="text-[11px] opacity-60 dl-mono">
+                    {sync.progress.done} van {sync.progress.total}
+                  </div>
+                </>
+              )}
+              <p className="text-[11px] opacity-55 leading-relaxed">
+                De eerste keer duurt dit het langst: namen en soorten worden één keer
+                opgehaald en daarna bewaard.
+              </p>
+            </div>
+          ) : sync.phase === "klaar" ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm">
+                Klaar: {sync.summary.items} nieuw in je kluis, {sync.summary.updated} bijgewerkt,
+                {" "}{sync.summary.chars} karakters.
+              </p>
+              <p className="text-[11px] opacity-55 leading-relaxed">
+                Je eigen labels, notities en foto's zijn ongemoeid gelaten.
+              </p>
+              <button onClick={() => setSync(null)} className="dl-btn-primary px-4 py-2.5 text-sm">
+                Sluiten
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm">
+                {sync.items.length} wapens en armor gevonden. Aangevinkt staat wat je in de
+                game <strong>vergrendeld</strong> hebt, plus je exotics — dat is meestal
+                precies wat je wilt bijhouden.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  className="dt-chip"
+                  onClick={() => setSync((s) => ({ ...s, selected: new Set(s.items.map((i) => i.instanceId)) }))}
+                >
+                  Alles
+                </button>
+                <button className="dt-chip" onClick={() => setSync((s) => ({ ...s, selected: new Set() }))}>
+                  Niets
+                </button>
+                <button
+                  className="dt-chip"
+                  onClick={() =>
+                    setSync((s) => ({
+                      ...s,
+                      selected: new Set(
+                        s.items.filter((i) => i.locked || d.norm(i.rarity) === "exotic").map((i) => i.instanceId)
+                      ),
+                    }))
+                  }
+                >
+                  Vergrendeld + exotics
+                </button>
+              </div>
+              <input
+                className="dl-input px-3 py-2 text-sm w-full"
+                value={syncSearch}
+                onChange={(e) => setSyncSearch(e.target.value)}
+                placeholder="Zoek op naam of soort…"
+                aria-label="Zoek in gevonden spullen"
+              />
+              <div className="text-[11px] uppercase dl-day-label opacity-55">
+                {sync.selected.size} geselecteerd
+              </div>
+              <div className="flex flex-col gap-1.5 max-h-[50vh] overflow-y-auto">
+                {syncVisible.map((i) => {
+                  const on = sync.selected.has(i.instanceId);
+                  return (
+                    <button
+                      key={i.instanceId}
+                      onClick={() => toggleSelected(i.instanceId)}
+                      className={`dt-row p-2.5 flex items-center gap-2.5 text-left ${on ? "" : "dt-row-muted"}`}
+                      aria-pressed={on}
+                    >
+                      <span className={`dl-check ${on ? "dl-check-on" : ""}`}>{on ? <Check size={14} /> : null}</span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm truncate">{i.name}</span>
+                        <span className="block text-[11px] opacity-60 dl-mono truncate">
+                          {[i.rarity, i.type, i.power, i.location === "kluis" ? "kluis" : "op karakter"]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+                {syncHidden > 0 && (
+                  <p className="text-[11px] opacity-55 py-2">
+                    …en nog {syncHidden}. Zoek hierboven om die te zien.
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={applySync}
+                disabled={!sync.selected.size}
+                className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5"
+              >
+                <Link2 size={15} /> {sync.selected.size} overnemen in mijn kluis
+              </button>
+            </div>
+          )}
+        </div>
       ) : tab === "vragen" ? (
         <>
           <div className="dt-stats mb-5">
