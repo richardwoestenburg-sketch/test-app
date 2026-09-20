@@ -542,4 +542,94 @@ export const APP_STYLE = `
 @media (prefers-reduced-motion: reduce) {
   .mg-sev-btn { transition: none; }
 }
+
+/* Destiny: platformkiezer, filterchips, kluisregels en antwoordkaart */
+.dt-seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: #eceffa;
+  border: 1px solid #e0e4f0;
+  border-radius: 12px;
+}
+.dt-seg-btn {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: #33404d;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.dt-seg-btn:hover { background: rgba(255,255,255,0.7); }
+.dt-seg-on, .dt-seg-on:hover {
+  background: #ffffff;
+  color: var(--dl-accent);
+  box-shadow: 0 1px 3px rgba(23,28,60,0.12);
+}
+.dt-chip {
+  border: 1px solid #d4d9e6;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #33404d;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 11px;
+  min-height: 32px;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.dt-chip:hover { background: #f2f4fa; }
+.dt-chip-on, .dt-chip-on:hover {
+  background: var(--dl-accent);
+  border-color: var(--dl-accent);
+  color: #ffffff;
+}
+.dt-row {
+  border: 1px solid #e6e9f2;
+  border-left: 3px solid var(--dl-accent);
+  border-radius: 12px;
+  background: #ffffff;
+}
+.dt-row-muted { border-left-color: #d4d9e6; }
+.dt-row-done { border-left-color: #1e7a4f; }
+.dt-row-busy { border-left-color: #d97706; }
+.dt-answer {
+  border: 1px solid color-mix(in srgb, var(--dl-accent) 30%, #e6e9f2);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dl-accent) 8%, #ffffff) 0%, #ffffff 60%);
+}
+.dt-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.dt-stat {
+  border: 1px solid #e6e9f2;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 9px 6px;
+  text-align: center;
+}
+.dt-stat-value { font-size: 17px; font-weight: 700; line-height: 1.1; }
+.dt-stat-label { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.04em; }
+.dt-select {
+  width: 100%;
+  border: 1px solid #d4d9e6;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1c2434;
+  font-size: 14px;
+  padding: 10px 10px;
+  min-height: 42px;
+}
+.dt-select:focus-visible, .dt-chip:focus-visible, .dt-seg-btn:focus-visible {
+  outline: 2px solid var(--dl-accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dt-chip, .dt-seg-btn { transition: none; }
+}
 `;
