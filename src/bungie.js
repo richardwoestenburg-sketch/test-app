@@ -95,6 +95,13 @@ export function redirectUrl() {
   return `${origin}${pathname}`;
 }
 
+// Wat er bij Bungie in het veld "Origin Header" moet: alleen het domein.
+// Zonder die instelling weigert Bungie verzoeken vanuit een browser met
+// "OriginHeaderDoesNotMatchKey".
+export function originHeader() {
+  return window.location.origin;
+}
+
 // -- Token -----------------------------------------------------------------
 
 function readToken() {

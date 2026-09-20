@@ -916,6 +916,16 @@ export default function Destiny() {
                   Redirect&nbsp;URL exact dit in:
                 </p>
                 <code className="dl-mono text-[11px] break-all dl-input px-3 py-2">{b.redirectUrl()}</code>
+                <p className="text-[11px] opacity-60 leading-relaxed">
+                  Vul ook het veld <strong>Origin Header</strong> in — zonder dat weigert
+                  Bungie verzoeken vanuit een browser ("OriginHeaderDoesNotMatchKey"):
+                </p>
+                <code className="dl-mono text-[11px] break-all dl-input px-3 py-2">{b.originHeader()}</code>
+                <p className="text-[11px] opacity-60 leading-relaxed">
+                  Vink bij de rechten (scopes) het{" "}
+                  <strong>lezen van je Destiny-gegevens</strong> aan; schrijfrechten heeft de
+                  app niet nodig.
+                </p>
                 <Field label="API-key">
                   <input
                     className="dl-input px-3 py-2 text-sm w-full"

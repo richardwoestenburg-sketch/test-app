@@ -233,8 +233,11 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
   profielen, die je elk aan een platform-vakje koppelt.
 
   Eenmalig instellen: maak op [bungie.net/en/Application](https://www.bungie.net/en/Application)
-  een app aan en vul de API-key en het client_id in bij ⚙️; als Redirect URL vul
-  je de URL van deze app in (de app toont hem). Namen en soorten worden één keer
+  een app aan en vul de API-key en het client_id in bij ⚙️. Bij Bungie vul je in:
+  **Redirect URL** = de URL van deze app, **Origin Header** = alleen het domein
+  ervan (zonder dat weigert Bungie verzoeken vanuit de browser met
+  *OriginHeaderDoesNotMatchKey*), en bij de rechten vink je het lezen van je
+  Destiny-gegevens aan. De app toont beide waarden bij ⚙️, klaar om over te nemen. Namen en soorten worden één keer
   opgehaald en daarna lokaal bewaard, dus een tweede synchronisatie is snel.
 
   Voor het inloggen zijn er twee manieren, te kiezen bij ⚙️:
