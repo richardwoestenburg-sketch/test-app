@@ -10,7 +10,7 @@ server of account nodig.
 
 De app opent met een **startscherm met app-tegels** — elke module heeft een
 eigen kleur en icoon, en is ook **als losse app** te installeren op je
-startscherm (zie *Op je startscherm zetten*). De elf apps: **Daglog** (terugkijken — wat deed je),
+startscherm (zie *Op je startscherm zetten*). De twaalf apps: **Daglog** (terugkijken — wat deed je),
 **Meldingen** (direct een gevaarlijke situatie melden en doorsturen naar quality),
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
@@ -22,8 +22,9 @@ of dicht — op basis van temperatuur, wind, regenkans en UV op jouw locatie),
 verzekeringsherinneringen en een wasdag-advies),
 **Afbeeldingen** (hoge-resolutie 3D-render-stijl afbeeldingen genereren op
 basis van een omschrijving), **Stem** (je eigen stem klonen en tekst laten
-voorlezen in die stem) en **Secretaresse** (je Outlook-mail en -agenda, met
-meldingen — ook met vergrendeld scherm).
+voorlezen in die stem), **Secretaresse** (je Outlook-mail en -agenda, met
+meldingen — ook met vergrendeld scherm) en **Destiny** (alles van Destiny 2 op
+PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stellen).
 
 ## Functies
 
@@ -193,6 +194,27 @@ meldingen — ook met vergrendeld scherm).
   en vlak voor een afspraak begint, zonder dat de app open hoeft te staan
 - Vereist eenmalig een gratis **Azure-app-registratie** en **VAPID-sleutels**
   op je Worker — zie [`worker/DEPLOY.md`](worker/DEPLOY.md)
+
+**Destiny**
+
+- Alles van **Destiny 2 op PS5 én Xbox** op één plek, per platform gescheiden
+  (schakelaar bovenin: *Beide · PS5 · Xbox*)
+- **Kluis**: wapens, armor en overige spullen met type, element, rarity,
+  klasse, power, perks/roll, waar het staat (kluis of een karakter) en labels
+  als *god roll*, *PvE*, *PvP*, *masterwork* of *wegdoen*
+- **Karakters**: je Titan/Hunter/Warlock per platform, met subclass en power —
+  spullen kun je daaraan koppelen
+- **Voortgang**: raids, dungeons, exotic quests, catalysts, seizoensquests en
+  triomfen met status *nog te doen · bezig · gehaald*; raids en dungeons voeg
+  je met één tik toe uit een lijst met veelgebruikte namen
+- **Notities**: losse aantekeningen per platform
+- **Vragen stellen** in gewoon Nederlands over je eigen opslag — "welke god
+  rolls heb ik?", "waar staat Fatebringer?", "hoeveel exotics heb ik op PS5?",
+  "welke raids heb ik nog niet gehaald?", "wat is mijn sterkste wapen?". Het
+  antwoord komt uit je eigen gegevens: **geen internet, geen account en geen
+  API-key nodig**, dus het werkt ook offline. Je kunt de vraag ook inspreken
+- **Back-up**: via het tandwiel ⚙️ sla je alles op als JSON-bestand en lees je
+  het weer in (samenvoegen, nooit overschrijven) — handig bij een nieuw toestel
 
 **Algemeen**
 

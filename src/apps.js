@@ -7,7 +7,7 @@
 // gradient-partner ervan.
 import {
   BookOpen, CalendarDays, Timer, Images, Camera, Car, Wrench, Box,
-  AudioLines, UserRound, AlertTriangle,
+  AudioLines, UserRound, AlertTriangle, Gamepad2,
 } from "lucide-react";
 
 export const APPS = [
@@ -22,6 +22,7 @@ export const APPS = [
   { key: "afbeeldingen", name: "Afbeeldingen", tagline: "3D-renders genereren", icon: Box, accent: "#16a34a", bright: "#4ade80" },
   { key: "stem", name: "Stem", tagline: "jouw stem, gekloond", icon: AudioLines, accent: "#db2777", bright: "#f472b6" },
   { key: "secretaresse", name: "Secretaresse", tagline: "mail & Outlook-agenda", icon: UserRound, accent: "#a16207", bright: "#eab308" },
+  { key: "destiny", name: "Destiny", tagline: "je kluis + vragen erover", icon: Gamepad2, accent: "#9333ea", bright: "#c084fc" },
 ];
 
 export function findApp(key) {

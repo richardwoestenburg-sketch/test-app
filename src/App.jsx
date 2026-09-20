@@ -13,6 +13,7 @@ import Images3D from "./Images3D.jsx";
 import Voice from "./Voice.jsx";
 import Cabrio from "./Cabrio.jsx";
 import Garage from "./Garage.jsx";
+import Destiny from "./Destiny.jsx";
 
 const COMPONENTS = {
   log: DagLog,
@@ -26,6 +27,7 @@ const COMPONENTS = {
   afbeeldingen: Images3D,
   stem: Voice,
   secretaresse: Secretary,
+  destiny: Destiny,
 };
 
 const TAB_KEY = "daglog-tab";
