@@ -497,7 +497,7 @@ export default function Destiny() {
   }, []);
 
   const saveBungieConfig = () => {
-    const next = b.saveConfig(cfgForm || {});
+    const next = b.saveConfig({ mode: bungieCfg.mode, ...(cfgForm || {}) });
     setBungieCfg(next);
     setCfgForm(null);
     setBungieMsg(next.apiKey && next.clientId ? "Sleutels opgeslagen. Je kunt nu inloggen." : "");
@@ -877,6 +877,28 @@ export default function Destiny() {
               daarbij staan.
             </p>
 
+            <div className="mb-3">
+              <span className="text-[11px] uppercase dl-day-label opacity-60">Inloggen via</span>
+              <div className="mt-1">
+                <Segment
+                  options={[
+                    { id: "app", name: "Deze app" },
+                    { id: "worker", name: "Mijn Worker" },
+                  ]}
+                  value={bungieCfg.mode === "worker" ? "worker" : "app"}
+                  onChange={(mode) => setBungieCfg(b.saveConfig({ ...bungieCfg, mode }))}
+                  label="Manier van inloggen"
+                />
+              </div>
+              <p className="text-[11px] opacity-55 mt-1.5 leading-relaxed">
+                {bungieCfg.mode === "worker"
+                  ? b.workerAvailable()
+                    ? "Je Worker bewaart het geheim en ververst je sessie, dus je blijft ingelogd (ongeveer 90 dagen). Je Bungie-app moet dan van het type Confidential zijn."
+                    : "Stel eerst je Worker in — tandwiel ⚙️ bij Daglog, met de Worker-URL en je DAGLOG_TOKEN. Daarna werkt deze manier."
+                  : "Eenvoudig, zonder Worker: je Bungie-app is van het type Public. Na een uur log je opnieuw in."}
+              </p>
+            </div>
+
             {!b.isConfigured() || cfgForm ? (
               <div className="flex flex-col gap-3">
                 <p className="text-[11px] opacity-60 leading-relaxed">
@@ -889,7 +911,8 @@ export default function Destiny() {
                   >
                     bungie.net/en/Application
                   </a>{" "}
-                  een app aan. Kies OAuth-type <strong>Public</strong> en vul als
+                  een app aan. Kies OAuth-type{" "}
+                  <strong>{bungieCfg.mode === "worker" ? "Confidential" : "Public"}</strong> en vul als
                   Redirect&nbsp;URL exact dit in:
                 </p>
                 <code className="dl-mono text-[11px] break-all dl-input px-3 py-2">{b.redirectUrl()}</code>
@@ -909,6 +932,14 @@ export default function Destiny() {
                     placeholder="bijv. 12345"
                   />
                 </Field>
+                {bungieCfg.mode === "worker" && (
+                  <p className="text-[11px] opacity-60 leading-relaxed">
+                    Het <strong>client_secret</strong> vul je hier niet in — dat zet je als
+                    secret op je Worker (<code className="dl-mono">BUNGIE_CLIENT_ID</code> en{" "}
+                    <code className="dl-mono">BUNGIE_CLIENT_SECRET</code>), zodat het nooit in
+                    de app terechtkomt. Zie <code className="dl-mono">worker/DEPLOY.md</code>.
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <button
                     onClick={saveBungieConfig}

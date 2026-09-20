@@ -36,6 +36,23 @@ Er zijn drie manieren:
 
 Ga daarna verder bij "Vanaf je Wear OS-horloge inspreken" onderaan.
 
+### Optioneel: Destiny ingelogd houden
+
+Wil je in de Destiny-app ingelogd blijven bij Bungie (in plaats van elk uur
+opnieuw), zet dan ook deze secrets erbij — op dezelfde plek als `DAGLOG_TOKEN`
+(**Settings** → **Variables and Secrets** → **Add**, type **Secret**):
+
+| Naam | Waarde |
+| --- | --- |
+| `BUNGIE_CLIENT_ID` | het client id van je Bungie-app |
+| `BUNGIE_CLIENT_SECRET` | het bijbehorende geheim |
+| `BUNGIE_API_KEY` | je Bungie API-key (optioneel) |
+
+Je Bungie-app moet dan van het type **Confidential** zijn — bij een Public app
+geeft Bungie geen refresh-token. Zet daarna in de Destiny-app bij ⚙️ →
+*Bungie-koppeling* de schakelaar **Inloggen via** op **Mijn Worker**. Het geheim
+blijft op de Worker en komt nooit in de app terecht.
+
 ---
 
 ## Zonder computer (alleen je telefoon)
@@ -126,6 +143,15 @@ Zet die als secret:
 ```bash
 npx wrangler secret put DAGLOG_TOKEN
 # plak de sleutel als daarom gevraagd wordt
+```
+
+Wil je de Destiny-app ingelogd houden bij Bungie, zet dan ook deze erbij (zie
+"Optioneel: Destiny ingelogd houden" hierboven):
+
+```bash
+npx wrangler secret put BUNGIE_CLIENT_ID
+npx wrangler secret put BUNGIE_CLIENT_SECRET
+npx wrangler secret put BUNGIE_API_KEY   # optioneel
 ```
 
 ## 4. Deployen

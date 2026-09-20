@@ -6,10 +6,15 @@
 // notities en foto's blijven daarbij altijd staan; alleen de spelgegevens
 // worden bijgewerkt.
 //
-// Opzet: een "public" OAuth-app bij Bungie heeft geen geheime sleutel nodig,
-// dus alles kan rechtstreeks vanuit de browser. Nadeel: zo'n token is een uur
-// geldig en er is geen refresh-token, dus voor een volgende synchronisatie log
-// je opnieuw in. Dat is prima, want synchroniseren doe je met de hand.
+// Twee manieren van inloggen:
+//
+//   "app"    — een public OAuth-app bij Bungie: geen geheime sleutel nodig, dus
+//              alles gaat rechtstreeks vanuit de browser. Bungie geeft dan geen
+//              refresh-token, dus na een uur log je opnieuw in.
+//   "worker" — een confidential app, waarbij je eigen Cloudflare Worker de
+//              uitwisseling doet. Het client_secret staat dan veilig op de
+//              Worker en je krijgt wél een refresh-token (90 dagen), zodat het
+//              inloggen blijft werken zonder dat je er steeds omkijken naar hebt.
 //
 // Documentatie: https://github.com/Bungie-net/api/wiki/OAuth-Documentation
 
@@ -20,6 +25,8 @@ const KEY_CFG = "destiny-bungie-config";
 const KEY_TOKEN = "destiny-bungie-token";
 const KEY_LINKS = "destiny-bungie-links";
 const KEY_STATE = "destiny-bungie-state";
+
+import { getSyncConfig } from "./sync.js";
 
 // Onze state begint hiermee, zodat App.jsx een terugkomst van Bungie herkent
 // en meteen de Destiny-app opent.
@@ -54,12 +61,26 @@ function writeJson(key, value) {
 
 export function getConfig() {
   const c = readJson(KEY_CFG, null);
-  return { apiKey: "", clientId: "", ...(c && typeof c === "object" ? c : {}) };
+  return { apiKey: "", clientId: "", mode: "app", ...(c && typeof c === "object" ? c : {}) };
 }
 
 export function saveConfig(cfg) {
-  writeJson(KEY_CFG, { apiKey: (cfg.apiKey || "").trim(), clientId: (cfg.clientId || "").trim() });
+  writeJson(KEY_CFG, {
+    apiKey: (cfg.apiKey || "").trim(),
+    clientId: (cfg.clientId || "").trim(),
+    mode: cfg.mode === "worker" ? "worker" : "app",
+  });
   return getConfig();
+}
+
+// Loopt het inloggen via je eigen Worker? Dan is er ook een Worker ingesteld
+// nodig (dezelfde koppeling als Daglog en Secretaresse gebruiken).
+export function workerAvailable() {
+  return getSyncConfig() != null;
+}
+
+export function usesWorker() {
+  return getConfig().mode === "worker" && workerAvailable();
 }
 
 export function isConfigured() {
@@ -76,15 +97,29 @@ export function redirectUrl() {
 
 // -- Token -----------------------------------------------------------------
 
-export function getToken() {
+function readToken() {
   const t = readJson(KEY_TOKEN, null);
-  if (!t || !t.accessToken) return null;
+  return t && t.accessToken ? t : null;
+}
+
+// Alleen een token dat nu nog te gebruiken is.
+export function getToken() {
+  const t = readToken();
+  if (!t) return null;
   if (t.expiresAt && t.expiresAt < Date.now()) return null;
   return t;
 }
 
+function refreshable(t) {
+  return Boolean(t?.refreshToken && (!t.refreshExpiresAt || t.refreshExpiresAt > Date.now()));
+}
+
+// Ingelogd blijf je ook als het uur van het access-token om is, zolang er een
+// geldig refresh-token ligt — dat wisselen we vlak voor gebruik stilletjes om.
 export function isLoggedIn() {
-  return Boolean(getToken());
+  const t = readToken();
+  if (!t) return false;
+  return Boolean(getToken()) || refreshable(t);
 }
 
 export function logout() {
@@ -129,6 +164,9 @@ function clearRedirectFromUrl() {
     const url = new URL(window.location.href);
     url.searchParams.delete("code");
     url.searchParams.delete("state");
+    // Blijf in de Destiny-app staan: Bungie stuurt je terug naar de kale
+    // app-URL, en zonder dit zou een ververs op het startscherm uitkomen.
+    if (!url.searchParams.get("app")) url.searchParams.set("app", "destiny");
     window.history.replaceState({}, "", url.toString());
   } catch {}
 }
@@ -140,6 +178,11 @@ export async function completeLogin({ code, state }) {
     throw new Error("De terugkoppeling van Bungie hoorde niet bij deze inlogpoging. Probeer opnieuw in te loggen.");
   }
   try { localStorage.removeItem(KEY_STATE); } catch {}
+
+  if (usesWorker()) {
+    storeToken(await workerPost("/bungie/token", { code }));
+    return getToken();
+  }
 
   const { clientId, apiKey } = getConfig();
   const body = new URLSearchParams({
@@ -157,11 +200,57 @@ export async function completeLogin({ code, state }) {
     const detail = json?.error_description || json?.error || `status ${res.status}`;
     throw new Error(`Inloggen bij Bungie lukte niet (${detail}).`);
   }
+  storeToken(json);
+  return getToken();
+}
+
+function storeToken(json) {
+  const prev = readToken();
   writeJson(KEY_TOKEN, {
     accessToken: json.access_token,
     expiresAt: Date.now() + (Number(json.expires_in) || 3600) * 1000,
-    membershipId: json.membership_id || null,
+    membershipId: json.membership_id || prev?.membershipId || null,
+    refreshToken: json.refresh_token || prev?.refreshToken || null,
+    refreshExpiresAt: json.refresh_expires_in
+      ? Date.now() + Number(json.refresh_expires_in) * 1000
+      : prev?.refreshExpiresAt || null,
   });
+}
+
+// De Worker doet de uitwisseling met het client_secret; wij sturen alleen de
+// code of het refresh-token mee, met de gedeelde sleutel van de Worker.
+async function workerPost(path, payload) {
+  const cfg = getSyncConfig();
+  if (!cfg) throw new BungieError("Er is nog geen Worker ingesteld (tandwiel ⚙️ bij Daglog).");
+  let res;
+  try {
+    res = await fetch(`${cfg.baseUrl}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Daglog-Key": cfg.key },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new BungieError("Je Worker is niet bereikbaar. Ben je online?");
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.access_token) {
+    throw new BungieError(data?.message || `De Worker kon niet inloggen bij Bungie (status ${res.status}).`);
+  }
+  return data;
+}
+
+// Access-token verlopen maar een refresh-token bij de hand? Dan vernieuwen we.
+export async function ensureFreshToken() {
+  const valid = getToken();
+  if (valid) return valid;
+  const t = readToken();
+  if (!refreshable(t) || !usesWorker()) return null;
+  try {
+    storeToken(await workerPost("/bungie/refresh", { refresh_token: t.refreshToken }));
+  } catch {
+    logout();
+    return null;
+  }
   return getToken();
 }
 
@@ -181,7 +270,7 @@ async function api(path, { auth = true } = {}) {
   if (!apiKey) throw new BungieError("Er is nog geen Bungie API-key ingesteld.");
   const headers = { "X-API-Key": apiKey };
   if (auth) {
-    const token = getToken();
+    const token = (await ensureFreshToken()) || getToken();
     if (!token) throw new BungieError("Je Bungie-sessie is verlopen. Log opnieuw in.", { needsLogin: true });
     headers.Authorization = `Bearer ${token.accessToken}`;
   }
