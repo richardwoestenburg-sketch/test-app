@@ -2,7 +2,7 @@
   "id": "./?app=flitsers",
   "name": "Flitsers",
   "short_name": "Flitsers",
-  "description": "waarschuwt voor flitspalen",
+  "description": "live flitsers & trajectcontroles",
   "lang": "nl",
   "start_url": "./?app=flitsers",
   "scope": "./",

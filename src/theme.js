@@ -346,6 +346,157 @@ export const APP_STYLE = `
   .fl-alert { animation: none; }
 }
 
+/* Flitsers: live trajectcontrole-paneel */
+.fl-live {
+  background: linear-gradient(135deg, #1f4e8c, #16375f);
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 10px rgba(23,28,60,0.18);
+}
+.fl-live-over {
+  background: linear-gradient(135deg, #c23f31, #8d2519);
+  animation: fl-pulse 0.9s ease-in-out infinite;
+}
+.fl-live-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.fl-live-limit {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.fl-live-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+.fl-live-big {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.fl-live-unit {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+.fl-live-side {
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+.fl-live-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.22);
+  overflow: hidden;
+  margin-top: 10px;
+}
+.fl-live-bar span {
+  display: block;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.fl-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  background: #e8f1ea;
+  color: #1e5c3f;
+  border: 1px solid #cfe3d6;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+/* Flitsers: live-status, snelheid, tabbladen en trajectlijst */
+.fl-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fl-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #b9c0d0;
+  flex-shrink: 0;
+}
+.fl-dot-live {
+  background: #1e7a4f;
+  animation: fl-blink 1.8s ease-in-out infinite;
+}
+@keyframes fl-blink {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(30,122,79,0.45); }
+  50% { box-shadow: 0 0 0 5px rgba(30,122,79,0); }
+}
+.fl-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  background: #ffffff;
+  border: 1px solid #e6e9f2;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.fl-tabs {
+  display: flex;
+  gap: 6px;
+}
+.fl-tab {
+  flex: 1;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e6e9f2;
+  background: #ffffff;
+  color: #1c2434;
+}
+.fl-tab-on {
+  background: var(--dl-accent);
+  border-color: var(--dl-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+.fl-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fl-sec-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: #f7f8fc;
+  border: 1px solid #e6e9f2;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.fl-sec-row:active { background: #eef0f7; }
+@media (prefers-reduced-motion: reduce) {
+  .fl-live-over, .fl-dot-live { animation: none; }
+  .fl-live-bar span { transition: none; }
+}
+
 /* Vakantie: fototijdlijn + lightbox */
 .dl-photo-grid {
   display: grid;
