@@ -629,6 +629,17 @@ export const APP_STYLE = `
   outline: 2px solid var(--dl-accent);
   outline-offset: 2px;
 }
+/* Destiny: compacte fotostrip in een kluisregel of notitie */
+.dt-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dt-photos .dl-photo-thumb-wrap {
+  width: 62px;
+  flex: 0 0 auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dt-chip, .dt-seg-btn { transition: none; }
 }

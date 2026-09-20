@@ -207,14 +207,21 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
 - **Voortgang**: raids, dungeons, exotic quests, catalysts, seizoensquests en
   triomfen met status *nog te doen · bezig · gehaald*; raids en dungeons voeg
   je met één tik toe uit een lijst met veelgebruikte namen
-- **Notities**: losse aantekeningen per platform
+- **Foto's**: maak met de camera van je telefoon een foto bij een ding uit je
+  kluis (handig voor de roll of de stats: richt hem op je scherm) of bij een
+  notitie — of kies er een uit je fotorol. Miniaturen staan bij het ding zelf,
+  tikken opent ze groot. Foto's worden verkleind opgeslagen in IndexedDB, net
+  als bij Vakantie en Garage
+- **Notities**: losse aantekeningen per platform, met foto's
 - **Vragen stellen** in gewoon Nederlands over je eigen opslag — "welke god
   rolls heb ik?", "waar staat Fatebringer?", "hoeveel exotics heb ik op PS5?",
-  "welke raids heb ik nog niet gehaald?", "wat is mijn sterkste wapen?". Het
+  "welke raids heb ik nog niet gehaald?", "wat is mijn sterkste wapen?",
+  "welke wapens heb ik met een foto?". Het
   antwoord komt uit je eigen gegevens: **geen internet, geen account en geen
   API-key nodig**, dus het werkt ook offline. Je kunt de vraag ook inspreken
 - **Back-up**: via het tandwiel ⚙️ sla je alles op als JSON-bestand en lees je
-  het weer in (samenvoegen, nooit overschrijven) — handig bij een nieuw toestel
+  het weer in (samenvoegen, nooit overschrijven) — handig bij een nieuw toestel.
+  Foto's gaan mee in de back-up
 
 **Algemeen**
 

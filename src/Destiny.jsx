@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Gamepad2, Plus, Trash2, Pencil, X, Check, Search, Sparkles, Mic, Settings,
   Download, Upload, Boxes, Users, Trophy, StickyNote, MessageSquare, Clock,
-  ExternalLink,
+  ExternalLink, Camera, Images,
 } from "lucide-react";
 import * as d from "./destiny.js";
 
@@ -56,9 +56,12 @@ function Select({ value, onChange, options, empty }) {
   );
 }
 
+// Een nieuw ding krijgt meteen een id: dan kun je er tijdens het invullen al
+// een foto bij maken. Klik je het formulier weg zonder opslaan, dan worden
+// die foto's weer verwijderd (en anders bij de volgende start opgeruimd).
 function emptyItem(platform) {
   return {
-    id: null, platform: platform || "ps5", kind: "wapen", name: "", type: "",
+    id: null, isNew: true, platform: platform || "ps5", kind: "wapen", name: "", type: "",
     element: "", rarity: "Legendary", charClass: "", power: "", location: "kluis",
     perks: "", notes: "", tags: [],
   };
@@ -92,6 +95,7 @@ export default function Destiny() {
   const [activities, setActivities] = useState([]);
   const [notes, setNotes] = useState([]);
   const [profile, setProfile] = useState({ ps5: "", xbox: "" });
+  const [photos, setPhotos] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -103,6 +107,15 @@ export default function Destiny() {
     setProfile(all.profile);
     setHistory(d.loadHistory());
     setLoaded(true);
+    // Foto's komen uit IndexedDB; eerst opruimen wat nergens meer bij hoort.
+    (async () => {
+      try {
+        await d.cleanupOrphanPhotos(all.items, all.notes);
+        setPhotos(await d.getAllPhotos());
+      } catch {
+        /* geen IndexedDB (privémodus) — de app werkt verder gewoon */
+      }
+    })();
   }, []);
 
   const choose = (t) => {
@@ -119,9 +132,93 @@ export default function Destiny() {
   const commitActs = (next) => { setActivities(next); d.saveActivities(next); };
   const commitNotes = (next) => { setNotes(next); d.saveNotes(next); };
 
+  // ---- Foto's ------------------------------------------------------------
+  const [lightbox, setLightbox] = useState(null);
+  const [photoError, setPhotoError] = useState("");
+  const photoTarget = useRef(null);
+  const camRef = useRef(null);
+  const galRef = useRef(null);
+
+  // Object-URL's per foto, opgeruimd zodra de lijst verandert.
+  const photoUrls = useMemo(() => {
+    const map = new Map();
+    for (const p of photos) {
+      try { map.set(p.id, URL.createObjectURL(p.blob)); } catch {}
+    }
+    return map;
+  }, [photos]);
+  useEffect(() => () => photoUrls.forEach((url) => URL.revokeObjectURL(url)), [photoUrls]);
+
+  const photosFor = (key, id) => (id ? photos.filter((p) => p[key] === id) : []);
+
+  // source "camera" opent meteen de camera, "galerij" je fotorol.
+  const pickPhoto = (target, source) => {
+    photoTarget.current = target;
+    setPhotoError("");
+    const ref = source === "camera" ? camRef : galRef;
+    ref.current?.click();
+  };
+
+  const onPhotoChosen = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const target = photoTarget.current;
+    if (!file || !target) return;
+    try {
+      await d.addPhoto({ file, ...target });
+      setPhotos(await d.getAllPhotos());
+    } catch {
+      setPhotoError("De foto kon niet worden opgeslagen. Is er nog ruimte op je toestel?");
+    }
+  };
+
+  const removePhoto = async (id) => {
+    try {
+      await d.deletePhoto(id);
+      setPhotos(await d.getAllPhotos());
+    } catch {}
+    setLightbox(null);
+  };
+
+  const dropPhotosFor = async (match) => {
+    try {
+      await d.deletePhotosWhere(match);
+      setPhotos(await d.getAllPhotos());
+    } catch {}
+  };
+
+  // Strip met miniaturen; tikken opent de foto groot.
+  const renderPhotos = (list) =>
+    !list.length ? null : (
+      <div className="dt-photos mt-2">
+        {list.map((p) => (
+          <button key={p.id} className="dl-photo-thumb-wrap" onClick={() => setLightbox(p)}>
+            <img className="dl-photo-thumb" src={photoUrls.get(p.id)} alt="Foto" loading="lazy" />
+          </button>
+        ))}
+      </div>
+    );
+
+  const photoButtons = (target, label) => (
+    <div className="flex flex-wrap gap-2">
+      <button
+        onClick={() => pickPhoto(target, "camera")}
+        className="dl-btn-ghost px-3 py-2 text-xs flex items-center gap-1.5"
+      >
+        <Camera size={14} /> {label || "Foto maken"}
+      </button>
+      <button
+        onClick={() => pickPhoto(target, "galerij")}
+        className="dl-btn-ghost px-3 py-2 text-xs flex items-center gap-1.5"
+      >
+        <Images size={14} /> Uit je fotorol
+      </button>
+    </div>
+  );
+
   const data = useMemo(
-    () => ({ items, characters, activities, notes, profile }),
-    [items, characters, activities, notes, profile]
+    () => ({ items, characters, activities, notes, profile, photos }),
+    [items, characters, activities, notes, profile, photos]
   );
   const onPlatform = (list) => (platform ? list.filter((x) => x.platform === platform) : list);
   const s = d.stats(data, platform);
@@ -218,12 +315,30 @@ export default function Destiny() {
       perks: f.perks.trim().slice(0, 300),
       notes: f.notes.trim().slice(0, 600),
     };
-    if (f.id) {
-      commitItems(items.map((i) => (i.id === f.id ? { ...i, ...clean } : i)));
+    const { isNew, ...rest } = clean;
+    if (isNew) {
+      commitItems([{ ...rest, id: f.id || d.newId(), createdAt: Date.now() }, ...items]);
     } else {
-      commitItems([{ ...clean, id: d.newId(), createdAt: Date.now() }, ...items]);
+      commitItems(items.map((i) => (i.id === f.id ? { ...i, ...rest } : i)));
     }
     setItemForm(null);
+  };
+
+  // Weggeklikt zonder opslaan: foto's van dat niet-opgeslagen ding weg.
+  const closeItemForm = () => {
+    const f = itemForm;
+    if (f?.isNew && f.id) dropPhotosFor((p) => p.itemId === f.id);
+    setItemForm(null);
+  };
+
+  const deleteItem = (id) => {
+    commitItems(items.filter((x) => x.id !== id));
+    dropPhotosFor((p) => p.itemId === id);
+  };
+
+  const deleteNote = (id) => {
+    commitNotes(notes.filter((x) => x.id !== id));
+    dropPhotosFor((p) => p.noteId === id);
   };
 
   const visibleItems = useMemo(() => {
@@ -308,15 +423,25 @@ export default function Destiny() {
 
   // ---- Notities ----------------------------------------------------------
   const [noteText, setNoteText] = useState("");
+  // Vaste id voor de notitie die je aan het typen bent, zodat er al een foto
+  // aan kan hangen voordat je opslaat.
+  const [noteDraftId, setNoteDraftId] = useState(() => d.newId());
+  const draftPhotos = photosFor("noteId", noteDraftId);
 
   const addNote = () => {
     const text = noteText.trim();
-    if (!text) return;
+    if (!text && !draftPhotos.length) return;
     commitNotes([
-      { id: d.newId(), platform: platform || "ps5", text: text.slice(0, 1000), timestamp: Date.now() },
+      {
+        id: noteDraftId,
+        platform: platform || "ps5",
+        text: text.slice(0, 1000),
+        timestamp: Date.now(),
+      },
       ...notes,
     ]);
     setNoteText("");
+    setNoteDraftId(d.newId());
   };
 
   // ---- Instellingen ------------------------------------------------------
@@ -331,8 +456,9 @@ export default function Destiny() {
     d.saveProfile(next);
   };
 
-  const doExport = () => {
-    const blob = new Blob([d.exportData()], { type: "application/json" });
+  const doExport = async () => {
+    setSettingsMsg("Back-up maken…");
+    const blob = new Blob([await d.exportData()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -345,16 +471,22 @@ export default function Destiny() {
   const doImport = async (file) => {
     if (!file) return;
     try {
-      const added = d.importData(await file.text());
+      setSettingsMsg("Back-up inlezen…");
+      const added = await d.importData(await file.text());
       const all = d.loadAll();
       setItems(all.items);
       setCharacters(all.characters);
       setActivities(all.activities);
       setNotes(all.notes);
       setProfile(all.profile);
+      try { setPhotos(await d.getAllPhotos()); } catch {}
+      const aantal = (n, een, meer) => `${n} ${n === 1 ? een : meer}`;
       setSettingsMsg(
-        `Toegevoegd: ${added.items} uit de kluis, ${added.characters} karakters, ` +
-        `${added.activities} activiteiten, ${added.notes} notities.`
+        `Toegevoegd: ${aantal(added.items, "ding", "dingen")} uit de kluis, ` +
+        `${aantal(added.characters, "karakter", "karakters")}, ` +
+        `${aantal(added.activities, "activiteit", "activiteiten")}, ` +
+        `${aantal(added.notes, "notitie", "notities")} en ` +
+        `${aantal(added.photos, "foto", "foto's")}.`
       );
     } catch {
       setSettingsMsg("Dat bestand kon ik niet lezen. Is het een back-up van deze app?");
@@ -366,6 +498,7 @@ export default function Destiny() {
     commitChars([]);
     commitActs([]);
     commitNotes([]);
+    dropPhotosFor(() => true);
     setAnswer(null);
     setConfirmWipe(false);
     setSettingsMsg("Alles gewist.");
@@ -393,17 +526,25 @@ export default function Destiny() {
             </div>
           )}
           {i.notes && <div className="text-[11px] opacity-60 mt-1">{i.notes}</div>}
+          {renderPhotos(photosFor("itemId", i.id))}
         </div>
         <div className="flex flex-col gap-1.5 shrink-0">
           <button
-            onClick={() => { setItemForm({ ...emptyItem(i.platform), ...i, power: i.power ?? "", tags: i.tags || [] }); choose("kluis"); }}
+            onClick={() => pickPhoto({ itemId: i.id, platform: i.platform }, "camera")}
+            className="opacity-40 hover:opacity-90"
+            aria-label={`Foto maken bij ${i.name}`}
+          >
+            <Camera size={14} />
+          </button>
+          <button
+            onClick={() => { setItemForm({ ...emptyItem(i.platform), ...i, isNew: false, power: i.power ?? "", tags: i.tags || [] }); choose("kluis"); }}
             className="opacity-40 hover:opacity-90"
             aria-label={`Bewerk ${i.name}`}
           >
             <Pencil size={14} />
           </button>
           <button
-            onClick={() => commitItems(items.filter((x) => x.id !== i.id))}
+            onClick={() => deleteItem(i.id)}
             className="opacity-30 hover:opacity-80"
             aria-label={`Verwijder ${i.name}`}
           >
@@ -476,14 +617,24 @@ export default function Destiny() {
         <div className="flex-1 min-w-0">
           <div className="text-[11px] opacity-60 dl-mono">{dateLabel(n.timestamp)} · {d.platformLabel(n.platform)}</div>
           <div className="text-sm mt-0.5 whitespace-pre-wrap break-words">{n.text}</div>
+          {renderPhotos(photosFor("noteId", n.id))}
         </div>
-        <button
-          onClick={() => commitNotes(notes.filter((x) => x.id !== n.id))}
-          className="opacity-30 hover:opacity-80 shrink-0"
-          aria-label="Verwijder notitie"
-        >
-          <Trash2 size={13} />
-        </button>
+        <div className="flex flex-col gap-1.5 shrink-0">
+          <button
+            onClick={() => pickPhoto({ noteId: n.id, platform: n.platform }, "camera")}
+            className="opacity-40 hover:opacity-90"
+            aria-label="Foto maken bij deze notitie"
+          >
+            <Camera size={14} />
+          </button>
+          <button
+            onClick={() => deleteNote(n.id)}
+            className="opacity-30 hover:opacity-80"
+            aria-label="Verwijder notitie"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
     ));
 
@@ -548,8 +699,9 @@ export default function Destiny() {
           </div>
           {settingsMsg && <p className="text-xs opacity-70">{settingsMsg}</p>}
           <p className="text-[11px] opacity-55 leading-relaxed">
-            Alles staat alleen op dit toestel (in de browseropslag van deze app). Maak af en
-            toe een back-up als je de app opnieuw installeert of overzet naar een ander toestel.
+            Alles staat alleen op dit toestel (in de browseropslag van deze app), foto's
+            inbegrepen. Maak af en toe een back-up als je de app opnieuw installeert of
+            overzet naar een ander toestel — foto's gaan mee in het back-upbestand.
           </p>
         </div>
       )}
@@ -573,6 +725,8 @@ export default function Destiny() {
           </button>
         ))}
       </div>
+
+      {photoError && <p className="text-xs opacity-75 mb-3">{photoError}</p>}
 
       {!loaded ? (
         <p className="text-sm opacity-50">Laden…</p>
@@ -668,9 +822,9 @@ export default function Destiny() {
             <div className="dl-card p-4 mb-5 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase dl-day-label opacity-60">
-                  {itemForm.id ? "Bewerken" : "Nieuw in de kluis"}
+                  {itemForm.isNew ? "Nieuw in de kluis" : "Bewerken"}
                 </span>
-                <button onClick={() => setItemForm(null)} className="dl-btn-ghost p-1.5" aria-label="Sluiten">
+                <button onClick={closeItemForm} className="dl-btn-ghost p-1.5" aria-label="Sluiten">
                   <X size={14} />
                 </button>
               </div>
@@ -795,17 +949,25 @@ export default function Destiny() {
                   placeholder="bijv. tweede roll voor PvP, nog masterworken"
                 />
               </Field>
+              <div>
+                <span className="text-[11px] uppercase dl-day-label opacity-60">Foto's</span>
+                <p className="text-[11px] opacity-55 mb-2 mt-0.5">
+                  Handig voor de roll of de stats: richt je camera op je scherm.
+                </p>
+                {photoButtons({ itemId: itemForm.id, platform: itemForm.platform })}
+                {renderPhotos(photosFor("itemId", itemForm.id))}
+              </div>
               <button
                 onClick={saveItem}
                 disabled={!itemForm.name.trim()}
                 className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5"
               >
-                <Check size={15} /> {itemForm.id ? "Wijziging opslaan" : "Aan kluis toevoegen"}
+                <Check size={15} /> {itemForm.isNew ? "Aan kluis toevoegen" : "Wijziging opslaan"}
               </button>
             </div>
           ) : (
             <button
-              onClick={() => setItemForm(emptyItem(platform || "ps5"))}
+              onClick={() => setItemForm({ ...emptyItem(platform || "ps5"), id: d.newId() })}
               className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5 w-full mb-4"
             >
               <Plus size={15} /> Iets aan je kluis toevoegen
@@ -1058,9 +1220,13 @@ export default function Destiny() {
                 placeholder="bijv. Nog 3 Pinnacle-caps halen · ruilen met clan · welke build werkt goed"
               />
             </Field>
+            <div className="mt-3">
+              {photoButtons({ noteId: noteDraftId, platform: platform || "ps5" }, "Foto maken")}
+              {renderPhotos(draftPhotos)}
+            </div>
             <button
               onClick={addNote}
-              disabled={!noteText.trim()}
+              disabled={!noteText.trim() && !draftPhotos.length}
               className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5 w-full mt-3"
             >
               <Plus size={15} /> Opslaan bij {d.platformLabel(platform || "ps5")}
@@ -1074,6 +1240,37 @@ export default function Destiny() {
             </div>
           )}
         </>
+      )}
+
+      {/* Eén invoer voor de camera, één voor je fotorol — beide onzichtbaar
+          en aangestuurd vanaf de knoppen hierboven. */}
+      <input
+        ref={camRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={onPhotoChosen}
+      />
+      <input ref={galRef} type="file" accept="image/*" className="hidden" onChange={onPhotoChosen} />
+
+      {lightbox && (
+        <div className="dl-photo-overlay" onClick={() => setLightbox(null)}>
+          <div className="dl-photo-modal" onClick={(e) => e.stopPropagation()}>
+            <img className="dl-photo-modal-img" src={photoUrls.get(lightbox.id)} alt="Foto" />
+            <div className="flex items-center justify-between gap-2 p-3">
+              <span className="text-xs opacity-60 dl-mono">{dateLabel(lightbox.timestamp)}</span>
+              <span className="flex gap-2">
+                <button className="dl-btn-ghost text-xs px-3 py-1.5" onClick={() => removePhoto(lightbox.id)}>
+                  Verwijderen
+                </button>
+                <button className="dl-btn-ghost text-xs px-3 py-1.5" onClick={() => setLightbox(null)}>
+                  Sluiten
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

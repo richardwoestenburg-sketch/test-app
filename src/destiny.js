@@ -3,7 +3,9 @@
 // quests) en losse notities. Plus een vraag-en-antwoord-motor die je eigen
 // opslag doorzoekt.
 //
-// Alles blijft lokaal in localStorage: geen account, geen server, werkt offline.
+// Alles blijft lokaal: tekstgegevens in localStorage, foto's in IndexedDB
+// (verkleind, zoals in vakantie.js en garage.js). Geen account, geen server,
+// werkt offline.
 // De Q&A is een lokale taalparser (geen internet of API-key): hij haalt uit je
 // vraag de filters (platform, wapensoort, element, rarity, tag, locatie) en de
 // bedoeling (hoeveel / welke / waar / sterkste / nog te doen) en beantwoordt
@@ -258,14 +260,25 @@ export function loadAll() {
 
 // -- Back-up ---------------------------------------------------------------
 
-export function exportData() {
+export async function exportData() {
   const data = loadAll();
-  return JSON.stringify({ app: "destiny", version: 1, exportedAt: new Date().toISOString(), ...data }, null, 2);
+  // Foto's gaan als data-URL mee, anders zou een back-up ze stilletjes
+  // verliezen (ze staan in IndexedDB, niet in localStorage).
+  const photos = [];
+  for (const p of await getAllPhotos().catch(() => [])) {
+    const dataUrl = await blobToDataUrl(p.blob);
+    if (dataUrl) photos.push({ ...p, blob: undefined, dataUrl });
+  }
+  return JSON.stringify(
+    { app: "destiny", version: 2, exportedAt: new Date().toISOString(), ...data, photos },
+    null,
+    2
+  );
 }
 
 // Voegt een back-up samen met wat er al staat (op id), zodat importeren nooit
 // per ongeluk je huidige kluis wist. Geeft terug hoeveel er is toegevoegd.
-export function importData(json) {
+export async function importData(json) {
   const parsed = JSON.parse(json);
   if (!parsed || typeof parsed !== "object") throw new Error("Onbekend bestand.");
   const merge = (current, incoming) => {
@@ -285,7 +298,157 @@ export function importData(json) {
   if (parsed.profile && typeof parsed.profile === "object") {
     saveProfile({ ...loadProfile(), ...parsed.profile });
   }
-  return { items: items.added, characters: chars.added, activities: acts.added, notes: notes.added };
+
+  let photosAdded = 0;
+  if (Array.isArray(parsed.photos) && parsed.photos.length) {
+    const existing = new Set((await getAllPhotos().catch(() => [])).map((p) => p.id));
+    const db = await openDB();
+    for (const p of parsed.photos) {
+      if (!p || !p.id || !p.dataUrl || existing.has(p.id)) continue;
+      const blob = await dataUrlToBlob(p.dataUrl).catch(() => null);
+      if (!blob) continue;
+      await new Promise((resolve) => {
+        const tx = db.transaction(PHOTO_STORE, "readwrite");
+        tx.objectStore(PHOTO_STORE).add({
+          id: p.id,
+          itemId: p.itemId || null,
+          noteId: p.noteId || null,
+          platform: p.platform || null,
+          caption: p.caption || "",
+          timestamp: p.timestamp || Date.now(),
+          blob,
+        });
+        tx.oncomplete = () => { photosAdded += 1; resolve(); };
+        tx.onerror = () => resolve();
+      });
+    }
+    db.close();
+  }
+
+  return {
+    items: items.added, characters: chars.added, activities: acts.added,
+    notes: notes.added, photos: photosAdded,
+  };
+}
+
+// -- Foto's (IndexedDB) ----------------------------------------------------
+//
+// Een foto hangt aan een ding uit je kluis (itemId) of aan een notitie
+// (noteId) — bijvoorbeeld een kiekje van je scherm met de roll van een wapen.
+// Blobs horen niet in localStorage, vandaar IndexedDB; ze worden eerst
+// verkleind zodat de opslag klein blijft.
+
+const DB_NAME = "destiny-db";
+const DB_VERSION = 1;
+const PHOTO_STORE = "photos";
+
+const MAX_DIM = 1600;
+const JPEG_QUALITY = 0.82;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PHOTO_STORE)) {
+        db.createObjectStore(PHOTO_STORE, { keyPath: "id" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function resizeImage(file) {
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) return file;
+  const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
+  const w = Math.round(bitmap.width * scale) || 1;
+  const h = Math.round(bitmap.height * scale) || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close?.();
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY));
+  return blob || file;
+}
+
+export async function addPhoto({ file, itemId, noteId, platform, caption }) {
+  const blob = await resizeImage(file);
+  const entry = {
+    id: newId(),
+    itemId: itemId || null,
+    noteId: noteId || null,
+    platform: platform || null,
+    caption: caption || "",
+    timestamp: Date.now(),
+    blob,
+  };
+  const db = await openDB();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readwrite");
+    tx.objectStore(PHOTO_STORE).add(entry);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  return entry;
+}
+
+export async function getAllPhotos() {
+  const db = await openDB();
+  const result = await new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readonly");
+    const req = tx.objectStore(PHOTO_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+  db.close();
+  return result.sort((a, b) => a.timestamp - b.timestamp);
+}
+
+export async function deletePhoto(id) {
+  const db = await openDB();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readwrite");
+    tx.objectStore(PHOTO_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+export async function deletePhotosWhere(match) {
+  const all = await getAllPhotos();
+  const doomed = all.filter(match);
+  for (const p of doomed) await deletePhoto(p.id).catch(() => {});
+  return doomed.length;
+}
+
+// Opruimen: foto's waarvan het ding of de notitie niet meer bestaat. Vangt
+// ook foto's op van een formulier dat je hebt weggeklikt zonder op te slaan.
+export async function cleanupOrphanPhotos(items, notes) {
+  const itemIds = new Set(items.map((i) => i.id));
+  const noteIds = new Set(notes.map((n) => n.id));
+  return deletePhotosWhere(
+    (p) => (p.itemId && !itemIds.has(p.itemId)) || (p.noteId && !noteIds.has(p.noteId))
+  );
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function dataUrlToBlob(dataUrl) {
+  const res = await fetch(dataUrl);
+  return res.blob();
 }
 
 // -- Statistieken ----------------------------------------------------------
@@ -294,6 +457,11 @@ export function stats(data, platform) {
   const pick = (list) => (platform ? list.filter((x) => x.platform === platform) : list);
   const items = pick(data.items);
   const acts = pick(data.activities);
+  const itemIds = new Set(items.map((i) => i.id));
+  const noteIds = new Set(pick(data.notes).map((n) => n.id));
+  const photos = (data.photos || []).filter(
+    (p) => (p.itemId && itemIds.has(p.itemId)) || (p.noteId && noteIds.has(p.noteId))
+  );
   return {
     items: items.length,
     weapons: items.filter((i) => i.kind === "wapen").length,
@@ -304,6 +472,7 @@ export function stats(data, platform) {
     activitiesDone: acts.filter((a) => a.status === "klaar").length,
     activitiesOpen: acts.filter((a) => a.status !== "klaar").length,
     notes: pick(data.notes).length,
+    photos: photos.length,
   };
 }
 
@@ -386,12 +555,16 @@ const SCOPES = [
 
 const LOCATION_VAULT = ["kluis", "vault", "in de kluis"];
 
+// "welke wapens heb ik met een foto erbij" / "waar heb ik een screenshot van"
+const PHOTO_WORDS = ["foto", "fotos", "foto's", "screenshot", "screenshots", "plaatje", "kiekje"];
+
 // Ontleed de vraag: bedoeling, waar het over gaat en de filters.
 export function parseQuestion(question, data) {
   let text = norm(question);
   const filters = {
     platform: null, kinds: [], types: [], elements: [], rarities: [],
-    classes: [], tags: [], activityKinds: [], location: null, locationClass: null, terms: [],
+    classes: [], tags: [], activityKinds: [], location: null, locationClass: null,
+    hasPhoto: false, terms: [],
   };
 
   // Overzichtsvraag eerst: die heeft geen filters nodig.
@@ -419,6 +592,12 @@ export function parseQuestion(question, data) {
   for (const phrase of LOCATION_VAULT) {
     if (hasPhrase(text, phrase)) {
       filters.location = "kluis";
+      text = stripPhrase(text, phrase);
+    }
+  }
+  for (const phrase of PHOTO_WORDS) {
+    if (hasPhrase(text, phrase)) {
+      filters.hasPhoto = true;
       text = stripPhrase(text, phrase);
     }
   }
@@ -578,6 +757,7 @@ function describe(filters, scope, n = 2) {
   if (filters.classes.length) before.push(filters.classes.join("/"));
 
   const after = [];
+  if (filters.hasPhoto) after.push("met foto");
   if (filters.terms.length) after.push(`met "${filters.terms.join(" ")}"`);
   if (filters.location === "kluis") after.push("in de kluis");
   if (filters.locationClass) after.push(`op je ${filters.locationClass}`);
@@ -627,7 +807,7 @@ export function ask(question, data) {
         `${plural(s.exotics, "exotic", "exotics")}, ${plural(s.godRolls, "god roll", "god rolls")}), ` +
         `${plural(s.characters, "karakter", "karakters")}, ` +
         `${s.activitiesDone} gehaald en ${s.activitiesOpen} nog te doen, ` +
-        `${plural(s.notes, "notitie", "notities")}.`,
+        `${plural(s.notes, "notitie", "notities")} en ${plural(s.photos, "foto", "foto's")}.`,
       characters,
     };
   }
@@ -672,6 +852,10 @@ export function ask(question, data) {
         return filters.terms.every((t) => blob.includes(t));
       });
     }
+    if (filters.hasPhoto) {
+      const withPhoto = new Set((data.photos || []).map((p) => p.noteId).filter(Boolean));
+      list = list.filter((n) => withPhoto.has(n.id));
+    }
     list.sort((a, b) => b.timestamp - a.timestamp);
     if (!list.length) return { ...base, text: "Geen notitie gevonden die daarbij past." };
     if (intent === "count") return { ...base, text: `Je hebt ${plural(list.length, "notitie", "notities")}${filters.terms.length ? ` met "${filters.terms.join(" ")}"` : ""}.`, notes: list };
@@ -703,7 +887,11 @@ export function ask(question, data) {
   }
 
   // scope === "items"
-  const list = filterItems(data.items, filters, data.characters);
+  let list = filterItems(data.items, filters, data.characters);
+  if (filters.hasPhoto) {
+    const withPhoto = new Set((data.photos || []).map((p) => p.itemId).filter(Boolean));
+    list = list.filter((i) => withPhoto.has(i.id));
+  }
   const what = describe(filters, "items", list.length) || (list.length === 1 ? "ding" : "dingen");
   if (!list.length) {
     const hint = data.items.length
@@ -780,5 +968,6 @@ export function suggestions(data) {
     out.push("Welke raids heb ik nog niet gehaald?");
   }
   if (data.characters.length) out.push("Wat is mijn sterkste karakter?");
+  if ((data.photos || []).length) out.push("Waar heb ik een foto van?");
   return out.slice(0, 8);
 }
