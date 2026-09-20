@@ -15,8 +15,9 @@ startscherm (zie *Op je startscherm zetten*). De twaalf apps: **Daglog** (terugk
 **Agenda** (vooruit plannen — met een melding op tijd), **Tijd** (snel
 registreren wat je doet en hoe lang, met een daganalyse), **Vakantie**
 (op elk moment een foto toevoegen, zodat je achteraf in één tijdlijn ziet hoe
-je vakantie was), **Flitsers** (kaart met flitspalen/trajectcontroles en een
-waarschuwing als je in de buurt komt), **Cabrio** (live weeradvies — kap open
+je vakantie was), **Flitsers** (live kaart met flitspalen en alle trajectcontroles, een
+waarschuwing als je in de buurt komt en een meter die je gemiddelde snelheid
+over een trajectcontrole bijhoudt), **Cabrio** (live weeradvies — kap open
 of dicht — op basis van temperatuur, wind, regenkans en UV op jouw locatie),
 **Garage** (onderhouds- en detailing-logboek voor je auto's, met APK- en
 verzekeringsherinneringen en een wasdag-advies),
@@ -111,20 +112,42 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
 
 **Flitsers**
 
-- **Kaart** (OpenStreetMap) met je eigen positie en flitspalen/trajectcontroles
-  in de buurt
-- Camera-data komt **gratis en automatisch** van OpenStreetMap (Overpass API,
-  geen account nodig) en wordt lokaal gecached; een **Ververs**-knop haalt de
-  laatste stand op, en dat gebeurt ook vanzelf als de cache ouder dan 2 weken is
-- **Geluid + trilling** zodra een camera binnen de ingestelde afstand komt
-  (instelbaar: 300 m – 1,5 km), met een duidelijke banner bovenaan
+- **Kaart** (OpenStreetMap) met je eigen positie, losse flitspalen en de hele
+  route van elke trajectcontrole als lijn — het traject waar je op rijdt kleurt op
+- **Live trajectcontrole-meter**: zodra je een traject op rijdt, meet de app op
+  je eigen GPS je **gemiddelde snelheid** vanaf het beginpunt, laat zien hoeveel
+  er nog te gaan is, hoe hard je de rest nog mag om onder de limiet te blijven,
+  en waarschuwt extra als dat gemiddelde erboven komt. Na afloop zie je kort het
+  eindresultaat. Stap je halverwege in, dan meldt de app erbij dat het gemiddelde
+  pas vanaf daar telt
+- **Alle trajectcontroles** in een doorzoekbare lijst (naam/weg, lengte,
+  richting, maximumsnelheid en afstand tot jou); tik erop om hem op de kaart te zien
+- Data komt **gratis en automatisch** van OpenStreetMap (Overpass API, geen
+  account nodig): losse camera's als `highway=speed_camera`, trajectcontroles als
+  `type=enforcement`-relaties inclusief hun route. Alles wordt lokaal gecached; de
+  **Ververs**-knop haalt de laatste stand op, en dat gebeurt ook vanzelf als de
+  cache ouder dan een week is. Reageert een Overpass-server niet, dan wordt
+  automatisch een andere geprobeerd
+- **Geluid + trilling** zodra een camera of het begin van een traject binnen de
+  ingestelde afstand komt (instelbaar: 300 m – 1,5 km), met een duidelijke banner
+- Optioneel **systeemmeldingen** als de app op de achtergrond staat, en het
+  **scherm blijft aan** zolang de app open is (Wake Lock)
+- **Externe knop**: koppel een bluetooth-knop uit je auto en leg met één druk een
+  controle vast op je huidige positie (of dempt het geluid), zonder je telefoon
+  aan te raken. Een knop die als toetsenbord of mediaknop gekoppeld is werkt
+  meteen; voor een knop met een eigen bluetooth-protocol is er een koppelscherm
+  met testlogboek (Web Bluetooth, dus Chrome op Android). Er is geen publieke API
+  voor de Flitsmeister ONE — of die meedoet moet je ter plekke testen, en een
+  bluetooth-knop praat met één app tegelijk
 - Waarschuwt bij voorkeur alleen voor camera's **in je rijrichting** (op basis
   van je GPS-koers), zodat je niet gestoord wordt door camera's op een andere weg
 - **Zelf camera's toevoegen** op je huidige locatie (bijv. mobiele controles die
   OSM mist) — deze blijven lokaal op je apparaat bewaard en zijn los te verwijderen
 - Werkt het betrouwbaarst met de app **open en actief** (bv. telefoon in een
   houder); zoals bij vrijwel elke navigatie-PWA werken meldingen niet
-  gegarandeerd door als het scherm vergrendeld is
+  gegarandeerd door als het scherm vergrendeld is. Mobiele (flex)controles staan
+  niet in OpenStreetMap en verschijnen dus niet vanzelf in de app — die kun je
+  zelf toevoegen
 
 **Cabrio**
 
@@ -339,8 +362,9 @@ src/TimeLog.jsx               het tijdregistratie-component (UI + logica)
 src/timelog.js                opslag, sessies & daganalyse voor tijdregistratie
 src/Vakantie.jsx               het vakantie-component (fototijdlijn + lightbox)
 src/vakantie.js                opslag (IndexedDB) & verkleinen/comprimeren van foto's
-src/Flitsers.jsx               het flitsers-component (kaart, GPS, waarschuwing)
-src/flitsers.js                opslag, OSM-databron (Overpass) & geo-berekeningen
+src/Flitsers.jsx               het flitsers-component (kaart, GPS, live trajectmeter)
+src/flitsers.js                opslag, OSM-databron (Overpass), trajectroutes & geo
+src/knop.js                    externe bluetooth-/media-/toetsenbordknop
 src/Cabrio.jsx                  de cabrio-tab (weeradvies kap open/dicht)
 src/cabrio.js                   instellingen, Open-Meteo-databron & advieslogica
 src/Images3D.jsx                de afbeeldingen-tab (prompt → 3D-afbeelding, galerij)
