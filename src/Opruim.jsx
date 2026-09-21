@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   Check,
   X,
+  Smartphone,
+  FolderOpen,
 } from "lucide-react";
 import {
   BRONNEN,
@@ -20,7 +22,7 @@ import {
   wisLog,
   scanAlles,
   ruimOp,
-  leesPrullenbak,
+  leesPrullenbakAlles,
   zetTerug,
   leegPrullenbak,
   opslagInfo,
@@ -28,6 +30,7 @@ import {
   fmtBytes,
   fmtDatum,
 } from "./opruim.js";
+import { nativeBeschikbaar, nativeStatus, vraagNativeToestemming } from "./opruimNative.js";
 
 const BAK_ZICHTBAAR = 8;
 const LOG_ZICHTBAAR = 5;
@@ -61,11 +64,14 @@ export default function Opruim() {
   const [melding, setMelding] = useState("");
   const [fout, setFout] = useState("");
   const [achtergrond, setAchtergrond] = useState(false);
+  // Alleen gevuld als de app als Android-app draait; in de browser blijft dit null.
+  const [telefoon, setTelefoon] = useState(null);
 
   const ververs = useCallback(async () => {
     setOpslag(await opslagInfo());
-    setBak(await leesPrullenbak());
+    setBak(await leesPrullenbakAlles());
     setLog(laadLog());
+    if (nativeBeschikbaar()) setTelefoon(await nativeStatus());
   }, []);
 
   useEffect(() => {
@@ -155,10 +161,58 @@ export default function Opruim() {
     await ververs();
   };
 
+  const geefToegang = async () => {
+    const gelukt = await vraagNativeToestemming();
+    setTelefoon(await nativeStatus());
+    setMelding(
+      gelukt
+        ? "Toegang geregeld — de knop ruimt nu ook de opslag van je telefoon op."
+        : "Zonder die toegang blijft het bij de gegevens van de app zelf."
+    );
+  };
+
   const bakLegen = async () => {
     const weg = await leegPrullenbak();
     setMelding(weg.aantal ? `Prullenbak geleegd — ${fmtBytes(weg.bytes)} vrij.` : "De prullenbak was al leeg.");
     await ververs();
+  };
+
+  const webBronnen = BRONNEN.filter((b) => !b.native);
+  const telBronnen = BRONNEN.filter((b) => b.native);
+
+  const bronRegel = (bron) => {
+    const inst = instellingen.bronnen[bron.key] || {};
+    return (
+      <div key={bron.key} className="op-bron">
+        <div className="op-bron-kop">
+          {/* De keuzelijst staat bewust buiten het label, anders zet elke tik
+              erop ook het vinkje om. */}
+          <label className="op-bron-naam">
+            <input
+              type="checkbox"
+              checked={bron.altijd ? true : !!inst.aan}
+              disabled={!!bron.altijd}
+              onChange={wisselBron(bron.key)}
+            />
+            <span className="text-sm font-medium">{bron.naam}</span>
+          </label>
+          {bron.dagen && (
+            <select
+              className="dl-input text-xs px-2 py-1.5"
+              value={inst.dagen ?? bron.standaardDagen ?? 0}
+              onChange={kiesDagen(bron.key)}
+            >
+              {bron.dagen.map((d) => (
+                <option key={d} value={d}>
+                  {dagenLabel(d)}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <div className="text-xs opacity-60 mt-1 ml-7">{bron.uitleg}</div>
+      </div>
+    );
   };
 
   const bezig = status === "scannen" || status === "opruimen";
@@ -232,7 +286,7 @@ export default function Opruim() {
                       .slice(0, 3)
                       .map((i) => i.label)
                       .join(" · ")}
-                    {b.items.length > 3 && ` · +${b.items.length - 3}`}
+                    {b.aantal > 3 && ` · +${b.aantal - 3}`}
                   </div>
                 </div>
                 <div className="text-xs text-right flex-shrink-0">
@@ -275,42 +329,43 @@ export default function Opruim() {
 
       {/* Wat wordt opgeruimd */}
       <div className="dl-card p-4 mb-4">
-        <div className="text-xs font-semibold uppercase tracking-wide opacity-60 mb-3">Wat wordt opgeruimd</div>
-        {BRONNEN.map((bron) => {
-          const inst = instellingen.bronnen[bron.key] || {};
-          return (
-            <div key={bron.key} className="op-bron">
-              <div className="op-bron-kop">
-                {/* De keuzelijst staat bewust buiten het label, anders zet
-                    elke tik erop ook het vinkje om. */}
-                <label className="op-bron-naam">
-                  <input
-                    type="checkbox"
-                    checked={bron.altijd ? true : !!inst.aan}
-                    disabled={!!bron.altijd}
-                    onChange={wisselBron(bron.key)}
-                  />
-                  <span className="text-sm font-medium">{bron.naam}</span>
-                </label>
-                {bron.dagen && (
-                  <select
-                    className="dl-input text-xs px-2 py-1.5"
-                    value={inst.dagen ?? bron.standaardDagen ?? 0}
-                    onChange={kiesDagen(bron.key)}
-                  >
-                    {bron.dagen.map((d) => (
-                      <option key={d} value={d}>
-                        {dagenLabel(d)}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="text-xs opacity-60 mt-1 ml-7">{bron.uitleg}</div>
-            </div>
-          );
-        })}
+        <div className="text-xs font-semibold uppercase tracking-wide opacity-60 mb-3">
+          Wat wordt opgeruimd {telefoon && <span className="opacity-70">· in de app</span>}
+        </div>
+        {webBronnen.map(bronRegel)}
       </div>
+
+      {/* Alleen op de telefoon: de gedeelde opslag */}
+      {telefoon && (
+        <div className="dl-card p-4 mb-4">
+          <div className="text-xs font-semibold uppercase tracking-wide opacity-60 mb-3 flex items-center gap-1.5">
+            <Smartphone size={13} />
+            Op je telefoon
+          </div>
+          {telefoon.toestemming ? (
+            <>
+              {telBronnen.map(bronRegel)}
+              <div className="text-xs opacity-55 mt-3 flex items-start gap-1.5">
+                <FolderOpen size={13} className="mt-0.5 flex-shrink-0" />
+                {telefoon.wortel || "gedeelde opslag"} · je camera, documenten, muziek en
+                chat-mappen blijven altijd buiten schot, net als alles van de afgelopen
+                3 dagen.
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-sm">Geef toegang tot je bestanden</div>
+              <div className="text-xs opacity-60 mt-1 mb-3">
+                Zonder die toestemming kan de app alleen zijn eigen gegevens opruimen.
+                Android zet je hiervoor naar een instellingenscherm; daarna kun je terug.
+              </div>
+              <button className="dl-btn-primary text-sm px-4 py-2" onClick={geefToegang}>
+                Toegang geven
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Instellingen van de knop zelf */}
       <div className="dl-card p-4 mb-4">
@@ -332,11 +387,13 @@ export default function Opruim() {
           <span className="text-sm flex-1">Vanzelf opruimen, hooguit één keer per dag</span>
         </label>
         <div className="text-xs opacity-60 mt-2 ml-7">
-          {instellingen.automatisch
-            ? achtergrond
-              ? "Draait op de achtergrond én zodra je een Daglog-app opent."
-              : "Draait zodra je een Daglog-app opent. Echt op de achtergrond kan pas als je de app installeert — en volledig zonder de app te openen pas met de Android-versie."
-            : "Staat uit: opruimen gebeurt alleen als je op de knop drukt."}
+          {!instellingen.automatisch
+            ? "Staat uit: opruimen gebeurt alleen als je op de knop drukt."
+            : telefoon
+              ? "Draait zodra je een van de apps opent. Helemaal zonder de app te openen — een knop in je snelinstellingen en een vaste ronde 's nachts — is de volgende stap."
+              : achtergrond
+                ? "Draait op de achtergrond én zodra je een Daglog-app opent."
+                : "Draait zodra je een Daglog-app opent. Echt op de achtergrond kan pas als je de app installeert."}
         </div>
       </div>
 
@@ -358,8 +415,9 @@ export default function Opruim() {
           <div key={regel.id} className="op-rij">
             <div className="flex-1 min-w-0">
               <div className="text-sm truncate">{regel.label}</div>
-              <div className="text-xs opacity-55">
-                {regel.bron} · {fmtDatum(regel.verwijderdOp)} · {fmtBytes(regel.bytes)}
+              <div className="text-xs opacity-55 truncate">
+                {regel.soort === "telefoon" ? regel.pad : regel.bron} · {fmtDatum(regel.verwijderdOp)} ·{" "}
+                {fmtBytes(regel.bytes)}
               </div>
             </div>
             <button className="dl-btn-ghost text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={() => terug(regel)}>
@@ -407,9 +465,9 @@ export default function Opruim() {
 
       <div className="text-xs opacity-50 flex items-start gap-1.5">
         <Sparkles size={13} className="mt-0.5 flex-shrink-0" />
-        Deze knop ruimt op wat Daglog zelf opbouwt. De cache van ándere apps op je
-        telefoon kan geen webapp wissen — dat kan alleen met systeemrechten, en
-        komt in de Android-versie.
+        {telefoon
+          ? "Deze knop ruimt op wat Daglog opbouwt én de rommel op je gedeelde opslag. De cache ván andere apps blijft buiten bereik: dat mag sinds Android 6 alleen het systeem zelf."
+          : "Deze knop ruimt op wat Daglog zelf opbouwt. Voor de rommel op je telefoonopslag is de Android-versie van de app nodig."}
       </div>
     </div>
   );

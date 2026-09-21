@@ -1,17 +1,30 @@
 // Opruimen: alle rommel die Daglog zelf opbouwt in één druk op de knop weg.
 //
-// Wat deze module opruimt is bewust beperkt tot wat een webapp écht in handen
-// heeft: de eigen IndexedDB-opslag (vakantiefoto's, 3D-renders,
-// stemfragmenten), verlopen API-caches in localStorage en oude offline-caches
-// van de service worker. Caches van ándere apps op je telefoon kan geen enkele
-// app zonder systeemrechten wissen — daarvoor is de native laag nodig
-// (WorkManager/Shizuku), die los van dit bestand komt.
+// In de browser ruimt deze module op wat de app zelf opbouwt: de eigen
+// IndexedDB-opslag (vakantiefoto's, 3D-renders, stemfragmenten), verlopen
+// API-caches in localStorage en oude offline-caches van de service worker.
+//
+// Draait de app als Android-app, dan komen daar de bronnen van opruimNative.js
+// bij: rommel op de gedeelde opslag van de telefoon. Die bronnen scannen en
+// ruimen in één keer op via de plugin, dus ze krijgen hier een eigen route.
+// Caches van ándere apps blijven buiten bereik — dat kan geen app zonder
+// systeemrechten.
 //
 // Twee vangnetten, omdat opruimen onomkeerbaar voelt:
 //  1. Droogloop — de knop toont eerst wat er weg zou gaan (instelling
 //     `bevestigen`, staat aan tot de eerste geslaagde ronde).
 //  2. Prullenbak — alles wat terug te zetten is verhuist naar een eigen
 //     IndexedDB-store en wordt pas na TRASH_DAGEN echt gewist.
+
+import {
+  NATIVE_BRONNEN,
+  nativeBeschikbaar,
+  nativeScan,
+  nativeRuimOp,
+  nativePrullenbak,
+  nativeZetTerug,
+  nativeLeegPrullenbak,
+} from "./opruimNative.js";
 
 const INSTELLINGEN_KEY = "opruim-instellingen-v1";
 const LOG_KEY = "opruim-log-v1";
@@ -38,7 +51,7 @@ const LOG_MAX = 30;
 
 // `dagen` = keuzelijst voor "ouder dan"; 0 betekent "ongeacht ouderdom".
 // `terugzetbaar` bepaalt of een item via de prullenbak terug kan komen.
-export const BRONNEN = [
+const WEB_BRONNEN = [
   {
     key: "sw-cache",
     naam: "Oude offline-caches",
@@ -93,6 +106,10 @@ export const BRONNEN = [
     altijd: true, // draait ook mee als je 'm uitzet — anders groeit de prullenbak eindeloos
   },
 ];
+
+// De native bronnen staan altijd in de lijst (zodat instellingen bewaard
+// blijven), maar worden alleen gescand als de app echt op Android draait.
+export const BRONNEN = [...WEB_BRONNEN, ...NATIVE_BRONNEN];
 
 export function vindBron(key) {
   return BRONNEN.find((b) => b.key === key) || null;
@@ -563,40 +580,73 @@ const SCANNERS = {
 // ---------------------------------------------------------------------------
 
 function actieveBronnen(instellingen) {
-  return BRONNEN.filter((bron) => bron.altijd || instellingen.bronnen[bron.key]?.aan);
+  const opAndroid = nativeBeschikbaar();
+  return BRONNEN.filter((bron) => {
+    if (bron.native && !opAndroid) return false;
+    return bron.altijd || instellingen.bronnen[bron.key]?.aan;
+  });
+}
+
+function leegResultaat(bron, extra = {}) {
+  return { key: bron.key, naam: bron.naam, items: [], aantal: 0, bytes: 0, fout: null, ...extra };
 }
 
 // Droogloop: kijken wat er weg zou gaan, zonder iets aan te raken.
 export async function scanAlles(instellingen = laadInstellingen()) {
+  const actief = actieveBronnen(instellingen);
   const resultaten = [];
-  for (const bron of actieveBronnen(instellingen)) {
+
+  for (const bron of actief.filter((b) => !b.native)) {
     const dagen = instellingen.bronnen[bron.key]?.dagen ?? bron.standaardDagen ?? 0;
     try {
       const items = await SCANNERS[bron.key].scan(dagen);
       resultaten.push({
-        key: bron.key,
-        naam: bron.naam,
+        ...leegResultaat(bron),
         items,
         aantal: items.length,
         bytes: items.reduce((som, i) => som + (i.bytes || 0), 0),
-        fout: null,
       });
     } catch (e) {
-      resultaten.push({
-        key: bron.key,
-        naam: bron.naam,
-        items: [],
-        aantal: 0,
-        bytes: 0,
-        fout: e?.message || "kon niet nakijken",
-      });
+      resultaten.push({ ...leegResultaat(bron), fout: e?.message || "kon niet nakijken" });
     }
   }
+
+  // De telefoon doorzoeken we in één keer voor alle native bronnen samen —
+  // één wandeling over de opslag in plaats van zes.
+  const nativeBronnen = actief.filter((b) => b.native);
+  if (nativeBronnen.length) {
+    try {
+      const scan = await nativeScan(instellingen);
+      for (const bron of nativeBronnen) {
+        const vak = scan?.categorieen?.[bron.key] || { aantal: 0, bytes: 0 };
+        const items = (scan?.items || [])
+          .filter((item) => item.categorie === bron.key)
+          .map((item) => ({ id: item.pad, bytes: item.bytes, tijd: item.gewijzigd, label: item.naam }));
+        resultaten.push({
+          ...leegResultaat(bron),
+          items,
+          // De plugin geeft hooguit een paar honderd voorbeelden terug, maar
+          // telt wel alles: aantal en bytes komen dus uit de totalen.
+          aantal: vak.aantal || 0,
+          bytes: vak.bytes || 0,
+          native: true,
+          afgekapt: !!scan?.afgekapt,
+        });
+      }
+    } catch (e) {
+      const melding = e?.message === "geen-toestemming" ? "geen toegang tot de opslag" : e?.message || "kon niet nakijken";
+      for (const bron of nativeBronnen) {
+        resultaten.push({ ...leegResultaat(bron), native: true, fout: melding });
+      }
+    }
+  }
+
   return {
     bronnen: resultaten,
     aantal: resultaten.reduce((som, r) => som + r.aantal, 0),
     bytes: resultaten.reduce((som, r) => som + r.bytes, 0),
     opslag: await opslagInfo(),
+    instellingen,
   };
 }
 
@@ -609,7 +659,7 @@ export async function ruimOp(scan, { modus = "handmatig" } = {}) {
   const fouten = [];
 
   for (const bronResultaat of scan.bronnen) {
-    if (!bronResultaat.items.length) continue;
+    if (bronResultaat.native || !bronResultaat.items.length) continue;
     try {
       const gedaan = await SCANNERS[bronResultaat.key].ruimOp(bronResultaat.items, bronResultaat.key);
       const opgeruimd = typeof gedaan === "number" ? gedaan : bronResultaat.items.length;
@@ -621,6 +671,23 @@ export async function ruimOp(scan, { modus = "handmatig" } = {}) {
       bytes += bronBytes;
     } catch (e) {
       fouten.push(`${bronResultaat.naam}: ${e?.message || "mislukt"}`);
+    }
+  }
+
+  // De telefoon ruimt zichzelf op per categorie, in één opdracht.
+  const nativeKeys = scan.bronnen.filter((b) => b.native && b.aantal > 0).map((b) => b.key);
+  if (nativeKeys.length) {
+    try {
+      const uit = await nativeRuimOp(nativeKeys, scan.instellingen || laadInstellingen());
+      for (const key of nativeKeys) {
+        const vak = uit?.categorieen?.[key];
+        if (vak) per[key] = { aantal: vak.aantal || 0, bytes: vak.bytes || 0 };
+      }
+      aantal += uit?.aantal || 0;
+      bytes += uit?.bytes || 0;
+      if (uit?.mislukt) fouten.push(`${uit.mislukt} bestanden op de telefoon konden niet weg`);
+    } catch (e) {
+      fouten.push(`Telefoonopslag: ${e?.message || "mislukt"}`);
     }
   }
 
@@ -638,7 +705,30 @@ export async function scanEnRuimOp(opties = {}) {
   return { scan, resultaat: await ruimOp(scan, opties) };
 }
 
+/**
+ * De prullenbak zoals de app 'm toont: de eigen items plus, op Android, die
+ * van de telefoonopslag. Intern blijft `leesPrullenbak` bewust web-only — die
+ * voedt de bron die na TRASH_DAGEN definitief wist, en de telefoon ruimt zijn
+ * eigen bak op bij elke native ronde.
+ */
+export async function leesPrullenbakAlles() {
+  const eigen = (await leesPrullenbak()).map((regel) => ({ ...regel, soort: "app" }));
+  if (!nativeBeschikbaar()) return eigen;
+  const telefoon = (await nativePrullenbak()).map((regel) => ({
+    id: `telefoon:${regel.bakNaam}`,
+    soort: "telefoon",
+    bakNaam: regel.bakNaam,
+    bron: "telefoon",
+    label: regel.naam,
+    pad: regel.pad,
+    bytes: regel.bytes,
+    verwijderdOp: regel.verwijderdOp,
+  }));
+  return [...eigen, ...telefoon].sort((a, b) => b.verwijderdOp - a.verwijderdOp);
+}
+
 export async function zetTerug(regel) {
+  if (regel?.soort === "telefoon") return await nativeZetTerug(regel.bakNaam);
   if (!regel?.record || !regel?.dbNaam || !regel?.store) return false;
   await schrijfRecord(regel.dbNaam, regel.store, regel.record);
   await metPrullenbak("readwrite", (os) => {
@@ -652,10 +742,16 @@ export async function leegPrullenbak() {
   await metPrullenbak("readwrite", (os) => {
     os.clear();
   });
-  return {
-    aantal: regels.length,
-    bytes: regels.reduce((som, r) => som + (r.bytes || 0), 0),
-  };
+  let aantal = regels.length;
+  let bytes = regels.reduce((som, r) => som + (r.bytes || 0), 0);
+
+  if (nativeBeschikbaar()) {
+    const telefoon = await nativePrullenbak();
+    const vrij = await nativeLeegPrullenbak();
+    aantal += telefoon.length;
+    bytes += vrij;
+  }
+  return { aantal, bytes };
 }
 
 // ---------------------------------------------------------------------------

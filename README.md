@@ -288,9 +288,19 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
   service worker ook op de achtergrond voor de oude caches
 - Logboek van eerdere rondes en een opslagmeter (hoeveel van je quota in
   gebruik is)
-- Wat een webapp *niet* kan: de cache van ándere apps op je telefoon wissen.
-  Dat kan alleen met systeemrechten (Android-laag, Shizuku of root) en zit
-  bewust niet in deze module
+- **Op de telefoon** (alleen in de Android-app): dezelfde knop ruimt ook de
+  gedeelde opslag op — tijdelijke bestanden en halve downloads, de
+  `.thumbnails`-caches bij je foto's, lege mappen, en desgewenst oude APK's,
+  oude downloads en dubbele bestanden (identieke kopieën > 1 MB; het oudste
+  exemplaar blijft staan). Daarvoor vraagt de app eenmalig *toegang tot alle
+  bestanden*
+- **Wat nooit wordt aangeraakt**: DCIM, Pictures, Movies, Music, Documents,
+  Recordings, chat-mappen (Signal, Threema), back-ups — én alles dat jonger is
+  dan 3 dagen. Opgeruimde bestanden gaan naar `Opruim-prullenbak/` op je
+  opslag en zijn daar 7 dagen terug te halen
+- Wat een app *niet* kan: de cache van ándere apps wissen. Dat is sinds
+  Android 6 voorbehouden aan het systeem en zit bewust niet in deze module —
+  ook niet via een omweg met de toegankelijkheidsdienst
 
 **Algemeen**
 
@@ -398,6 +408,7 @@ src/secretaryApi.js            client voor de Secretaresse-endpoints op de Worke
 src/graph.js                   Microsoft Graph-aanroepen (mail/agenda)
 src/Opruim.jsx                 de opruim-tab (één knop, droogloop, prullenbak, logboek)
 src/opruim.js                  scanners per bron, prullenbak (IndexedDB) & automatische ronde
+src/opruimNative.js            brug naar de Android-plugin (bronnen op de telefoonopslag)
 src/notify.js                 meldingen (Notification Triggers + in-app fallback)
 src/theme.js                  gedeelde CSS/design-tokens
 src/storage.js                localStorage-persistentie (daglog)
@@ -410,4 +421,27 @@ scripts/generate-app-assets.mjs  genereert per-app manifesten + iconen (npm run 
 public/sw.js                  service worker (offline caching + melding-clicks)
 public/icon-*.png, icon.svg   app-iconen
 worker/                       Cloudflare Worker backend (+ DEPLOY.md)
+android/app/src/main/java/com/richard/daglog/opruim/
+  OpruimRegels.java           wat is rommel, en waar blijven we vanaf (pure Java)
+  OpruimScanner.java          doorloopt de opslag, vindt duplicaten (pure Java)
+  OpruimPrullenbak.java       Opruim-prullenbak/ + index.tsv (pure Java)
+  OpruimPlugin.java           de Capacitor-brug: toestemming, draad, JSON
 ```
+
+### De Android-app bouwen
+
+De opruim-laag op de telefoonopslag zit in de Android-build, niet in de
+webversie. Bouwen doe je zelf:
+
+```bash
+npm run cap:sync     # web-build + kopiëren naar android/
+# daarna: android/ openen in Android Studio en Run, of
+cd android && ./gradlew assembleDebug
+```
+
+De drie klassen zonder android-imports (`OpruimRegels`, `OpruimScanner`,
+`OpruimPrullenbak`) zijn met gewone `javac` te compileren en te testen — daar
+zitten alle beslissingen in. `OpruimPlugin` is alleen de brug.
+
+> **Play Store:** `MANAGE_EXTERNAL_STORAGE` vraagt daar een aparte
+> verantwoording. Deze app is bedoeld om zelf te bouwen en te installeren.

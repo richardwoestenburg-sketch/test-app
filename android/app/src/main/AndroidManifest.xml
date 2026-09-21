@@ -3,6 +3,7 @@
 
     <application
         android:allowBackup="true"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -38,4 +39,18 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Opruimen: toegang tot de gedeelde opslag om rommel te vinden en naar
+         de prullenbak te verplaatsen. Vanaf Android 11 is dat de schakelaar
+         "toegang tot alle bestanden", die de gebruiker zelf in de instellingen
+         omzet; daaronder de klassieke opslagrechten. Deze app wordt zelf
+         gebouwd en geïnstalleerd — voor de Play Store zou MANAGE_EXTERNAL_STORAGE
+         een aparte verantwoording vragen. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
 </manifest>
