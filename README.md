@@ -273,6 +273,25 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
     **blijft ingelogd** (het refresh-token is ongeveer 90 dagen geldig). Het
     geheim komt nooit in de app terecht
 
+**Opruimen**
+
+- Eén grote knop die in één keer opruimt wat Daglog zelf opbouwt: oude
+  offline-caches, de flitsers-kaartcache, 3D-renders en stemfragmenten ouder
+  dan een zelf gekozen termijn — en optioneel vakantiefoto's (staat uit)
+- **Droogloop**: de eerste keer laat de knop eerst zien wát er weg zou gaan;
+  daarna ruimt één druk meteen op (om te blijven kijken zet je het vinkje
+  *Eerst laten zien wat er weg gaat* weer aan)
+- **Prullenbak**: alles wat terug te zetten is verhuist eerst daarheen en wordt
+  pas na 7 dagen definitief gewist — met een *Terug*-knop per item
+- **Vanzelf**: er draait hooguit één keer per etmaal een opruimronde zodra je
+  een van de Daglog-apps opent. Is de app geïnstalleerd, dan wekt Chromium de
+  service worker ook op de achtergrond voor de oude caches
+- Logboek van eerdere rondes en een opslagmeter (hoeveel van je quota in
+  gebruik is)
+- Wat een webapp *niet* kan: de cache van ándere apps op je telefoon wissen.
+  Dat kan alleen met systeemrechten (Android-laag, Shizuku of root) en zit
+  bewust niet in deze module
+
 **Algemeen**
 
 - Alles blijft lokaal opgeslagen op je apparaat (`localStorage`) — geen account nodig
@@ -377,6 +396,8 @@ src/Secretary.jsx              de secretaresse-tab (mail, agenda, meldingen)
 src/msAuth.js                  Microsoft-inloggen (OAuth2 + PKCE)
 src/secretaryApi.js            client voor de Secretaresse-endpoints op de Worker
 src/graph.js                   Microsoft Graph-aanroepen (mail/agenda)
+src/Opruim.jsx                 de opruim-tab (één knop, droogloop, prullenbak, logboek)
+src/opruim.js                  scanners per bron, prullenbak (IndexedDB) & automatische ronde
 src/notify.js                 meldingen (Notification Triggers + in-app fallback)
 src/theme.js                  gedeelde CSS/design-tokens
 src/storage.js                localStorage-persistentie (daglog)

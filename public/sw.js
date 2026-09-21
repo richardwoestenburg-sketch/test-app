@@ -1,11 +1,12 @@
 // Simple offline-first service worker for Daglog.
 // Bump CACHE when you ship new assets so old caches are cleared.
-const CACHE = "daglog-v10";
+const CACHE = "daglog-v11";
 // Relative to the service worker's own location, so the same worker caches
 // correctly whether served from a domain root or a subpath (/test-app/).
 const APP_KEYS = [
   "log", "gevaar", "agenda", "tijd", "vakantie", "flitsers",
   "cabrio", "garage", "afbeeldingen", "stem", "secretaresse", "destiny",
+  "opruim",
 ];
 const CORE = [
   "./",
@@ -72,6 +73,27 @@ self.addEventListener("notificationclick", (event) => {
       }
       if (self.clients.openWindow) return self.clients.openWindow(target);
     })
+  );
+});
+
+// Opruimen: de browser mag deze worker periodiek wekken (Chromium, alleen
+// voor een geïnstalleerde app die je regelmatig gebruikt). Wat een worker
+// zelfstandig kan opruimen zijn de eigen offline-caches van oudere versies;
+// de rest (foto's, renders, fragmenten) doet de Opruimen-app zelf, zodra je
+// een van de apps opent. Volledig opruimen zonder de app te openen vraagt om
+// de Android-versie.
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag !== "opruim") return;
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((k) => /^daglog-v\d+$/.test(k) && k !== CACHE).map((k) => caches.delete(k)))
+      )
+      .then((weg) => self.clients.matchAll({ includeUncontrolled: true }))
+      .then((clients) => {
+        for (const client of clients) client.postMessage({ type: "opruim-achtergrond" });
+      })
   );
 });
 
