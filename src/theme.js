@@ -805,4 +805,91 @@ export const APP_STYLE = `
 @media (prefers-reduced-motion: reduce) {
   .dt-chip, .dt-seg-btn { transition: none; }
 }
+
+/* Opruimen: de grote knop, bronlijst en prullenbakregels */
+.op-knop-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px 0 18px;
+}
+.op-knop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 168px;
+  height: 168px;
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--dl-accent-bright), var(--dl-accent));
+  box-shadow:
+    0 18px 38px -18px color-mix(in srgb, var(--dl-accent) 80%, transparent),
+    0 0 0 10px color-mix(in srgb, var(--dl-accent) 10%, transparent);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.op-knop:hover { filter: brightness(1.05); }
+.op-knop:active { transform: scale(0.97); }
+.op-knop:disabled { opacity: 0.6; }
+.op-knop:focus-visible { outline: 2px solid var(--dl-accent); outline-offset: 6px; }
+.op-knop-tekst { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.op-knop-sub { font-size: 12px; opacity: 0.85; }
+
+.op-melding {
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--dl-accent) 8%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--dl-accent) 22%, transparent);
+}
+.op-melding-fout {
+  background: #f6e5e3;
+  border-color: rgba(179,54,42,0.35);
+  color: #b3362a;
+}
+
+.op-resultaat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #e8f3ec;
+  border: 1px solid rgba(30,122,79,0.28);
+  color: #16543a;
+}
+.op-resultaat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #34a06b, #1e7a4f);
+  flex-shrink: 0;
+}
+
+.op-rij {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid #eef0f7;
+}
+.op-rij:first-of-type { border-top: none; }
+
+.op-bron { padding: 9px 0; border-top: 1px solid #eef0f7; }
+.op-bron:first-of-type { border-top: none; padding-top: 0; }
+.op-bron-kop { display: flex; align-items: center; gap: 10px; }
+.op-bron-naam { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
+.op-bron-kop input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--dl-accent); flex-shrink: 0; }
+.op-bron-kop input[type="checkbox"]:disabled { opacity: 0.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .op-knop { transition: none; }
+}
 `;

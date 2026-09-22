@@ -14,6 +14,8 @@ import Voice from "./Voice.jsx";
 import Cabrio from "./Cabrio.jsx";
 import Garage from "./Garage.jsx";
 import Destiny from "./Destiny.jsx";
+import Opruim from "./Opruim.jsx";
+import { automatischOpruimen } from "./opruim.js";
 
 const COMPONENTS = {
   log: DagLog,
@@ -28,6 +30,7 @@ const COMPONENTS = {
   stem: Voice,
   secretaresse: Secretary,
   destiny: Destiny,
+  opruim: Opruim,
 };
 
 const TAB_KEY = "daglog-tab";
@@ -74,6 +77,13 @@ export default function App() {
     const themeColor = document.querySelector('meta[name="theme-color"]');
     if (themeColor) themeColor.content = a.accent;
   }, [solo]);
+
+  // Opruimen zonder eraan te denken: welke app je ook opent, er draait
+  // hooguit één keer per etmaal een opruimronde op de achtergrond. Gaat er
+  // iets mis, dan merk je daar niets van — de Opruimen-app toont het logboek.
+  useEffect(() => {
+    automatischOpruimen().catch(() => {});
+  }, []);
 
   const choose = (t) => {
     setTab(t);
