@@ -34,6 +34,32 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        <!-- Opruimen: de knop in je snelinstellingen. Android bindt hier zelf
+             aan; de tegel zet alleen een ronde in de wachtrij. -->
+        <service
+            android:name="com.richard.daglog.opruim.OpruimTegel"
+            android:label="@string/opruim_widget_naam"
+            android:icon="@drawable/ic_opruim"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Opruimen: de knop op je startscherm. -->
+        <receiver
+            android:name="com.richard.daglog.opruim.OpruimWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.richard.daglog.OPRUIMEN" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/opruim_widget_info" />
+        </receiver>
+
     </application>
 
     <!-- Permissions -->
@@ -53,4 +79,8 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
+
+    <!-- Alleen om achteraf te melden hoeveel ruimte een ronde vrijmaakte.
+         Weiger je dit, dan ruimt de app gewoon stil op. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

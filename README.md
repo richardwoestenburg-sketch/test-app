@@ -286,6 +286,13 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
 - **Vanzelf**: er draait hooguit één keer per etmaal een opruimronde zodra je
   een van de Daglog-apps opent. Is de app geïnstalleerd, dan wekt Chromium de
   service worker ook op de achtergrond voor de oude caches
+- **Zonder de app te openen** (Android-app): een **tegel** in je
+  snelinstellingen, een **widget** op je startscherm (die ook toont wat de
+  vorige ronde opleverde) en een **nachtronde** rond 03:00 — alleen als de
+  telefoon stilligt en de accu niet laag is. Achteraf één stille melding met
+  wat er vrijkwam; geef je geen toestemming voor meldingen, dan ruimt hij stil
+  op. Tegel en widget doen zelf geen werk: ze zetten een ronde in de wachtrij
+  bij WorkManager, zodat die doorloopt als je het menu weer dichtschuift
 - Logboek van eerdere rondes en een opslagmeter (hoeveel van je quota in
   gebruik is)
 - **Op de telefoon** (alleen in de Android-app): dezelfde knop ruimt ook de
@@ -425,7 +432,13 @@ android/app/src/main/java/com/richard/daglog/opruim/
   OpruimRegels.java           wat is rommel, en waar blijven we vanaf (pure Java)
   OpruimScanner.java          doorloopt de opslag, vindt duplicaten (pure Java)
   OpruimPrullenbak.java       Opruim-prullenbak/ + index.tsv (pure Java)
+  OpruimRonde.java            één ronde: scannen, wegzetten, prullenbak (pure Java)
+  OpruimInstellingenTekst.java je keuzes als één regel tekst (pure Java)
   OpruimPlugin.java           de Capacitor-brug: toestemming, draad, JSON
+  OpruimMotor.java            voorkeuren, ronde en melding buiten de app om
+  OpruimWerk.java             WorkManager: de nachtronde en losse rondes
+  OpruimTegel.java            de tegel in je snelinstellingen
+  OpruimWidget.java           de knop op je startscherm
 ```
 
 ### De Android-app bouwen
@@ -439,9 +452,16 @@ npm run cap:sync     # web-build + kopiëren naar android/
 cd android && ./gradlew assembleDebug
 ```
 
-De drie klassen zonder android-imports (`OpruimRegels`, `OpruimScanner`,
-`OpruimPrullenbak`) zijn met gewone `javac` te compileren en te testen — daar
-zitten alle beslissingen in. `OpruimPlugin` is alleen de brug.
+De klassen zonder android-imports (`OpruimRegels`, `OpruimScanner`,
+`OpruimPrullenbak`, `OpruimRonde`, `OpruimInstellingenTekst`) zijn met gewone
+`javac` te compileren en te testen — daar zitten alle beslissingen én de
+opruimronde zelf in. De rest is schil: `OpruimPlugin` is de brug naar de app,
+`OpruimMotor` regelt voorkeuren en meldingen, en tegel, widget en nachtronde
+zetten alle drie diezelfde `OpruimRonde` in gang.
+
+Je keuzes staan in localStorage van de webview; een tegel of nachtronde komt
+daar niet bij. De app schrijft ze daarom bij elke wijziging ook naar
+SharedPreferences, en plant meteen de nachtronde (of zegt hem af).
 
 > **Play Store:** `MANAGE_EXTERNAL_STORAGE` vraagt daar een aparte
 > verantwoording. Deze app is bedoeld om zelf te bouwen en te installeren.

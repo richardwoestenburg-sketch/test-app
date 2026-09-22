@@ -4,4 +4,7 @@
     <string name="title_activity_main">daglog</string>
     <string name="package_name">com.richard.daglog</string>
     <string name="custom_url_scheme">com.richard.daglog</string>
+    <string name="opruim_widget_naam">Opruimen</string>
+    <string name="opruim_widget_hint">tik om op te ruimen</string>
+    <string name="opruim_widget_omschrijving">Ruim met één tik de rommel op je telefoon op.</string>
 </resources>

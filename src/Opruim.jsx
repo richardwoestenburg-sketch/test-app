@@ -11,6 +11,9 @@ import {
   X,
   Smartphone,
   FolderOpen,
+  LayoutGrid,
+  Bell,
+  Moon,
 } from "lucide-react";
 import {
   BRONNEN,
@@ -30,7 +33,14 @@ import {
   fmtBytes,
   fmtDatum,
 } from "./opruim.js";
-import { nativeBeschikbaar, nativeStatus, vraagNativeToestemming } from "./opruimNative.js";
+import {
+  nativeBeschikbaar,
+  nativeStatus,
+  vraagNativeToestemming,
+  vraagMeldingenToestemming,
+  bewaarNativeVoorkeuren,
+  nativeRondeNu,
+} from "./opruimNative.js";
 
 const BAK_ZICHTBAAR = 8;
 const LOG_ZICHTBAAR = 5;
@@ -82,6 +92,14 @@ export default function Opruim() {
     if (!instellingen.automatisch) return;
     registreerAchtergrond().then(setAchtergrond);
   }, [instellingen.automatisch]);
+
+  // Eerste keer openen: geef de tegel, de widget en de nachtronde meteen een
+  // kopie van je instellingen, anders wachten die op je eerste wijziging.
+  useEffect(() => {
+    if (!nativeBeschikbaar()) return;
+    bewaarNativeVoorkeuren(laadInstellingen()).then(() => ververs());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const voerUit = useCallback(
     async (scan) => {
@@ -159,6 +177,25 @@ export default function Opruim() {
     await zetTerug(regel);
     setMelding(`"${regel.label}" staat weer terug.`);
     await ververs();
+  };
+
+  const geefMeldingen = async () => {
+    const gelukt = await vraagMeldingenToestemming();
+    setTelefoon(await nativeStatus());
+    setMelding(
+      gelukt
+        ? "Je krijgt voortaan één stille melding met wat een ronde opleverde."
+        : "Zonder meldingen ruimt de app gewoon stil op; je ziet het resultaat hier."
+    );
+  };
+
+  const probeerAchtergrond = async () => {
+    const gestart = await nativeRondeNu();
+    setMelding(
+      gestart
+        ? "Ronde in de wachtrij gezet — precies zoals de tegel dat doet. Het resultaat komt zo binnen."
+        : "Dat lukte niet. Staat de toegang tot je bestanden aan?"
+    );
   };
 
   const geefToegang = async () => {
@@ -390,12 +427,80 @@ export default function Opruim() {
           {!instellingen.automatisch
             ? "Staat uit: opruimen gebeurt alleen als je op de knop drukt."
             : telefoon
-              ? "Draait zodra je een van de apps opent. Helemaal zonder de app te openen — een knop in je snelinstellingen en een vaste ronde 's nachts — is de volgende stap."
+              ? "Draait elke nacht rond 03:00 als de telefoon stilligt, én zodra je een van de apps opent."
               : achtergrond
                 ? "Draait op de achtergrond én zodra je een Daglog-app opent."
                 : "Draait zodra je een Daglog-app opent. Echt op de achtergrond kan pas als je de app installeert."}
         </div>
       </div>
+
+      {/* Alleen op de telefoon: de knop buiten de app om */}
+      {telefoon && telefoon.toestemming && (
+        <div className="dl-card p-4 mb-4">
+          <div className="text-xs font-semibold uppercase tracking-wide opacity-60 mb-3 flex items-center gap-1.5">
+            <LayoutGrid size={13} />
+            Zonder de app te openen
+          </div>
+
+          <div className="op-rij">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <LayoutGrid size={15} className="dl-ico-accent flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="text-sm font-medium">Tegel in je snelinstellingen</div>
+                <div className="text-xs opacity-60">
+                  Veeg het menu open → potlood ✏️ → sleep <em>Opruimen</em> naar boven. Eén tik ruimt op.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="op-rij">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Sparkles size={15} className="dl-ico-accent flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="text-sm font-medium">Widget op je startscherm</div>
+                <div className="text-xs opacity-60">
+                  Houd je startscherm ingedrukt → <em>Widgets</em> → Opruimen. Toont ook wat de vorige ronde opleverde.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="op-rij">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Moon size={15} className="dl-ico-accent flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="text-sm font-medium">Elke nacht rond 03:00</div>
+                <div className="text-xs opacity-60">
+                  {telefoon.automatisch
+                    ? "Staat aan — draait alleen als de telefoon stilligt en de accu niet laag is."
+                    : "Staat uit. Zet hierboven \u201Evanzelf opruimen\u201D aan."}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {telefoon.laatsteRonde?.op > 0 && (
+            <div className="text-xs opacity-60 mt-3">
+              Laatste ronde op de achtergrond: {fmtDatum(telefoon.laatsteRonde.op)} ·{" "}
+              {fmtBytes(telefoon.laatsteRonde.bytes)} · {telefoon.laatsteRonde.aantal} items
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button className="dl-btn-ghost text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={probeerAchtergrond}>
+              <Sparkles size={13} />
+              Probeer het nu
+            </button>
+            {!telefoon.meldingen && (
+              <button className="dl-btn-ghost text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={geefMeldingen}>
+                <Bell size={13} />
+                Meldingen aanzetten
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Prullenbak */}
       <div className="dl-card p-4 mb-4">

@@ -24,6 +24,7 @@ import {
   nativePrullenbak,
   nativeZetTerug,
   nativeLeegPrullenbak,
+  bewaarNativeVoorkeuren,
 } from "./opruimNative.js";
 
 const INSTELLINGEN_KEY = "opruim-instellingen-v1";
@@ -153,6 +154,10 @@ export function bewaarInstellingen(deel) {
   } catch {
     /* opslag geblokkeerd — instelling geldt dan alleen deze sessie */
   }
+  // De tegel, de widget en de nachtronde lezen hun eigen kopie: bijwerken dus,
+  // anders ruimen die straks op volgens gisteren. Lukt het niet, dan blijft de
+  // app gewoon werken — de vorige kopie blijft dan staan.
+  if (nativeBeschikbaar()) bewaarNativeVoorkeuren(volgende).catch(() => {});
   return volgende;
 }
 

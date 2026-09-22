@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vier-puntige fonkeling: hetzelfde beeld als het icoon in de app. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M9.5,3 L11,8 L16,9.5 L11,11 L9.5,16 L8,11 L3,9.5 L8,8 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M17.5,13 L18.4,15.6 L21,16.5 L18.4,17.4 L17.5,20 L16.6,17.4 L14,16.5 L16.6,15.6 Z" />
+</vector>
