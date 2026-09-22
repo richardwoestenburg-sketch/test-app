@@ -138,6 +138,47 @@ export async function nativeRuimOp(categorieen, instellingen) {
   return await plugin.ruimOp({ ...nativePayload(instellingen), categorieen });
 }
 
+/**
+ * Je keuzes ook naar de Android-kant schrijven. Dat moet, want de tegel, de
+ * widget en de nachtronde draaien buiten de webview om en komen niet bij
+ * localStorage. Meteen daarna plant (of annuleert) de plugin de nachtronde.
+ */
+export async function bewaarNativeVoorkeuren(instellingen) {
+  const plugin = brug();
+  if (!plugin) return null;
+  try {
+    return await plugin.bewaarVoorkeuren({
+      ...nativePayload(instellingen),
+      automatisch: !!instellingen.automatisch,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function vraagMeldingenToestemming() {
+  const plugin = brug();
+  if (!plugin) return false;
+  try {
+    const uit = await plugin.vraagMeldingen();
+    return !!uit?.meldingen;
+  } catch {
+    return false;
+  }
+}
+
+/** Eén ronde aanvragen zoals de tegel dat doet — om het een keer te proberen. */
+export async function nativeRondeNu() {
+  const plugin = brug();
+  if (!plugin) return false;
+  try {
+    await plugin.ruimNuOpDeAchtergrond();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function nativePrullenbak() {
   const plugin = brug();
   if (!plugin) return [];

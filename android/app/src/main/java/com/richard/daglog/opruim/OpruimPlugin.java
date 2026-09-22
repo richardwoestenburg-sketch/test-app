@@ -47,18 +47,20 @@ import java.util.concurrent.Executors;
         @Permission(
             alias = OpruimPlugin.OPSLAG,
             strings = { Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE }
-        )
+        ),
+        @Permission(alias = OpruimPlugin.MELDINGEN, strings = { Manifest.permission.POST_NOTIFICATIONS })
     }
 )
 public class OpruimPlugin extends Plugin {
 
     static final String OPSLAG = "opslag";
+    static final String MELDINGEN = "meldingen";
 
     /** Hoeveel losse items we hooguit teruggeven; de totalen kloppen altijd. */
     private static final int MAX_ITEMS = 400;
 
     /** Zo lang blijft een opgeruimd bestand in de prullenbak staan. */
-    private static final int BEWAAR_DAGEN = 7;
+    private static final int BEWAAR_DAGEN = OpruimMotor.BEWAAR_DAGEN;
 
     private final ExecutorService draad = Executors.newSingleThreadExecutor();
 
@@ -96,6 +98,17 @@ public class OpruimPlugin extends Plugin {
             bakInfo.put("aantal", regels.size());
             bakInfo.put("bytes", bak.omvang());
             ret.put("prullenbak", bakInfo);
+
+            // De knop buiten de app om: staat de nachtronde gepland, mogen we
+            // melden, en wat leverde de vorige ronde op?
+            ret.put("automatisch", OpruimMotor.prefs(getContext()).getBoolean(OpruimMotor.SLEUTEL_AUTOMATISCH, false));
+            ret.put("meldingen", mogenWeMelden());
+
+            JSObject laatste = new JSObject();
+            laatste.put("op", OpruimMotor.prefs(getContext()).getLong(OpruimMotor.SLEUTEL_LAATSTE_OP, 0));
+            laatste.put("aantal", OpruimMotor.prefs(getContext()).getInt(OpruimMotor.SLEUTEL_LAATSTE_AANTAL, 0));
+            laatste.put("bytes", OpruimMotor.prefs(getContext()).getLong(OpruimMotor.SLEUTEL_LAATSTE_BYTES, 0));
+            ret.put("laatsteRonde", laatste);
 
             call.resolve(ret);
         });
@@ -219,15 +232,9 @@ public class OpruimPlugin extends Plugin {
     }
 
     /**
-     * Ruimt op wat in de opgegeven categorieën valt. Bewust niet op basis van
-     * de padlijst uit `scan`: die is afgetopt op MAX_ITEMS, en dan zou een
-     * volle telefoon maar deels opgeruimd worden. We scannen dus opnieuw en
-     * pakken alles wat in de aangevinkte categorieën valt — de regels kijken
-     * toch niet naar bestanden jonger dan een paar dagen, dus er kan in de
-     * tussentijd niets nieuws tussendoor glippen.
-     *
-     * Bestanden verhuizen naar de prullenbak; lege mappen verdwijnen meteen
-     * (die zijn niet terug te zetten en nemen geen ruimte in).
+     * Ruimt op wat in de opgegeven categorieën valt. Het echte werk doet
+     * OpruimRonde, dat ook de tegel, de widget en de nachtronde draaien —
+     * één pad, dus één gedrag.
      */
     @PluginMethod
     public void ruimOp(PluginCall call) {
@@ -246,68 +253,16 @@ public class OpruimPlugin extends Plugin {
         }
 
         draad.execute(() -> {
-            long nu = System.currentTimeMillis();
-            OpruimPrullenbak bak = prullenbak();
-            String wortelPad = wortel().getAbsolutePath();
-
-            OpruimScanner.Uitkomst uitkomst = OpruimScanner.scan(wortel(), inst, nu);
-            List<OpruimPrullenbak.Regel> verhuisd = new ArrayList<>();
-            Map<String, long[]> per = new HashMap<>();
-            int aantal = 0;
-            long bytes = 0;
-            int mislukt = 0;
-
-            for (OpruimScanner.Vondst vondst : uitkomst.vondsten) {
-                if (!categorieen.contains(vondst.categorie)) continue;
-
-                File bestand = new File(vondst.pad);
-                // Nooit buiten de gedeelde opslag, en nooit in de bak zelf.
-                if (!bestand.getAbsolutePath().startsWith(wortelPad)
-                    || bestand.getAbsolutePath().contains(OpruimPrullenbak.MAP_NAAM)) {
-                    mislukt++;
-                    continue;
-                }
-
-                boolean gelukt;
-                long vrij = 0;
-                if (vondst.map) {
-                    String[] inhoud = bestand.list();
-                    gelukt = inhoud != null && inhoud.length == 0 && bestand.delete();
-                } else {
-                    OpruimPrullenbak.Regel regel = bak.verplaats(bestand, nu);
-                    gelukt = regel != null;
-                    if (gelukt) {
-                        verhuisd.add(regel);
-                        vrij = regel.bytes;
-                    }
-                }
-                if (!gelukt) {
-                    mislukt++;
-                    continue;
-                }
-                aantal++;
-                bytes += vrij;
-
-                long[] totaal = per.get(vondst.categorie);
-                if (totaal == null) {
-                    totaal = new long[] { 0, 0 };
-                    per.put(vondst.categorie, totaal);
-                }
-                totaal[0]++;
-                totaal[1] += vrij;
-            }
-
-            try {
-                bak.noteer(verhuisd);
-            } catch (Exception e) {
-                // De bestanden staan in de bak; alleen de administratie ontbreekt.
-                mislukt += verhuisd.size();
-            }
-
-            long definitiefVrij = bak.wisOuderDan(BEWAAR_DAGEN, nu);
+            OpruimRonde.Uitkomst uitkomst = OpruimRonde.voerUit(
+                wortel(),
+                inst,
+                categorieen.toArray(new String[0]),
+                BEWAAR_DAGEN,
+                System.currentTimeMillis()
+            );
 
             JSObject perCategorie = new JSObject();
-            for (Map.Entry<String, long[]> regel : per.entrySet()) {
+            for (Map.Entry<String, long[]> regel : uitkomst.per.entrySet()) {
                 JSObject vak = new JSObject();
                 vak.put("aantal", regel.getValue()[0]);
                 vak.put("bytes", regel.getValue()[1]);
@@ -315,13 +270,72 @@ public class OpruimPlugin extends Plugin {
             }
 
             JSObject ret = new JSObject();
-            ret.put("aantal", aantal);
-            ret.put("bytes", bytes);
-            ret.put("mislukt", mislukt);
-            ret.put("definitiefVrij", definitiefVrij);
+            ret.put("aantal", uitkomst.aantal);
+            ret.put("bytes", uitkomst.bytes);
+            ret.put("mislukt", uitkomst.mislukt);
+            ret.put("definitiefVrij", uitkomst.definitiefVrij);
             ret.put("categorieen", perCategorie);
             call.resolve(ret);
         });
+    }
+
+    // ----------------------------------------------------------------------
+    // De knop buiten de app om: voorkeuren, nachtronde en meldingen
+    // ----------------------------------------------------------------------
+
+    private boolean mogenWeMelden() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true;
+        return getPermissionState(MELDINGEN) == PermissionState.GRANTED;
+    }
+
+    /**
+     * De app bewaart je keuzes in localStorage, en daar komt een tegel of een
+     * nachtronde niet bij. Elke wijziging komt daarom ook hierheen, en meteen
+     * wordt de nachtronde (opnieuw) ingepland of juist afgezegd.
+     */
+    @PluginMethod
+    public void bewaarVoorkeuren(PluginCall call) {
+        OpruimRegels.Instellingen inst = instellingenUit(call);
+        boolean automatisch = Boolean.TRUE.equals(call.getBoolean("automatisch", Boolean.TRUE));
+        OpruimMotor.bewaarInstellingen(getContext(), inst, automatisch);
+        try {
+            OpruimWerk.plan(getContext(), automatisch);
+        } catch (Exception e) {
+            call.reject("nachtronde-mislukt");
+            return;
+        }
+        JSObject ret = new JSObject();
+        ret.put("automatisch", automatisch);
+        call.resolve(ret);
+    }
+
+    /** Eén ronde aanvragen zoals de tegel dat doet — handig om het te proberen. */
+    @PluginMethod
+    public void ruimNuOpDeAchtergrond(PluginCall call) {
+        if (!heeftToestemming()) {
+            call.reject("geen-toestemming");
+            return;
+        }
+        OpruimWerk.nu(getContext());
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void vraagMeldingen(PluginCall call) {
+        if (mogenWeMelden()) {
+            JSObject ret = new JSObject();
+            ret.put("meldingen", true);
+            call.resolve(ret);
+            return;
+        }
+        requestPermissionForAlias(MELDINGEN, call, "naMeldingen");
+    }
+
+    @PermissionCallback
+    private void naMeldingen(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("meldingen", mogenWeMelden());
+        call.resolve(ret);
     }
 
     // ----------------------------------------------------------------------
