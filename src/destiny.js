@@ -687,6 +687,45 @@ export function questUitFormulier(f) {
   };
 }
 
+// Meerdere quests in één keer: één per regel. "Wish-Keeper 3/7" of
+// "Vex-bounty 0 van 5" wordt herkend, en een trefwoord in de regel bepaalt de
+// soort. Alleen een naam is ook genoeg — dan staat hij er tenminste in.
+const QUEST_WOORDEN = [
+  { id: "bounty", woorden: ["bounty", "bounties", "premie"] },
+  { id: "exotic", woorden: ["exotic", "exotisch"] },
+  { id: "catalyst", woorden: ["catalyst", "katalysator"] },
+  { id: "seizoen", woorden: ["seizoen", "season", "battlepass"] },
+];
+
+export function questsUitTekst(tekst, platform) {
+  const regels = String(tekst || "")
+    .split(/\r?\n/)
+    .map((r) => r.trim())
+    .filter(Boolean);
+
+  return regels.map((regel) => {
+    let rest = regel;
+    let gedaan = "";
+    let totaal = "";
+    const m = rest.match(/(\d+)\s*(?:\/|van)\s*(\d+)/i);
+    if (m) {
+      gedaan = Number(m[1]);
+      totaal = Number(m[2]);
+      rest = `${rest.slice(0, m.index)} ${rest.slice(m.index + m[0].length)}`;
+    }
+    const n = norm(rest);
+    const gevonden = QUEST_WOORDEN.find((k) => k.woorden.some((w) => n.includes(w)));
+    const naam = rest.replace(/[\s\-–—·,;:]+$/, "").replace(/^[\s\-–—·,;:]+/, "").trim();
+    return questUitFormulier({
+      ...emptyQuest(platform),
+      name: naam || regel,
+      kindId: gevonden ? gevonden.id : "quest",
+      gedaan,
+      totaal,
+    });
+  });
+}
+
 // Advies: welke quest kun je het best doen? Alles hieronder komt uit je eigen
 // gegevens, met de reden erbij — geen zwarte doos.
 export function questAdvies(quests, activities = [], platform = null) {
@@ -832,6 +871,7 @@ const INTENTS = [
   { id: "worst", syn: ["zwakste", "laagste", "slechtste"] },
   { id: "missing", syn: ["nog niet", "niet gehaald", "mis ik", "mis", "ontbreekt", "ontbreken", "moet ik nog", "nog te doen", "openstaand", "todo"] },
   { id: "done", syn: ["gehaald", "afgerond", "voltooid", "uitgespeeld", "klaar", "gedaan", "behaald"] },
+  { id: "order", syn: ["volgorde", "welke eerst", "wat eerst", "eerst doen", "rangschik", "op volgorde", "planning", "welke daarna", "in welke volgorde"] },
   { id: "overview", syn: ["overzicht", "samenvatting", "hoe sta ik ervoor", "stand van zaken", "hoeveel heb ik in totaal"] },
 ];
 
@@ -966,6 +1006,7 @@ export function parseQuestion(question, data) {
     intents.find((i) => i === "overview") ||
     intents.find((i) => i === "count") ||
     intents.find((i) => i === "where") ||
+    intents.find((i) => i === "order") ||
     intents.find((i) => i === "best" || i === "worst") ||
     intents.find((i) => i === "missing" || i === "done") ||
     "list";
@@ -1126,6 +1167,16 @@ export function ask(question, data) {
     }
     if (intent === "count") {
       return { ...base, text: `Je hebt ${plural(advies.length, "openstaande quest", "openstaande quests")}.`, quests: advies };
+    }
+    if (intent === "order") {
+      const regels = advies.map(
+        (a, i) => `${i + 1}. ${a.quest.name} — ${a.redenen.join(", ")}`
+      );
+      return {
+        ...base,
+        text: `Zo zou ik ze doen:\n${regels.join("\n")}`,
+        quests: advies,
+      };
     }
     const top = advies[0];
     const tekst =
@@ -1291,7 +1342,10 @@ export function suggestions(data) {
     out.push("Welke raids heb ik nog niet gehaald?");
   }
   if (data.characters.length) out.push("Wat is mijn sterkste karakter?");
-  if ((data.quests || []).some((q) => !q.klaar)) out.push("Welke quest kan ik het best doen?");
+  if ((data.quests || []).some((q) => !q.klaar)) {
+    out.push("Welke quest kan ik het best doen?");
+    out.push("In welke volgorde doe ik mijn quests?");
+  }
   if ((data.photos || []).length) out.push("Waar heb ik een foto van?");
   return out.slice(0, 8);
 }
