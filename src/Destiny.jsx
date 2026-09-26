@@ -805,6 +805,7 @@ export default function Destiny() {
           updated: itemResult.updated,
           chars: charResult.added + charResult.updated,
           quests: s.questAantal || 0,
+          kolommen: s.dimDiagnose?.kolommen || null,
         })
       );
       setSync({

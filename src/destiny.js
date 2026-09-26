@@ -289,7 +289,9 @@ export function importLogRegel(e) {
   if (e.updated) stukken.push(`${e.updated} bijgewerkt`);
   if (e.chars) stukken.push(`${e.chars} karakters`);
   if (e.quests) stukken.push(`${e.quests} quests`);
-  return `${kort(e.at)} — ${bron} naar ${platformLabel(e.platform)}: ${stukken.join(", ")}`;
+  const regel = `${kort(e.at)} — ${bron} naar ${platformLabel(e.platform)}: ${stukken.join(", ")}`;
+  // De kolomnamen erbij: DIM hernoemt ze weleens, en dan valt een veld stil weg.
+  return e.kolommen?.length ? `${regel}\n  Kolommen: ${e.kolommen.join(", ")}` : regel;
 }
 
 // Eén blok tekst dat precies zegt wat er op dit toestel staat. Bedoeld om te
@@ -1064,7 +1066,8 @@ export function ask(question, data) {
         ...base,
         text: heeft
           ? "Al je opgehaalde quests staan op klaar. Haal ze opnieuw op voor de laatste stand."
-          : "Er staan nog geen quests in de app. Haal ze op via de Bungie-koppeling (⚙️), dan kan ik erover adviseren.",
+          : "Er staan nog geen quests in de app. Een DIM-export bevat geen quests — alleen wapens en armor. " +
+            "Quests kunnen op dit moment alleen binnenkomen via de Bungie-koppeling (⚙️ → geavanceerd).",
       };
     }
     if (intent === "count") {
