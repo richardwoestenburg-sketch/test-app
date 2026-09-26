@@ -863,11 +863,76 @@ export default function Destiny() {
     }
   };
 
+  const verwerkMeerdereCsv = async (files) => {
+    const slot = platform || "ps5";
+    const bestand = {
+      naam: `${files.length} bestanden: ${files.map((f) => f.name).join(", ")}`,
+      bytes: files.reduce((n, f) => n + (f.size || 0), 0),
+      meerdere: true,
+    };
+    setSync({ slot, bron: "dim", phase: "ophalen", bestand, progress: null });
+    setBungieMsg("");
+
+    const items = [];
+    const gezien = new Set();
+    const kolommen = new Set();
+    let rijen = 0;
+    let overig = 0;
+    let mislukt = 0;
+
+    for (const file of files) {
+      try {
+        const { items: uit, diagnose } = dim.mapDimRows(await file.text(), { platform: slot, characters });
+        rijen += diagnose.rijen || 0;
+        overig += diagnose.overig || 0;
+        (diagnose.kolommen || []).forEach((k) => kolommen.add(k));
+        for (const it of uit) {
+          // Hetzelfde ding kan in twee exports staan; één keer is genoeg.
+          if (gezien.has(it.instanceId)) continue;
+          gezien.add(it.instanceId);
+          items.push(it);
+        }
+      } catch {
+        mislukt += 1;
+      }
+    }
+
+    const selected = new Set(
+      items.filter((i) => i.locked || d.norm(i.rarity) === "exotic").map((i) => i.instanceId)
+    );
+    setCsvPlakken(null);
+    setSync({
+      slot,
+      bron: "dim",
+      phase: "kiezen",
+      chars: [],
+      items,
+      selected,
+      bestand,
+      dimDiagnose: {
+        rijen,
+        herkend: items.length,
+        overig,
+        kolommen: [...kolommen],
+        reden: items.length
+          ? ""
+          : mislukt === files.length
+            ? "Geen van deze bestanden kon ik lezen. Zijn het de CSV-exports van DIM?"
+            : "Er stond niets in met een naam. Exporteer bij DIM de lijst met wapens of armor.",
+      },
+      progress: null,
+    });
+  };
+
   const onCsvChosen = async (e) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     e.target.value = "";
     // Geen bestand = je hebt de kiezer weggeklikt; dan hoeft er niets te gebeuren.
-    if (!file) return;
+    if (!files.length) return;
+    // DIM exporteert wapens, armor, ghosts en de rest als losse bestanden. Je
+    // mag ze in één keer kiezen; ze worden samengevoegd tot één lijst.
+    if (files.length > 1) return verwerkMeerdereCsv(files);
+    const file = files[0];
     const bestand = { naam: file.name || "bestand", bytes: file.size || 0 };
     setSync({ slot: platform || "ps5", bron: "dim", phase: "ophalen", bestand, progress: null });
     try {
@@ -1363,18 +1428,19 @@ export default function Destiny() {
               >
                 Destiny Item Manager
               </a>{" "}
-              met je Bungie-account en download daar bij <em>Settings → Spreadsheets</em> de lijst
-              met <strong>wapens</strong> of <strong>armor</strong>. Kies dat bestand hier.
+              met je Bungie-account en download daar bij <em>Settings → Spreadsheets</em> de
+              lijsten die je wilt (<strong>wapens</strong>, <strong>armor</strong>, ghosts, de
+              rest). Je mag ze hier in één keer selecteren; ze worden samengevoegd.
             </p>
             <button
               onClick={() => csvRef.current?.click()}
               className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5"
             >
-              <FileUp size={14} /> DIM-bestand kiezen ({d.platformLabel(platform || "ps5")})
+              <FileUp size={14} /> DIM-bestand(en) kiezen ({d.platformLabel(platform || "ps5")})
             </button>
             {/* Bewust zonder accept-filter: Android maakt een CSV uit je
                 downloads anders vaak onselecteerbaar. */}
-            <input ref={csvRef} type="file" className="hidden" onChange={onCsvChosen} />
+            <input ref={csvRef} type="file" multiple className="hidden" onChange={onCsvChosen} />
 
             {csvPlakken == null ? (
               <button
@@ -1752,8 +1818,13 @@ export default function Destiny() {
                 </>
               ) : (
                 <p className="text-sm">
-                  {sync.items.length} wapens en armor{" "}
-                  {sync.bron === "dim" ? "in het bestand" : "gevonden"}. Aangevinkt staat wat je in
+                  {sync.items.length} dingen{" "}
+                  {sync.bron === "dim"
+                    ? sync.bestand?.meerdere
+                      ? "in de bestanden"
+                      : "in het bestand"
+                    : "gevonden"}
+                  . Aangevinkt staat wat je in
                   de game <strong>vergrendeld</strong> hebt, plus je exotics — dat is meestal
                   precies wat je wilt bijhouden.
                 </p>
