@@ -541,6 +541,7 @@ export default function Destiny() {
   const [actForm, setActForm] = useState(null);
   const [questForm, setQuestForm] = useState(null);
   const [toonAfgerond, setToonAfgerond] = useState(false);
+  const [questPlakken, setQuestPlakken] = useState(null); // null = dicht
 
   const saveAct = () => {
     const f = actForm;
@@ -563,6 +564,13 @@ export default function Destiny() {
   };
 
   const removeQuest = (instanceId) => commitQuests(quests.filter((q) => q.instanceId !== instanceId));
+
+  const voegQuestsToe = () => {
+    const nieuwe = d.questsUitTekst(questPlakken, platform || "ps5");
+    if (!nieuwe.length) return;
+    commitQuests([...quests, ...nieuwe]);
+    setQuestPlakken(null);
+  };
 
   const toggleQuestKlaar = (quest) =>
     commitQuests(
@@ -1824,7 +1832,7 @@ export default function Destiny() {
           {answer && (
             <div className="dt-answer p-4 mb-5">
               <div className="text-[11px] uppercase dl-day-label opacity-55 mb-1">{answer.asked}</div>
-              <p className="text-sm leading-relaxed">{answer.text}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-line">{answer.text}</p>
               {answer.search && (
                 <a
                   className="dl-btn-ghost px-3 py-2 text-xs inline-flex items-center gap-1.5 mt-3"
@@ -2236,6 +2244,47 @@ export default function Destiny() {
                 className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5 flex-1 min-w-0"
               >
                 <Plus size={15} /> Quest
+              </button>
+            </div>
+          )}
+
+          {!questForm && questPlakken == null && (
+            <button
+              onClick={() => setQuestPlakken("")}
+              className="dl-btn-ghost px-3 py-2 text-sm flex items-center gap-1.5 mb-4"
+            >
+              <Copy size={14} /> Meerdere quests tegelijk
+            </button>
+          )}
+
+          {questPlakken != null && (
+            <div className="dl-card p-4 mb-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase dl-day-label opacity-60">Meerdere quests</span>
+                <button onClick={() => setQuestPlakken(null)} className="dl-btn-ghost p-1.5" aria-label="Sluiten">
+                  <X size={14} />
+                </button>
+              </div>
+              <p className="text-[11px] opacity-60 leading-relaxed">
+                Eén quest per regel. Zet je er "3/7" of "3 van 5" bij, dan rekent hij het
+                percentage uit. Staat "bounty", "exotic", "catalyst" of "seizoen" in de regel,
+                dan pakt hij die soort. Alleen een naam mag ook.
+              </p>
+              <textarea
+                className="dl-input px-3 py-2 text-sm w-full dl-mono"
+                rows={6}
+                value={questPlakken}
+                onChange={(e) => setQuestPlakken(e.target.value)}
+                placeholder={"Wish-Keeper 3/7\nVex-bounty 0 van 5\nExotic quest Still Hunt 2/9"}
+                autoFocus
+              />
+              <button
+                onClick={voegQuestsToe}
+                disabled={!questPlakken.trim()}
+                className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5"
+              >
+                <Check size={15} /> {d.questsUitTekst(questPlakken, platform || "ps5").length} toevoegen bij{" "}
+                {d.platformLabel(platform || "ps5")}
               </button>
             </div>
           )}
