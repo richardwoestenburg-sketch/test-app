@@ -165,17 +165,21 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
     };
   }
 
-  let overgeslagen = 0;
+  let zonderNaam = 0;
+  let overig = 0;
   const items = [];
   for (const rij of rijen) {
     const name = waarde(rij, "Name");
-    if (!name) continue;
-    const type = waarde(rij, "Type");
-    const soort = bepaalSoort(type, waarde(rij, "Category"));
-    if (!soort) {
-      overgeslagen += 1;
+    if (!name) {
+      zonderNaam += 1;
       continue;
     }
+    const type = waarde(rij, "Type");
+    // Kennen we het type niet (ghosts, sparrows, schepen, een nieuw soort
+    // uitrusting), dan komt het onder "Overig" te staan. Weggooien zou het
+    // stilletjes laten verdwijnen, en dan lijkt je export half leeg.
+    const soort = bepaalSoort(type, waarde(rij, "Category")) || "overig";
+    if (soort === "overig") overig += 1;
 
     const tier = waarde(rij, "Tier");
     const rarity = RARITIES.find((r) => norm(r.name) === norm(tier));
@@ -222,7 +226,8 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
     diagnose: {
       rijen: rijen.length,
       herkend: items.length,
-      overgeslagen,
+      overig,
+      zonderNaam,
       zonderId: items.filter((i) => !i.instanceId).length,
       kolommen,
     },
