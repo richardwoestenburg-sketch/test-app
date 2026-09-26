@@ -14,6 +14,9 @@ import * as dim from "./dimCsv.js";
 const BUILD_TIME = typeof __BUILD_TIME__ === "string" ? __BUILD_TIME__ : "";
 
 const KEY_VIEW = "destiny-view-tab";
+const KEY_QUEST_SYNC = "destiny-quest-sync-v1";
+// Niet vaker dan dit automatisch ophalen; quests veranderen niet per minuut.
+const QUEST_INTERVAL = 5 * 60 * 1000;
 
 const bestandsgrootte = (bytes) => {
   const n = Number(bytes) || 0;
@@ -634,6 +637,60 @@ export default function Destiny() {
   const [loggedIn, setLoggedIn] = useState(() => b.isLoggedIn());
   const [memberships, setMemberships] = useState([]);
   const [links, setLinks] = useState(() => b.getLinks());
+
+  // Quests live bijhouden: zodra je de app opent (of terugkomt) worden ze
+  // opnieuw uit Destiny gehaald, zonder dat je ergens op hoeft te drukken.
+  // Alleen als je bij Bungie ingelogd bent; anders gebeurt er niets.
+  const [questSync, setQuestSync] = useState(() => {
+    const at = Number(localStorage.getItem(KEY_QUEST_SYNC)) || null;
+    return { bezig: false, at, fout: "", aantal: 0 };
+  });
+  const questBezig = useRef(false);
+
+  const ververseQuests = async ({ geforceerd = false } = {}) => {
+    if (questBezig.current || !b.isLoggedIn()) return;
+    const paren = Object.entries(b.getLinks()).filter(([, l]) => l);
+    if (!paren.length) return;
+    const laatst = Number(localStorage.getItem(KEY_QUEST_SYNC)) || 0;
+    if (!geforceerd && Date.now() - laatst < QUEST_INTERVAL) return;
+
+    questBezig.current = true;
+    setQuestSync((v) => ({ ...v, bezig: true, fout: "" }));
+    let lijst = d.loadQuests();
+    let aantal = 0;
+    let fout = "";
+    for (const [slot, link] of paren) {
+      try {
+        const profile = await b.getProfile(link.membershipType, link.membershipId);
+        const verse = await b.mapQuests(profile, { platform: slot });
+        const samen = d.mergeQuestsFromBungie(lijst, verse, slot);
+        lijst = samen.list;
+        aantal += samen.aantal;
+      } catch (err) {
+        fout = err.message;
+        if (err.needsLogin) setLoggedIn(false);
+      }
+    }
+    if (!fout || aantal) {
+      commitQuests(lijst);
+    }
+    const at = Date.now();
+    try { localStorage.setItem(KEY_QUEST_SYNC, String(at)); } catch {}
+    questBezig.current = false;
+    setQuestSync({ bezig: false, at, fout, aantal });
+  };
+
+  useEffect(() => {
+    if (!loaded) return;
+    ververseQuests();
+    // Terug uit de achtergrond telt als opnieuw openen.
+    const bijTerugkomst = () => {
+      if (document.visibilityState === "visible") ververseQuests();
+    };
+    document.addEventListener("visibilitychange", bijTerugkomst);
+    return () => document.removeEventListener("visibilitychange", bijTerugkomst);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, loggedIn]);
   const [bungieMsg, setBungieMsg] = useState("");
   const [sync, setSync] = useState(null);
 
@@ -2379,6 +2436,28 @@ export default function Destiny() {
                 exotisch op, hoort bij een activiteit die nog op je lijst staat, en bounties.
                 Hoe meer je invult, hoe scherper het advies.
               </p>
+            </div>
+          )}
+
+          {(loggedIn || questSync.at || questSync.fout) && (
+            <div className="text-[11px] opacity-60 leading-relaxed mb-3 flex items-center gap-2 flex-wrap">
+              <span>
+                {questSync.bezig
+                  ? "Quests ophalen uit Destiny…"
+                  : questSync.fout
+                    ? `Automatisch ophalen lukte niet: ${questSync.fout}`
+                    : questSync.at
+                      ? `Quests uit de game bijgewerkt om ${new Date(questSync.at).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}`
+                      : "Quests worden opgehaald zodra je de app opent."}
+              </span>
+              {!questSync.bezig && (
+                <button
+                  onClick={() => ververseQuests({ geforceerd: true })}
+                  className="dt-chip"
+                >
+                  <span className="inline-flex items-center gap-1"><RefreshCw size={11} /> Nu verversen</span>
+                </button>
+              )}
             </div>
           )}
 
