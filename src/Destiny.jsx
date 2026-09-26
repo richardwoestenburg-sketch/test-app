@@ -831,7 +831,10 @@ export default function Destiny() {
       return;
     }
     try {
-      const { items, diagnose } = dim.mapDimRows(tekst, { platform: slot, characters });
+      const { items, characters: uitBestand, diagnose } = dim.mapDimRows(tekst, {
+        platform: slot,
+        characters,
+      });
       // Standaard aangevinkt: wat je in de game vergrendeld hebt, plus exotics.
       const selected = new Set(
         items.filter((i) => i.locked || d.norm(i.rarity) === "exotic").map((i) => i.instanceId)
@@ -841,7 +844,7 @@ export default function Destiny() {
         slot,
         bron: "dim",
         phase: "kiezen",
-        chars: [],
+        chars: uitBestand,
         items,
         selected,
         bestand,
@@ -876,13 +879,21 @@ export default function Destiny() {
     const items = [];
     const gezien = new Set();
     const kolommen = new Set();
+    const karakters = new Map();
     let rijen = 0;
     let overig = 0;
     let mislukt = 0;
 
     for (const file of files) {
       try {
-        const { items: uit, diagnose } = dim.mapDimRows(await file.text(), { platform: slot, characters });
+        const { items: uit, characters: uitBestand, diagnose } = dim.mapDimRows(await file.text(), {
+          platform: slot,
+          characters,
+        });
+        for (const k of uitBestand) {
+          const bestaand = karakters.get(k.cls);
+          if (!bestaand || (k.power || 0) > (bestaand.power || 0)) karakters.set(k.cls, k);
+        }
         rijen += diagnose.rijen || 0;
         overig += diagnose.overig || 0;
         (diagnose.kolommen || []).forEach((k) => kolommen.add(k));
@@ -905,7 +916,7 @@ export default function Destiny() {
       slot,
       bron: "dim",
       phase: "kiezen",
-      chars: [],
+      chars: [...karakters.values()],
       items,
       selected,
       bestand,
@@ -980,7 +991,16 @@ export default function Destiny() {
       // eigen karakter-id, dat we eerst moeten omzetten.
       const localIdFor =
         s.bron === "dim"
-          ? (id) => id
+          ? // Uit DIM komt of een bestaand karakter-id, of "klasse:Hunter" voor
+            // een karakter dat hierboven net is aangemaakt.
+            (id) => {
+              if (typeof id !== "string" || !id.startsWith("klasse:")) return id;
+              const cls = id.slice("klasse:".length);
+              return (
+                charResult.list.find((c) => c.platform === s.slot && d.norm(c.cls) === d.norm(cls))?.id ||
+                null
+              );
+            }
           : (bungieId) => charResult.list.find((c) => c.bungieId === bungieId)?.id || null;
 
       const chosen = s.items.filter((i) => s.selected.has(i.instanceId));

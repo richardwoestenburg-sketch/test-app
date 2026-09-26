@@ -132,13 +132,26 @@ function bepaalType(type, soort) {
   return weapon ? weapon.name : type;
 }
 
-function bepaalLocatie(owner, characters, platform) {
+// Welke klasse staat er in de Owner-kolom? DIM schrijft "Hunter(2010)".
+function klasseUitOwner(owner) {
   const o = norm(owner);
-  if (!o || o.includes("vault") || o.includes("kluis")) return "kluis";
-  const klasse = CLASSES.find((c) => o.includes(norm(c.name)) || c.syn.some((s) => o.includes(norm(s))));
+  if (!o || o.includes("vault") || o.includes("kluis")) return null;
+  return CLASSES.find((c) => o.includes(norm(c.name)) || c.syn.some((s) => o.includes(norm(s)))) || null;
+}
+
+function powerUitOwner(owner) {
+  const m = String(owner || "").match(/\((\d+)\)/);
+  return m ? Number(m[1]) : null;
+}
+
+// Bestaat het karakter al in de app, dan meteen het echte id. Zo niet, dan
+// een markering "klasse:Hunter" — het karakter wordt bij het overnemen
+// aangemaakt en pas daarna weet je zijn id.
+function bepaalLocatie(owner, characters, platform) {
+  const klasse = klasseUitOwner(owner);
   if (!klasse) return "kluis";
   const kar = characters.find((c) => c.platform === platform && norm(c.cls) === norm(klasse.name));
-  return kar ? kar.id : "kluis";
+  return kar ? kar.id : `klasse:${klasse.name}`;
 }
 
 // Alle kolommen die perks bevatten, op volgorde ("Perks 0", "Perks 1", …).
@@ -151,11 +164,12 @@ function perksUit(rij, kolommen) {
 export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
   const { kolommen, rijen } = toObjects(parseCsv(csvTekst));
   if (!kolommen.length) {
-    return { items: [], diagnose: { rijen: 0, herkend: 0, reden: "Het bestand bevat geen kolommen." } };
+    return { items: [], characters: [], diagnose: { rijen: 0, herkend: 0, reden: "Het bestand bevat geen kolommen." } };
   }
   if (!kolommen.includes("name")) {
     return {
       items: [],
+      characters: [],
       diagnose: {
         rijen: rijen.length,
         herkend: 0,
@@ -168,6 +182,9 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
   let zonderNaam = 0;
   let overig = 0;
   const items = [];
+  // Welke karakters komen er in dit bestand voor? Zonder die staat straks
+  // alles in de kluis, ook wat je aanhebt.
+  const karakters = new Map();
   for (const rij of rijen) {
     const name = waarde(rij, "Name", "Item Name");
     if (!name) {
@@ -184,6 +201,21 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
     // DIM heeft deze kolom ooit hernoemd: oudere exports schrijven "Tier",
     // nieuwere "Rarity". Zonder allebei blijft je hele kluis zonder rarity
     // staan en telt de app nul exotics.
+    const owner = waarde(rij, "Owner", "Character", "Location");
+    const eigenaar = klasseUitOwner(owner);
+    if (eigenaar) {
+      const power = powerUitOwner(owner);
+      const bestaand = karakters.get(eigenaar.name);
+      // Het hoogste power dat we tegenkomen is het power van het karakter.
+      if (!bestaand || (power && power > (bestaand.power || 0))) {
+        karakters.set(eigenaar.name, {
+          cls: eigenaar.name,
+          power: power || bestaand?.power || null,
+          bungieId: `dim:${platform}:${norm(eigenaar.name)}`,
+        });
+      }
+    }
+
     const tier = waarde(rij, "Tier", "Rarity", "Quality");
     const rarity = RARITIES.find((r) => norm(r.name) === norm(tier));
     const elementRuw = waarde(rij, "Element", "Damage Type", "Damage", "Energy");
@@ -205,7 +237,7 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
       // die bij een volgende export hetzelfde blijft.
       instanceId:
         schoonId(waarde(rij, "Id", "Item Id", "Instance Id")) ||
-        `dim:${schoonId(waarde(rij, "Hash")) || norm(name)}:${norm(waarde(rij, "Owner", "Character", "Location"))}`,
+        `dim:${schoonId(waarde(rij, "Hash")) || norm(name)}:${norm(owner)}`,
       bungieHash: schoonId(waarde(rij, "Hash")) || null,
       platform,
       kind: soort,
@@ -215,7 +247,7 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
       rarity: rarity ? rarity.name : tier,
       charClass: soort === "armor" && klasse ? klasse.name : "",
       power: Number(waarde(rij, "Power", "Power Level", "Light")) || null,
-      location: bepaalLocatie(waarde(rij, "Owner", "Character", "Location"), characters, platform),
+      location: bepaalLocatie(owner, characters, platform),
       perks: soort === "wapen" ? perksUit(rij, kolommen) : "",
       notes: waarde(rij, "Notes").slice(0, 600),
       tags: [...new Set(tags)],
@@ -226,6 +258,7 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
 
   return {
     items,
+    characters: [...karakters.values()],
     diagnose: {
       rijen: rijen.length,
       herkend: items.length,
