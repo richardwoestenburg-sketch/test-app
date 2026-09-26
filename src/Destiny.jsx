@@ -133,6 +133,7 @@ export default function Destiny() {
   const [notes, setNotes] = useState([]);
   const [profile, setProfile] = useState({ ps5: "", xbox: "" });
   const [photos, setPhotos] = useState([]);
+  const [quests, setQuests] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -141,6 +142,7 @@ export default function Destiny() {
     setCharacters(all.characters);
     setActivities(all.activities);
     setNotes(all.notes);
+    setQuests(all.quests || []);
     setProfile(all.profile);
     setHistory(d.loadHistory());
     setLoaded(true);
@@ -168,6 +170,7 @@ export default function Destiny() {
   const commitChars = (next) => { setCharacters(next); d.saveCharacters(next); };
   const commitActs = (next) => { setActivities(next); d.saveActivities(next); };
   const commitNotes = (next) => { setNotes(next); d.saveNotes(next); };
+  const commitQuests = (next) => { setQuests(next); d.saveQuests(next); };
 
   // ---- Foto's ------------------------------------------------------------
   const [lightbox, setLightbox] = useState(null);
@@ -254,8 +257,14 @@ export default function Destiny() {
   );
 
   const data = useMemo(
-    () => ({ items, characters, activities, notes, profile, photos }),
-    [items, characters, activities, notes, profile, photos]
+    () => ({ items, characters, activities, notes, profile, photos, quests }),
+    [items, characters, activities, notes, profile, photos, quests]
+  );
+
+  // Advies over je lopende quests: telkens opnieuw gerangschikt, met reden.
+  const questLijst = useMemo(
+    () => d.questAdvies(quests, activities, platform || null),
+    [quests, activities, platform]
   );
   const onPlatform = (list) => (platform ? list.filter((x) => x.platform === platform) : list);
   const s = d.stats(data, platform);
@@ -568,11 +577,22 @@ export default function Destiny() {
         platform: slot,
         onProgress: (done, total) => setSync((s) => (s ? { ...s, progress: { done, total } } : s)),
       });
+      // Quests hoeven niet gekozen te worden: die zijn vluchtig en worden
+      // gewoon bijgewerkt, zodat het advies klopt met de laatste stand.
+      let questAantal = 0;
+      try {
+        const verse = await b.mapQuests(profile, { platform: slot });
+        const samen = d.mergeQuestsFromBungie(d.loadQuests(), verse, slot);
+        commitQuests(samen.list);
+        questAantal = samen.aantal;
+      } catch {
+        /* quests mislukt — de rest van het ophalen gaat gewoon door */
+      }
       // Standaard aangevinkt: wat je in de game vergrendeld hebt, plus exotics.
       const selected = new Set(
         items.filter((i) => i.locked || d.norm(i.rarity) === "exotic").map((i) => i.instanceId)
       );
-      setSync({ slot, phase: "kiezen", profile, chars, items, selected, progress: null });
+      setSync({ slot, phase: "kiezen", profile, chars, items, selected, questAantal, progress: null });
     } catch (err) {
       setSync(null);
       setBungieMsg(err.message);
@@ -837,6 +857,33 @@ export default function Destiny() {
             <Trash2 size={14} />
           </button>
         </div>
+      </div>
+    ));
+
+  const renderQuestRows = (advies) =>
+    advies.map(({ quest: q, redenen }) => (
+      <div key={q.instanceId} className="dt-row p-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-sm font-semibold truncate">{q.name}</span>
+          <span className="dl-mono text-[11px] opacity-60 shrink-0">{q.percent}%</span>
+        </div>
+        <div className="text-[11px] opacity-60 dl-mono">
+          {[q.soort, d.platformLabel(q.platform)].filter(Boolean).join(" · ")}
+        </div>
+        <div className="dl-bar mt-1.5">
+          <div className="dl-bar-fill" style={{ width: `${Math.min(100, q.percent)}%` }} />
+        </div>
+        <div className="text-[11px] opacity-75 mt-1.5">{redenen.join(" · ")}</div>
+        {!!q.doelen?.length && (
+          <div className="mt-1.5 flex flex-col gap-0.5">
+            {q.doelen.map((o, i) => (
+              <div key={i} className="text-[11px] opacity-60 flex justify-between gap-2">
+                <span className="truncate">{o.label}</span>
+                <span className="dl-mono shrink-0">{o.klaar ? "✓" : `${o.progress}/${o.doel}`}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     ));
 
@@ -1196,6 +1243,11 @@ export default function Destiny() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
+              {sync.questAantal > 0 && (
+                <p className="text-[11px] opacity-70">
+                  {sync.questAantal} lopende quests bijgewerkt — zie Voortgang voor het advies.
+                </p>
+              )}
               {sync.items.length === 0 ? (
                 <>
                   <p className="text-sm">Niets gevonden om over te nemen.</p>
@@ -1361,6 +1413,7 @@ export default function Destiny() {
                 </a>
               )}
               {!!answer.items?.length && <div className="flex flex-col gap-2 mt-3">{renderItemRows(answer.items)}</div>}
+              {!!answer.quests?.length && <div className="flex flex-col gap-2 mt-3">{renderQuestRows(answer.quests)}</div>}
               {!!answer.activities?.length && <div className="flex flex-col gap-2 mt-3">{renderActRows(answer.activities)}</div>}
               {!!answer.characters?.length && <div className="flex flex-col gap-2 mt-3">{renderCharRows(answer.characters)}</div>}
               {!!answer.notes?.length && <div className="flex flex-col gap-2 mt-3">{renderNoteRows(answer.notes)}</div>}
@@ -1742,6 +1795,21 @@ export default function Destiny() {
             >
               <Plus size={15} /> Activiteit toevoegen
             </button>
+          )}
+
+          {!!questLijst.length && (
+            <div className="mb-6">
+              <div className="dt-answer p-4 mb-3">
+                <div className="text-[11px] uppercase dl-day-label opacity-55 mb-1">Advies</div>
+                <p className="text-sm leading-relaxed">
+                  Doe eerst <strong>{questLijst[0].quest.name}</strong> — {questLijst[0].redenen.join(", ")}.
+                </p>
+              </div>
+              <div className="text-xs uppercase dl-day-label opacity-55 mb-2">
+                Lopende quests uit de game ({questLijst.length})
+              </div>
+              <div className="flex flex-col gap-2">{renderQuestRows(questLijst)}</div>
+            </div>
           )}
 
           {/* Snel toevoegen: raids en dungeons die nog niet in je lijst staan */}
