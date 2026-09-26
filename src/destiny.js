@@ -15,6 +15,7 @@ const KEY_ITEMS = "destiny-items-v1";
 const KEY_CHARS = "destiny-chars-v1";
 const KEY_ACTS = "destiny-activities-v1";
 const KEY_NOTES = "destiny-notes-v1";
+const KEY_QUESTS = "destiny-quests-v1";
 const KEY_PROFILE = "destiny-profile-v1";
 const KEY_HISTORY = "destiny-questions-v1";
 
@@ -229,6 +230,15 @@ export function saveNotes(notes) {
   return notes;
 }
 
+export function loadQuests() {
+  const list = readJson(KEY_QUESTS, []);
+  return Array.isArray(list) ? list : [];
+}
+export function saveQuests(quests) {
+  writeJson(KEY_QUESTS, quests);
+  return quests;
+}
+
 export function loadProfile() {
   const p = readJson(KEY_PROFILE, null);
   return { ps5: "", xbox: "", ...(p && typeof p === "object" ? p : {}) };
@@ -254,6 +264,7 @@ export function loadAll() {
     characters: loadCharacters(),
     activities: loadActivities(),
     notes: loadNotes(),
+    quests: loadQuests(),
     profile: loadProfile(),
   };
 }
@@ -547,6 +558,71 @@ function emptyFields() {
   return { perks: "", notes: "", tags: [] };
 }
 
+// Quests zijn vluchtig: wat je in de game afrondt of weggooit, hoort hier ook
+// te verdwijnen. Daarom vervangen we de hele set van dit platform, met behoud
+// van je eigen notitie per quest.
+export function mergeQuestsFromBungie(existing, incoming, platform) {
+  const anders = existing.filter((q) => q.platform !== platform);
+  const oudeNotities = new Map(existing.filter((q) => q.notes).map((q) => [q.instanceId, q.notes]));
+  const verse = incoming.map((q) => ({
+    ...q,
+    id: newId(),
+    notes: oudeNotities.get(q.instanceId) || "",
+    updatedAt: Date.now(),
+  }));
+  return { list: [...anders, ...verse], aantal: verse.length };
+}
+
+// Advies: welke quest kun je het best doen? Alles hieronder komt uit je eigen
+// gegevens, met de reden erbij — geen zwarte doos.
+export function questAdvies(quests, activities = [], platform = null) {
+  const open = (platform ? quests.filter((q) => q.platform === platform) : quests).filter((q) => !q.klaar);
+  const nu = Date.now();
+  const openActiviteiten = activities.filter((a) => a.status !== "klaar");
+
+  const gescoord = open.map((q) => {
+    let score = 0;
+    const redenen = [];
+
+    const urenTot = q.verloopt ? (new Date(q.verloopt).getTime() - nu) / 3600000 : null;
+    if (urenTot != null && urenTot > 0 && urenTot <= 24) {
+      score += 50;
+      redenen.push(urenTot < 1 ? "verloopt binnen een uur" : `verloopt over ${Math.round(urenTot)} uur`);
+    }
+
+    if (q.percent >= 75) {
+      score += 40;
+      redenen.push(`bijna klaar (${q.percent}%)`);
+    } else if (q.percent >= 40) {
+      score += 20;
+      redenen.push(`al ${q.percent}% gedaan`);
+    }
+
+    if (norm(q.rarity) === "exotic" || norm(q.soort).includes("exotic")) {
+      score += 30;
+      redenen.push("levert iets exotisch op");
+    }
+
+    // Hoort deze quest bij een raid of dungeon die nog op je lijst staat?
+    const blob = norm(`${q.name} ${q.omschrijving}`);
+    const bijActiviteit = openActiviteiten.find((a) => a.name && blob.includes(norm(a.name)));
+    if (bijActiviteit) {
+      score += 25;
+      redenen.push(`hoort bij ${bijActiviteit.name}, die je nog moet doen`);
+    }
+
+    if (q.isBounty) {
+      score += 10;
+      redenen.push("bounty, meestal zo gedaan");
+    }
+
+    if (!redenen.length) redenen.push(q.percent > 0 ? `${q.percent}% gedaan` : "nog niet begonnen");
+    return { quest: q, score, redenen };
+  });
+
+  return gescoord.sort((a, b) => b.score - a.score || b.quest.percent - a.quest.percent);
+}
+
 // -- Statistieken ----------------------------------------------------------
 
 export function stats(data, platform) {
@@ -558,7 +634,9 @@ export function stats(data, platform) {
   const photos = (data.photos || []).filter(
     (p) => (p.itemId && itemIds.has(p.itemId)) || (p.noteId && noteIds.has(p.noteId))
   );
+  const quests = pick(data.quests || []);
   return {
+    quests: quests.filter((q) => !q.klaar).length,
     items: items.length,
     weapons: items.filter((i) => i.kind === "wapen").length,
     armor: items.filter((i) => i.kind === "armor").length,
@@ -636,7 +714,7 @@ function matchList(text, list) {
 const INTENTS = [
   { id: "count", syn: ["hoeveel", "aantal", "hoe veel"] },
   { id: "where", syn: ["waar", "op welk karakter", "welke kluis", "welk karakter"] },
-  { id: "best", syn: ["sterkste", "hoogste", "beste", "krachtigste", "zwaarste", "highest"] },
+  { id: "best", syn: ["sterkste", "hoogste", "beste", "best", "krachtigste", "zwaarste", "highest", "advies", "aanrader", "wat nu"] },
   { id: "worst", syn: ["zwakste", "laagste", "slechtste"] },
   { id: "missing", syn: ["nog niet", "niet gehaald", "mis ik", "mis", "ontbreekt", "ontbreken", "moet ik nog", "nog te doen", "openstaand", "todo"] },
   { id: "done", syn: ["gehaald", "afgerond", "voltooid", "uitgespeeld", "klaar", "gedaan", "behaald"] },
@@ -644,6 +722,7 @@ const INTENTS = [
 ];
 
 const SCOPES = [
+  { id: "quests", syn: ["quest", "quests", "bounty", "bounties", "opdracht", "opdrachten", "pursuit"] },
   { id: "characters", syn: ["karakter", "karakters", "character", "characters", "guardian", "guardians"] },
   { id: "activities", syn: ["voortgang", "activiteit", "activiteiten", "progressie"] },
   { id: "notes", syn: ["notitie", "notities", "aantekening", "aantekeningen", "logboek", "opgeschreven"] },
@@ -746,6 +825,16 @@ export function parseQuestion(question, data) {
     .split(" ")
     .map((w) => w.trim())
     .filter((w) => w.length > 2 && !STOPWORDS.has(w));
+
+  const geenFilters =
+    !filters.kinds.length && !filters.types.length && !filters.terms.length &&
+    !filters.tags.length && !filters.rarities.length && !filters.elements.length &&
+    !filters.classes.length;
+
+  if (!scopeId && intents.includes("best") && geenFilters) {
+    // "Wat kan ik het best doen?" gaat over je lopende quests.
+    scopeId = "quests";
+  }
 
   if (!scopeId) {
     // Zonder aanwijzing: gaat het over de kluis, tenzij alleen naar voortgang
@@ -889,7 +978,7 @@ export function ask(question, data) {
   const parsed = parseQuestion(q, data);
   const { intent, filters, scope } = parsed;
   const characters = filters.platform ? data.characters.filter((c) => c.platform === filters.platform) : data.characters;
-  const empty = { items: [], activities: [], characters: [], notes: [] };
+  const empty = { items: [], activities: [], characters: [], notes: [], quests: [] };
   const base = { question: q, intent, scope, filters, ...empty };
 
   if (intent === "overview") {
@@ -903,9 +992,32 @@ export function ask(question, data) {
         `${plural(s.exotics, "exotic", "exotics")}, ${plural(s.godRolls, "god roll", "god rolls")}), ` +
         `${plural(s.characters, "karakter", "karakters")}, ` +
         `${s.activitiesDone} gehaald en ${s.activitiesOpen} nog te doen, ` +
+        `${plural(s.quests, "openstaande quest", "openstaande quests")}, ` +
         `${plural(s.notes, "notitie", "notities")} en ${plural(s.photos, "foto", "foto's")}.`,
       characters,
     };
+  }
+
+  if (scope === "quests") {
+    const advies = questAdvies(data.quests || [], data.activities || [], filters.platform);
+    if (!advies.length) {
+      const heeft = (data.quests || []).length;
+      return {
+        ...base,
+        text: heeft
+          ? "Al je opgehaalde quests staan op klaar. Haal ze opnieuw op voor de laatste stand."
+          : "Er staan nog geen quests in de app. Haal ze op via de Bungie-koppeling (⚙️), dan kan ik erover adviseren.",
+      };
+    }
+    if (intent === "count") {
+      return { ...base, text: `Je hebt ${plural(advies.length, "openstaande quest", "openstaande quests")}.`, quests: advies };
+    }
+    const top = advies[0];
+    const tekst =
+      advies.length === 1
+        ? `Eén openstaande quest: ${top.quest.name} — ${top.redenen.join(", ")}.`
+        : `Doe eerst ${top.quest.name} — ${top.redenen.join(", ")}. Daarna ${advies[1].quest.name} (${advies[1].redenen.join(", ")}).`;
+    return { ...base, text: tekst, quests: advies };
   }
 
   if (scope === "characters") {
@@ -1064,6 +1176,7 @@ export function suggestions(data) {
     out.push("Welke raids heb ik nog niet gehaald?");
   }
   if (data.characters.length) out.push("Wat is mijn sterkste karakter?");
+  if ((data.quests || []).some((q) => !q.klaar)) out.push("Welke quest kan ik het best doen?");
   if ((data.photos || []).length) out.push("Waar heb ik een foto van?");
   return out.slice(0, 8);
 }

@@ -19,6 +19,8 @@
 // Documentatie: https://github.com/Bungie-net/api/wiki/OAuth-Documentation
 
 const ROOT = "https://www.bungie.net";
+
+const CLASS_BY_TYPE = { 0: "Titan", 1: "Hunter", 2: "Warlock" };
 const API = `${ROOT}/Platform`;
 
 const KEY_CFG = "destiny-bungie-config";
@@ -329,11 +331,90 @@ export async function getMemberships() {
 }
 
 // 100 profiel · 102 kluis · 200 karakters · 201 inventaris per karakter
-// 205 uitgerust · 300 instantiegegevens (power) · 305 sockets (perks)
-const COMPONENTS = "100,102,200,201,205,300,305";
+// 205 uitgerust · 300 instantiegegevens (power) · 301 voortgang van quests
+// 305 sockets (perks)
+const COMPONENTS = "100,102,200,201,205,300,301,305";
 
 export async function getProfile(membershipType, membershipId) {
   return api(`/Destiny2/${membershipType}/Profile/${membershipId}/?components=${COMPONENTS}`);
+}
+
+// -- Verbindingstest -------------------------------------------------------
+//
+// Loopt de keten stap voor stap na en zegt bij elke stap of het lukte. Zo is
+// in één oogopslag te zien of het aan de API-key/Origin Header ligt, aan het
+// inloggen, of aan wat Bungie van je profiel teruggeeft.
+
+export async function testConnection(links = {}) {
+  const stappen = [];
+  const cfg = getConfig();
+
+  stappen.push({
+    naam: "Instellingen",
+    ok: Boolean(cfg.apiKey && cfg.clientId),
+    detail: `API-key ${cfg.apiKey ? "ingevuld" : "ONTBREEKT"}, client_id ${cfg.clientId ? "ingevuld" : "ONTBREEKT"}, ` +
+      `inloggen via ${usesWorker() ? "de Worker" : "de app"}`,
+  });
+  if (!cfg.apiKey || !cfg.clientId) return stappen;
+
+  // 1. Werkt de API-key vanaf dit domein? (geen inloggen nodig)
+  try {
+    await api("/Destiny2/Manifest/", { auth: false });
+    stappen.push({ naam: "API-key + Origin Header", ok: true, detail: "Bungie accepteert verzoeken vanaf dit adres" });
+  } catch (err) {
+    stappen.push({ naam: "API-key + Origin Header", ok: false, detail: err.message });
+    return stappen;
+  }
+
+  // 2. Is er een geldige sessie?
+  let memberships = [];
+  try {
+    memberships = await getMemberships();
+    stappen.push({
+      naam: "Ingelogd bij Bungie",
+      ok: memberships.length > 0,
+      detail: memberships.length
+        ? memberships.map((m) => `${m.typeName}: ${m.displayName || m.membershipId}`).join(" · ")
+        : "Ingelogd, maar er hangen geen Destiny-profielen aan dit Bungie-account",
+    });
+  } catch (err) {
+    stappen.push({ naam: "Ingelogd bij Bungie", ok: false, detail: err.message });
+    return stappen;
+  }
+
+  // 3. Wat geeft Bungie per gekoppeld profiel terug?
+  const gekoppeld = Object.entries(links).filter(([, l]) => l);
+  if (!gekoppeld.length) {
+    stappen.push({ naam: "Profielen gekoppeld", ok: false, detail: "Nog geen profiel aan PS5 of Xbox gekoppeld" });
+    return stappen;
+  }
+
+  for (const [slot, link] of gekoppeld) {
+    const label = slot === "ps5" ? "PS5" : "Xbox";
+    try {
+      const profile = await getProfile(link.membershipType, link.membershipId);
+      const chars = Object.values(profile?.characters?.data || {});
+      const kluis = profile?.profileInventory?.data;
+      const inv = profile?.characterInventories?.data;
+      const uitrusting = profile?.characterEquipment?.data;
+      const aantal = (d) => (d ? Object.values(d).reduce((n, x) => n + (x.items?.length || 0), 0) : null);
+      stappen.push({
+        naam: `Profiel ${label}`,
+        ok: chars.length > 0,
+        detail:
+          `${chars.length} karakters` +
+          (chars.length
+            ? " (" + chars.map((c) => `${CLASS_BY_TYPE[c.classType] || "?"} power ${c.light}`).join(", ") + ")"
+            : "") +
+          ` · kluis: ${kluis ? `${kluis.items?.length || 0} stuks` : "niet meegegeven"}` +
+          ` · op karakters: ${inv ? `${aantal(inv)} stuks` : "niet meegegeven"}` +
+          ` · uitgerust: ${uitrusting ? `${aantal(uitrusting)} stuks` : "niet meegegeven"}`,
+      });
+    } catch (err) {
+      stappen.push({ naam: `Profiel ${label}`, ok: false, detail: err.message });
+    }
+  }
+  return stappen;
 }
 
 // -- Definities (namen, soorten) met eigen cache ---------------------------
@@ -454,7 +535,6 @@ export async function getDefinitions(entityType, hashes, onProgress) {
 
 // -- Vertaling naar het model van de app -----------------------------------
 
-const CLASS_BY_TYPE = { 0: "Titan", 1: "Hunter", 2: "Warlock" };
 const ELEMENT_BY_DAMAGE = { 1: "Kinetic", 2: "Arc", 3: "Solar", 4: "Void", 6: "Stasis", 7: "Strand" };
 // itemSubType voor armor; wapens hebben een bruikbare itemTypeDisplayName.
 const ARMOR_BY_SUBTYPE = { 26: "Helm", 27: "Handschoenen", 28: "Bruststuk", 29: "Beenstukken", 30: "Klasse-item" };
@@ -550,6 +630,90 @@ export async function mapItems(profile, { onProgress, platform } = {}) {
     karakters: Object.keys(profile?.characters?.data || {}).length,
   };
   return items;
+}
+
+// -- Quests en bounties ----------------------------------------------------
+//
+// Lopende quests zitten als "pursuits" in de inventaris van een karakter. De
+// voortgang per stap komt uit component 301; de omschrijving van elke stap
+// hoort bij een eigen definitie.
+
+// QuestStep 12 · Quest 15 · Bounty 26 (uit DestinyItemType)
+const QUEST_TYPES = [12, 15, 26];
+
+export async function mapQuests(profile, { platform, onProgress } = {}) {
+  const objData = profile?.itemComponents?.objectives?.data || {};
+  const rows = [];
+  const inv = profile?.characterInventories?.data || {};
+  Object.entries(inv).forEach(([charId, d]) => {
+    (d.items || []).forEach((it) => {
+      if (!it.itemInstanceId) return;
+      rows.push({
+        hash: String(it.itemHash),
+        instanceId: it.itemInstanceId,
+        charId,
+        verloopt: it.expirationDate || null,
+      });
+    });
+  });
+  if (!rows.length) return [];
+
+  const defs = await getDefinitions("DestinyInventoryItemDefinition", rows.map((r) => r.hash), onProgress);
+  const questRows = rows.filter((r) => {
+    const def = defs.get(r.hash);
+    const doelen = objData[r.instanceId]?.objectives || [];
+    return (def && QUEST_TYPES.includes(def.itemType)) || doelen.length > 0;
+  });
+  if (!questRows.length) return [];
+
+  // Omschrijvingen van de losse stappen ("Verslagen vijanden: 12/50").
+  const objHashes = [];
+  questRows.forEach((r) =>
+    (objData[r.instanceId]?.objectives || []).forEach((o) => objHashes.push(String(o.objectiveHash)))
+  );
+  const objDefs = await getDefinitions("DestinyObjectiveDefinition", objHashes);
+
+  return questRows
+    .map((r) => {
+      const def = defs.get(r.hash);
+      if (!def) return null;
+      const ruwe = (objData[r.instanceId]?.objectives || []).filter((o) => o.visible !== false);
+      const doelen = ruwe.map((o) => {
+        const od = objDefs.get(String(o.objectiveHash));
+        return {
+          label: od?.progressDescription || "Voortgang",
+          progress: Number(o.progress) || 0,
+          doel: Number(o.completionValue) || 0,
+          klaar: Boolean(o.complete),
+        };
+      });
+      const totaal = doelen.reduce((n, d) => n + d.doel, 0);
+      const gehaald = doelen.reduce((n, d) => n + Math.min(d.progress, d.doel || d.progress), 0);
+      const percent = doelen.length
+        ? doelen.every((d) => d.klaar)
+          ? 100
+          : totaal > 0
+            ? Math.round((gehaald / totaal) * 100)
+            : 0
+        : 0;
+
+      return {
+        instanceId: r.instanceId,
+        bungieHash: r.hash,
+        platform,
+        characterId: r.charId,
+        name: def.displayProperties?.name || "Naamloze quest",
+        omschrijving: def.displayProperties?.description || "",
+        soort: def.itemTypeDisplayName || "Quest",
+        rarity: def.inventory?.tierTypeName || "",
+        isBounty: def.itemType === 26,
+        verloopt: r.verloopt,
+        doelen,
+        percent,
+        klaar: doelen.length > 0 && doelen.every((d) => d.klaar),
+      };
+    })
+    .filter(Boolean);
 }
 
 // Perks/roll van één ding. Dit kost per ding een paar aanroepen, dus doen we
