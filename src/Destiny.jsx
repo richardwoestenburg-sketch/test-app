@@ -605,24 +605,40 @@ export default function Destiny() {
   // ---- Import uit DIM ----------------------------------------------------
   const csvRef = useRef(null);
 
-  const onCsvChosen = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const [csvPlakken, setCsvPlakken] = useState(null); // null = dicht
+
+  const verwerkCsv = (tekst) => {
     const slot = platform || "ps5";
     setBungieMsg("");
-    setSync({ slot, bron: "dim", phase: "ophalen", progress: null });
+    if (!String(tekst || "").trim()) {
+      setBungieMsg("Er zat geen tekst in dat bestand.");
+      return;
+    }
     try {
-      const tekst = await file.text();
       const { items, diagnose } = dim.mapDimRows(tekst, { platform: slot, characters });
       // Standaard aangevinkt: wat je in de game vergrendeld hebt, plus exotics.
       const selected = new Set(
         items.filter((i) => i.locked || d.norm(i.rarity) === "exotic").map((i) => i.instanceId)
       );
+      setCsvPlakken(null);
       setSync({ slot, bron: "dim", phase: "kiezen", chars: [], items, selected, dimDiagnose: diagnose, progress: null });
     } catch {
       setSync(null);
       setBungieMsg("Dit bestand kon ik niet lezen. Is het de CSV-export van DIM?");
+    }
+  };
+
+  const onCsvChosen = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    // Geen bestand = je hebt de kiezer weggeklikt; dan hoeft er niets te gebeuren.
+    if (!file) return;
+    setSync({ slot: platform || "ps5", bron: "dim", phase: "ophalen", progress: null });
+    try {
+      verwerkCsv(await file.text());
+    } catch {
+      setSync(null);
+      setBungieMsg("Dat bestand kon ik niet openen. Probeer het via 'inhoud plakken'.");
     }
   };
 
@@ -1037,13 +1053,44 @@ export default function Destiny() {
             >
               <FileUp size={14} /> DIM-bestand kiezen ({d.platformLabel(platform || "ps5")})
             </button>
-            <input
-              ref={csvRef}
-              type="file"
-              accept=".csv,text/csv,text/plain"
-              className="hidden"
-              onChange={onCsvChosen}
-            />
+            {/* Bewust zonder accept-filter: Android maakt een CSV uit je
+                downloads anders vaak onselecteerbaar. */}
+            <input ref={csvRef} type="file" className="hidden" onChange={onCsvChosen} />
+
+            {csvPlakken == null ? (
+              <button
+                onClick={() => setCsvPlakken("")}
+                className="dl-btn-ghost px-3 py-2 text-xs mt-2 flex items-center gap-1.5"
+              >
+                <Copy size={12} /> Lukt kiezen niet? Inhoud plakken
+              </button>
+            ) : (
+              <div className="mt-2 flex flex-col gap-2">
+                <p className="text-[11px] opacity-60 leading-relaxed">
+                  Open het gedownloade bestand (bijvoorbeeld in je bestandsbeheer of Google
+                  Sheets), selecteer alles, kopieer het en plak het hier.
+                </p>
+                <textarea
+                  className="dl-input px-3 py-2 text-xs w-full dl-mono"
+                  rows={4}
+                  value={csvPlakken}
+                  onChange={(e) => setCsvPlakken(e.target.value)}
+                  placeholder="Name,Hash,Id,Tag,Tier,Type,…"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => verwerkCsv(csvPlakken)}
+                    disabled={!csvPlakken.trim()}
+                    className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5"
+                  >
+                    <Check size={14} /> Inlezen
+                  </button>
+                  <button onClick={() => setCsvPlakken(null)} className="dl-btn-ghost px-3 py-2 text-sm">
+                    Annuleren
+                  </button>
+                </div>
+              </div>
+            )}
             <p className="text-[11px] opacity-50 mt-2 leading-relaxed">
               Het bestand wordt op je telefoon zelf gelezen — er gaat niets naar een server. Je kiest
               daarna zelf wat je overneemt, en je eigen labels, notities en foto's blijven staan.
