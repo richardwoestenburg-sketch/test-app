@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Gamepad2, Plus, Trash2, Pencil, X, Check, Search, Sparkles, Mic, Settings,
   Download, Upload, Boxes, Users, Trophy, StickyNote, MessageSquare, Clock,
-  ExternalLink, Camera, Images, LogIn, LogOut, RefreshCw, Link2,
+  ExternalLink, Camera, Images, LogIn, LogOut, RefreshCw, Link2, Stethoscope, Copy,
 } from "lucide-react";
 import * as d from "./destiny.js";
 import * as b from "./bungie.js";
@@ -627,6 +627,34 @@ export default function Destiny() {
     }
   };
 
+  // ---- Verbindingstest ---------------------------------------------------
+  const [test, setTest] = useState(null); // null | "bezig" | stappen[]
+  const [testGekopieerd, setTestGekopieerd] = useState(false);
+
+  const runTest = async () => {
+    setTest("bezig");
+    setTestGekopieerd(false);
+    try {
+      setTest(await b.testConnection(links));
+    } catch (err) {
+      setTest([{ naam: "Test", ok: false, detail: err.message }]);
+    }
+  };
+
+  const testAlsTekst = () =>
+    (Array.isArray(test) ? test : [])
+      .map((st) => `${st.ok ? "OK " : "FOUT "} ${st.naam}: ${st.detail}`)
+      .join("\n");
+
+  const kopieerTest = async () => {
+    try {
+      await navigator.clipboard.writeText(testAlsTekst());
+      setTestGekopieerd(true);
+    } catch {
+      setTestGekopieerd(false);
+    }
+  };
+
   const doLogout = () => {
     b.logout();
     setLoggedIn(false);
@@ -1051,6 +1079,38 @@ export default function Destiny() {
                 </div>
               </div>
             )}
+            {b.isConfigured() && !cfgForm && (
+              <div className="mt-3">
+                <button
+                  onClick={runTest}
+                  disabled={test === "bezig"}
+                  className="dl-btn-ghost px-3 py-2 text-sm flex items-center gap-1.5"
+                >
+                  <Stethoscope size={14} /> {test === "bezig" ? "Bezig met testen…" : "Verbinding testen"}
+                </button>
+
+                {Array.isArray(test) && (
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {test.map((st, i) => (
+                      <div key={i} className={`dt-row ${st.ok ? "dt-row-done" : "dt-row-muted"} p-2.5`}>
+                        <div className="text-sm font-semibold flex items-center gap-1.5">
+                          <span aria-hidden>{st.ok ? "✓" : "✗"}</span>
+                          <span>{st.naam}</span>
+                        </div>
+                        <div className="text-[11px] opacity-70 leading-relaxed break-words">{st.detail}</div>
+                      </div>
+                    ))}
+                    <button
+                      onClick={kopieerTest}
+                      className="dl-btn-ghost px-3 py-2 text-xs flex items-center gap-1.5 self-start"
+                    >
+                      <Copy size={12} /> {testGekopieerd ? "Gekopieerd" : "Rapport kopiëren"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {bungieMsg && <p className="text-xs opacity-75 mt-3">{bungieMsg}</p>}
             <p className="text-[11px] opacity-50 leading-relaxed mt-3">
               Zo'n Bungie-sessie duurt een uur; daarna log je opnieuw in als je weer wilt
