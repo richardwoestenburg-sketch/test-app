@@ -535,6 +535,7 @@ export function mergeItemsFromBungie(existing, incoming, platform, locationFor) 
         id: newId(),
         createdAt: Date.now(),
         perks: inc.perks || "",
+        notes: inc.notes || "",
         tags: [...new Set(inc.tags || [])],
       });
       added += 1;

@@ -3,9 +3,11 @@ import {
   Gamepad2, Plus, Trash2, Pencil, X, Check, Search, Sparkles, Mic, Settings,
   Download, Upload, Boxes, Users, Trophy, StickyNote, MessageSquare, Clock,
   ExternalLink, Camera, Images, LogIn, LogOut, RefreshCw, Link2, Stethoscope, Copy,
+  FileUp,
 } from "lucide-react";
 import * as d from "./destiny.js";
 import * as b from "./bungie.js";
+import * as dim from "./dimCsv.js";
 
 const KEY_VIEW = "destiny-view-tab";
 const KEY_VIEW_PLATFORM = "destiny-view-platform";
@@ -600,6 +602,30 @@ export default function Destiny() {
     }
   };
 
+  // ---- Import uit DIM ----------------------------------------------------
+  const csvRef = useRef(null);
+
+  const onCsvChosen = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const slot = platform || "ps5";
+    setBungieMsg("");
+    setSync({ slot, bron: "dim", phase: "ophalen", progress: null });
+    try {
+      const tekst = await file.text();
+      const { items, diagnose } = dim.mapDimRows(tekst, { platform: slot, characters });
+      // Standaard aangevinkt: wat je in de game vergrendeld hebt, plus exotics.
+      const selected = new Set(
+        items.filter((i) => i.locked || d.norm(i.rarity) === "exotic").map((i) => i.instanceId)
+      );
+      setSync({ slot, bron: "dim", phase: "kiezen", chars: [], items, selected, dimDiagnose: diagnose, progress: null });
+    } catch {
+      setSync(null);
+      setBungieMsg("Dit bestand kon ik niet lezen. Is het de CSV-export van DIM?");
+    }
+  };
+
   const toggleSelected = (instanceId) => {
     setSync((s) => {
       if (!s) return s;
@@ -618,14 +644,24 @@ export default function Destiny() {
       // Eerst de karakters, want dingen kunnen op een karakter staan.
       const charResult = d.mergeCharactersFromBungie(characters, s.chars, s.slot);
       commitChars(charResult.list);
-      const localIdFor = (bungieId) => charResult.list.find((c) => c.bungieId === bungieId)?.id || null;
+      // Uit DIM is de locatie al een karakter uit deze app; van Bungie komt een
+      // eigen karakter-id, dat we eerst moeten omzetten.
+      const localIdFor =
+        s.bron === "dim"
+          ? (id) => id
+          : (bungieId) => charResult.list.find((c) => c.bungieId === bungieId)?.id || null;
 
       const chosen = s.items.filter((i) => s.selected.has(i.instanceId));
       const withPerks = [];
       for (let i = 0; i < chosen.length; i++) {
         const item = chosen[i];
         setSync((cur) => (cur ? { ...cur, progress: { done: i, total: chosen.length } } : cur));
-        const perks = item.kind === "wapen" ? await b.perksFor(s.profile, item.instanceId).catch(() => "") : "";
+        const perks =
+          s.bron === "dim"
+            ? item.perks // uit DIM komen de perks al mee
+            : item.kind === "wapen"
+              ? await b.perksFor(s.profile, item.instanceId).catch(() => "")
+              : "";
         withPerks.push({ ...item, perks });
       }
 
@@ -981,6 +1017,41 @@ export default function Destiny() {
           </p>
 
           <div className="pt-3 border-t" style={{ borderColor: "#e6e9f2" }}>
+            <div className="text-xs uppercase dl-day-label opacity-60 mb-1">Uit DIM importeren</div>
+            <p className="text-[11px] opacity-60 leading-relaxed mb-3">
+              De snelste weg naar je kluis, zonder eigen sleutels: log in bij{" "}
+              <a
+                className="underline"
+                href="https://app.destinyitemmanager.com"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                Destiny Item Manager
+              </a>{" "}
+              met je Bungie-account en download daar bij <em>Settings → Spreadsheets</em> de lijst
+              met <strong>wapens</strong> of <strong>armor</strong>. Kies dat bestand hier.
+            </p>
+            <button
+              onClick={() => csvRef.current?.click()}
+              className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5"
+            >
+              <FileUp size={14} /> DIM-bestand kiezen ({d.platformLabel(platform || "ps5")})
+            </button>
+            <input
+              ref={csvRef}
+              type="file"
+              accept=".csv,text/csv,text/plain"
+              className="hidden"
+              onChange={onCsvChosen}
+            />
+            <p className="text-[11px] opacity-50 mt-2 leading-relaxed">
+              Het bestand wordt op je telefoon zelf gelezen — er gaat niets naar een server. Je kiest
+              daarna zelf wat je overneemt, en je eigen labels, notities en foto's blijven staan.
+              Staat de schakelaar bovenin op <em>Beide</em>, dan komt het bij PS5 te staan.
+            </p>
+          </div>
+
+          <div className="pt-3 border-t" style={{ borderColor: "#e6e9f2" }}>
             <div className="text-xs uppercase dl-day-label opacity-60 mb-1">Bungie-koppeling</div>
             <p className="text-[11px] opacity-60 leading-relaxed mb-3">
               Haal je karakters en je kluis rechtstreeks uit Destiny 2 op, in plaats van
@@ -1195,7 +1266,7 @@ export default function Destiny() {
         <div className="dl-card p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs uppercase dl-day-label opacity-60">
-              Uit Destiny 2 · {d.platformLabel(sync.slot)}
+              {sync.bron === "dim" ? "Uit DIM" : "Uit Destiny 2"} · {d.platformLabel(sync.slot)}
             </span>
             {sync.phase !== "importeren" && (
               <button onClick={() => setSync(null)} className="dl-btn-ghost p-1.5" aria-label="Sluiten">
@@ -1208,7 +1279,11 @@ export default function Destiny() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 text-sm">
                 <RefreshCw size={15} className="dl-spin dl-ico-accent" />
-                {sync.phase === "ophalen" ? "Je kluis ophalen bij Bungie…" : "Perks ophalen en importeren…"}
+                {sync.phase === "ophalen"
+                  ? sync.bron === "dim"
+                    ? "Bestand lezen…"
+                    : "Je kluis ophalen bij Bungie…"
+                  : "Importeren…"}
               </div>
               {sync.progress && (
                 <>
@@ -1251,7 +1326,20 @@ export default function Destiny() {
               {sync.items.length === 0 ? (
                 <>
                   <p className="text-sm">Niets gevonden om over te nemen.</p>
-                  <p className="text-sm opacity-80 leading-relaxed">{legeUitleg(sync.items.diagnose)}</p>
+                  <p className="text-sm opacity-80 leading-relaxed">
+                    {sync.bron === "dim"
+                      ? sync.dimDiagnose?.reden ||
+                        `Ik las ${sync.dimDiagnose?.rijen ?? 0} regels, maar herkende daar geen wapens of armor in. ` +
+                          "Exporteer bij DIM de lijst met wapens of armor (niet die met ghosts of loadouts)."
+                      : legeUitleg(sync.items.diagnose)}
+                  </p>
+                  {sync.bron === "dim" ? (
+                    <p className="text-[11px] opacity-55 dl-mono leading-relaxed">
+                      Gelezen: {sync.dimDiagnose?.rijen ?? 0} regels ·{" "}
+                      {sync.dimDiagnose?.overgeslagen ?? 0} geen wapen/armor ·{" "}
+                      {(sync.dimDiagnose?.kolommen || []).length} kolommen
+                    </p>
+                  ) : (
                   <p className="text-[11px] opacity-55 dl-mono leading-relaxed">
                     Bungie gaf: {sync.items.diagnose?.karakters ?? 0} karakters ·{" "}
                     {sync.items.diagnose?.ruw ?? 0} dingen ·{" "}
@@ -1259,17 +1347,21 @@ export default function Destiny() {
                     {sync.items.diagnose?.kluisAanwezig ? "ja" : "nee"} · inventaris{" "}
                     {sync.items.diagnose?.karakterInventarisAanwezig ? "ja" : "nee"}
                   </p>
+                  )}
+                  {sync.bron !== "dim" && (
                   <button
                     onClick={() => startSync(sync.slot)}
                     className="dl-btn-ghost px-3 py-2 text-sm flex items-center gap-1.5 self-start"
                   >
                     <RefreshCw size={14} /> Opnieuw proberen
                   </button>
+                  )}
                 </>
               ) : (
                 <p className="text-sm">
-                  {sync.items.length} wapens en armor gevonden. Aangevinkt staat wat je in de
-                  game <strong>vergrendeld</strong> hebt, plus je exotics — dat is meestal
+                  {sync.items.length} wapens en armor{" "}
+                  {sync.bron === "dim" ? "in het bestand" : "gevonden"}. Aangevinkt staat wat je in
+                  de game <strong>vergrendeld</strong> hebt, plus je exotics — dat is meestal
                   precies wat je wilt bijhouden.
                 </p>
               )}
