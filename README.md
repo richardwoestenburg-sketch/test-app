@@ -245,7 +245,15 @@ PS5 én Xbox bewaren — kluis, karakters, voortgang — en er vragen over stell
 - **Back-up**: via het tandwiel ⚙️ sla je alles op als JSON-bestand en lees je
   het weer in (samenvoegen, nooit overschrijven) — handig bij een nieuw toestel.
   Foto's gaan mee in de back-up
-- **Koppeling met Destiny 2 zelf** (optioneel): log via het tandwiel ⚙️ in met je
+- **Import uit DIM** (de makkelijkste weg naar je kluis): log bij
+  [Destiny Item Manager](https://app.destinyitemmanager.com) in met je
+  Bungie-account, download daar bij *Settings → Spreadsheets* de lijst met
+  wapens of armor, en kies dat CSV-bestand bij ⚙️ → *Uit DIM importeren*. Geen
+  eigen app-registratie, API-key of Origin Header nodig. Het bestand wordt op
+  je toestel zelf gelezen. Je krijgt hetzelfde keuzescherm als hieronder, en
+  omdat DIM hetzelfde instantie-id per exemplaar meegeeft als de Bungie-API,
+  sluit dit naadloos aan als je later alsnog de koppeling gebruikt
+- **Koppeling met Destiny 2 zelf** (optioneel, meer opzetwerk): log via het tandwiel ⚙️ in met je
   Bungie-account en haal je karakters en je kluis rechtstreeks op — naam, soort,
   rarity, element, power, waar iets staat en de perks van wat je importeert.
   Na het ophalen kies je zelf wat je overneemt; standaard staat aangevinkt wat je
