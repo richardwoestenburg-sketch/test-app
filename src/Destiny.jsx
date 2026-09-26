@@ -1363,7 +1363,7 @@ export default function Destiny() {
 
           <div className="flex gap-2 mb-2">
             <input
-              className="dl-input px-3 py-2.5 text-sm flex-1"
+              className="dl-input px-3 py-2.5 text-sm flex-1 min-w-0"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runAsk()}
@@ -1382,7 +1382,7 @@ export default function Destiny() {
             <button
               onClick={() => runAsk()}
               disabled={!question.trim()}
-              className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5"
+              className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5 shrink-0"
             >
               <Search size={15} /> Vraag
             </button>
@@ -1599,7 +1599,7 @@ export default function Destiny() {
 
           <div className="flex gap-2 mb-3">
             <input
-              className="dl-input px-3 py-2 text-sm flex-1"
+              className="dl-input px-3 py-2 text-sm flex-1 min-w-0"
               value={itemSearch}
               onChange={(e) => setItemSearch(e.target.value)}
               placeholder="Zoek in je kluis…"
