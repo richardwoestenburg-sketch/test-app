@@ -14,6 +14,13 @@ import * as dim from "./dimCsv.js";
 const BUILD_TIME = typeof __BUILD_TIME__ === "string" ? __BUILD_TIME__ : "";
 
 const KEY_VIEW = "destiny-view-tab";
+
+const bestandsgrootte = (bytes) => {
+  const n = Number(bytes) || 0;
+  if (n < 1024) return `${n} bytes`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} kB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+};
 const KEY_VIEW_PLATFORM = "destiny-view-platform";
 
 const TABS = [
@@ -651,11 +658,31 @@ export default function Destiny() {
 
   const [csvPlakken, setCsvPlakken] = useState(null); // null = dicht
 
-  const verwerkCsv = (tekst) => {
+  const verwerkCsv = (tekst, bestand = null) => {
     const slot = platform || "ps5";
     setBungieMsg("");
+    // Leeg bestand: dat gebeurt met bestanden die nog in Google Drive of
+    // OneDrive staan en niet echt op de telefoon. Blijf in het paneel staan,
+    // anders lijkt het alsof er niets is gebeurd.
     if (!String(tekst || "").trim()) {
-      setBungieMsg("Er zat geen tekst in dat bestand.");
+      setSync({
+        slot,
+        bron: "dim",
+        phase: "kiezen",
+        chars: [],
+        items: [],
+        selected: new Set(),
+        bestand,
+        dimDiagnose: {
+          rijen: 0,
+          herkend: 0,
+          reden:
+            "Dat bestand was leeg. Staat het misschien nog in Google Drive of OneDrive? " +
+            "Download het dan eerst naar je telefoon. Of open het tandwiel rechtsboven en " +
+            "kies \"Lukt kiezen niet? Inhoud plakken\".",
+        },
+        progress: null,
+      });
       return;
     }
     try {
@@ -665,10 +692,29 @@ export default function Destiny() {
         items.filter((i) => i.locked || d.norm(i.rarity) === "exotic").map((i) => i.instanceId)
       );
       setCsvPlakken(null);
-      setSync({ slot, bron: "dim", phase: "kiezen", chars: [], items, selected, dimDiagnose: diagnose, progress: null });
+      setSync({
+        slot,
+        bron: "dim",
+        phase: "kiezen",
+        chars: [],
+        items,
+        selected,
+        bestand,
+        dimDiagnose: diagnose,
+        progress: null,
+      });
     } catch {
-      setSync(null);
-      setBungieMsg("Dit bestand kon ik niet lezen. Is het de CSV-export van DIM?");
+      setSync({
+        slot,
+        bron: "dim",
+        phase: "kiezen",
+        chars: [],
+        items: [],
+        selected: new Set(),
+        bestand,
+        dimDiagnose: { rijen: 0, herkend: 0, reden: "Dit bestand kon ik niet lezen. Is het de CSV-export van DIM?" },
+        progress: null,
+      });
     }
   };
 
@@ -677,12 +723,28 @@ export default function Destiny() {
     e.target.value = "";
     // Geen bestand = je hebt de kiezer weggeklikt; dan hoeft er niets te gebeuren.
     if (!file) return;
-    setSync({ slot: platform || "ps5", bron: "dim", phase: "ophalen", progress: null });
+    const bestand = { naam: file.name || "bestand", bytes: file.size || 0 };
+    setSync({ slot: platform || "ps5", bron: "dim", phase: "ophalen", bestand, progress: null });
     try {
-      verwerkCsv(await file.text());
+      verwerkCsv(await file.text(), bestand);
     } catch {
-      setSync(null);
-      setBungieMsg("Dat bestand kon ik niet openen. Probeer het via 'inhoud plakken'.");
+      setSync({
+        slot: platform || "ps5",
+        bron: "dim",
+        phase: "kiezen",
+        chars: [],
+        items: [],
+        selected: new Set(),
+        bestand,
+        dimDiagnose: {
+          rijen: 0,
+          herkend: 0,
+          reden:
+            "Dat bestand kon ik niet openen. Open het tandwiel rechtsboven en kies " +
+            '"Lukt kiezen niet? Inhoud plakken".',
+        },
+        progress: null,
+      });
     }
   };
 
@@ -794,9 +856,29 @@ export default function Destiny() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
   const [importLog, setImportLog] = useState(() => d.loadImportLog());
+  // Het importpaneel verschijnt bovenaan de pagina, terwijl de knop die het
+  // opent onderin de instellingen staat. Zonder dit scrol je na het kiezen van
+  // een bestand naar een scherm dat er onveranderd uitziet.
+  const syncRef = useRef(null);
   const [rapportGekopieerd, setRapportGekopieerd] = useState(false);
   const [confirmWipe, setConfirmWipe] = useState(false);
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (!sync) return;
+    setShowSettings(false);
+    const el = syncRef.current;
+    if (!el) return;
+    // Volgende frame: het paneel moet eerst getekend zijn.
+    const id = requestAnimationFrame(() => {
+      try {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch {
+        el.scrollIntoView();
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [sync?.phase, !!sync]);
 
   const saveProfileField = (key, value) => {
     const next = { ...profile, [key]: value };
@@ -1153,7 +1235,9 @@ export default function Destiny() {
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={() => verwerkCsv(csvPlakken)}
+                    onClick={() =>
+                      verwerkCsv(csvPlakken, { naam: "geplakte tekst", bytes: csvPlakken.length })
+                    }
                     disabled={!csvPlakken.trim()}
                     className="dl-btn-primary px-3 py-2 text-sm flex items-center gap-1.5"
                   >
@@ -1384,7 +1468,7 @@ export default function Destiny() {
       {!loaded ? (
         <p className="text-sm opacity-50">Laden…</p>
       ) : sync ? (
-        <div className="dl-card p-4">
+        <div className="dl-card p-4" ref={syncRef}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs uppercase dl-day-label opacity-60">
               {sync.bron === "dim" ? "Uit DIM" : "Uit Destiny 2"} · {d.platformLabel(sync.slot)}
@@ -1395,6 +1479,12 @@ export default function Destiny() {
               </button>
             )}
           </div>
+
+          {sync.bestand && (
+            <p className="text-[11px] opacity-60 dl-mono mb-3 break-all">
+              Bestand: {sync.bestand.naam} · {bestandsgrootte(sync.bestand.bytes)}
+            </p>
+          )}
 
           {sync.phase === "ophalen" || sync.phase === "importeren" ? (
             <div className="flex flex-col gap-3">
@@ -1553,16 +1643,19 @@ export default function Destiny() {
                   </p>
                 )}
               </div>
-              <button
-                onClick={applySync}
-                disabled={!sync.selected.size && !sync.chars?.length}
-                className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5"
-              >
-                <Link2 size={15} />{" "}
-                {sync.selected.size
-                  ? `${sync.selected.size} overnemen in mijn kluis`
-                  : `Alleen je ${sync.chars?.length || 0} karakters overnemen`}
-              </button>
+              {/* Niets gevonden? Dan hoort er ook geen overnemen-knop te staan. */}
+              {(!!sync.items.length || !!sync.chars?.length) && (
+                <button
+                  onClick={applySync}
+                  disabled={!sync.selected.size && !sync.chars?.length}
+                  className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5"
+                >
+                  <Link2 size={15} />{" "}
+                  {sync.selected.size
+                    ? `${sync.selected.size} overnemen in mijn kluis`
+                    : `Alleen je ${sync.chars?.length || 0} karakters overnemen`}
+                </button>
+              )}
             </div>
           )}
         </div>
