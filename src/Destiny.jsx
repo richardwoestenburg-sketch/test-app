@@ -101,6 +101,33 @@ function questNaarFormulier(q) {
   };
 }
 
+// Een waarde die je elders moet invullen, met een kopieerknop erbij:
+// overtypen van een URL op een telefoon gaat vroeg of laat mis.
+function KopieerVeld({ waarde, naam }) {
+  const [gekopieerd, setGekopieerd] = useState(false);
+  const kopieer = async () => {
+    try {
+      await navigator.clipboard.writeText(waarde);
+      setGekopieerd(true);
+      setTimeout(() => setGekopieerd(false), 2000);
+    } catch {
+      setGekopieerd(false);
+    }
+  };
+  return (
+    <div className="flex items-stretch gap-1.5">
+      <code className="dl-mono text-[11px] break-all dl-input px-3 py-2 flex-1 min-w-0">{waarde}</code>
+      <button
+        onClick={kopieer}
+        className="dl-btn-ghost px-2.5 shrink-0 flex items-center gap-1 text-[11px]"
+        aria-label={`Kopieer ${naam}`}
+      >
+        <Copy size={13} /> {gekopieerd ? "Ok" : "Kopieer"}
+      </button>
+    </div>
+  );
+}
+
 function emptyActivity(platform) {
   return { id: null, platform: platform || "ps5", kind: "raid", name: "", status: "todo", notes: "" };
 }
@@ -1389,12 +1416,12 @@ export default function Destiny() {
                   <strong>{bungieCfg.mode === "worker" ? "Confidential" : "Public"}</strong> en vul als
                   Redirect&nbsp;URL exact dit in:
                 </p>
-                <code className="dl-mono text-[11px] break-all dl-input px-3 py-2">{b.redirectUrl()}</code>
+                <KopieerVeld waarde={b.redirectUrl()} naam="redirect" />
                 <p className="text-[11px] opacity-60 leading-relaxed">
                   Vul ook het veld <strong>Origin Header</strong> in — zonder dat weigert
                   Bungie verzoeken vanuit een browser ("OriginHeaderDoesNotMatchKey"):
                 </p>
-                <code className="dl-mono text-[11px] break-all dl-input px-3 py-2">{b.originHeader()}</code>
+                <KopieerVeld waarde={b.originHeader()} naam="origin" />
                 <p className="text-[11px] opacity-60 leading-relaxed">
                   Vink bij de rechten (scopes) het{" "}
                   <strong>lezen van je Destiny-gegevens</strong> aan; schrijfrechten heeft de
