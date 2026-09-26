@@ -16,12 +16,25 @@ import { norm, WEAPON_TYPES, ELEMENTS, RARITIES, CLASSES } from "./destiny.js";
 
 // Kleine, volledige CSV-lezer: velden tussen aanhalingstekens, ontsnapte
 // aanhalingstekens ("" binnen een veld) en regeleindes binnen een veld.
-export function parseCsv(text) {
+// Welk teken scheidt de velden? DIM schrijft komma's, maar wie het bestand
+// eerst in Excel of Google Sheets opent en de inhoud kopieert, krijgt tabs of
+// puntkomma's. We kijken naar de kopregel en nemen wat daar het meest in staat.
+export function bepaalScheidingsteken(text) {
+  const kop = String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/)[0] || "";
+  const buitenQuotes = kop.replace(/"[^"]*"/g, "");
+  const tellen = { ",": 0, ";": 0, "\t": 0 };
+  for (const c of buitenQuotes) if (c in tellen) tellen[c] += 1;
+  const beste = Object.entries(tellen).sort((a, b) => b[1] - a[1])[0];
+  return beste[1] > 0 ? beste[0] : ",";
+}
+
+export function parseCsv(text, scheidingsteken) {
   const rijen = [];
   let rij = [];
   let veld = "";
   let inQuotes = false;
   const schoon = String(text || "").replace(/^﻿/, ""); // byte-order mark
+  const sep = scheidingsteken || bepaalScheidingsteken(schoon);
 
   for (let i = 0; i < schoon.length; i++) {
     const c = schoon[i];
@@ -40,7 +53,7 @@ export function parseCsv(text) {
     }
     if (c === '"') {
       inQuotes = true;
-    } else if (c === ",") {
+    } else if (c === sep) {
       rij.push(veld);
       veld = "";
     } else if (c === "\n") {
