@@ -169,23 +169,26 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
   let overig = 0;
   const items = [];
   for (const rij of rijen) {
-    const name = waarde(rij, "Name");
+    const name = waarde(rij, "Name", "Item Name");
     if (!name) {
       zonderNaam += 1;
       continue;
     }
-    const type = waarde(rij, "Type");
+    const type = waarde(rij, "Type", "Item Type", "Item Category");
     // Kennen we het type niet (ghosts, sparrows, schepen, een nieuw soort
     // uitrusting), dan komt het onder "Overig" te staan. Weggooien zou het
     // stilletjes laten verdwijnen, en dan lijkt je export half leeg.
     const soort = bepaalSoort(type, waarde(rij, "Category")) || "overig";
     if (soort === "overig") overig += 1;
 
-    const tier = waarde(rij, "Tier");
+    // DIM heeft deze kolom ooit hernoemd: oudere exports schrijven "Tier",
+    // nieuwere "Rarity". Zonder allebei blijft je hele kluis zonder rarity
+    // staan en telt de app nul exotics.
+    const tier = waarde(rij, "Tier", "Rarity", "Quality");
     const rarity = RARITIES.find((r) => norm(r.name) === norm(tier));
     const elementRuw = waarde(rij, "Element", "Damage Type", "Damage", "Energy");
     const element = ELEMENTS.find((e) => norm(e.name) === norm(elementRuw));
-    const klasseRuw = waarde(rij, "Equippable", "Class");
+    const klasseRuw = waarde(rij, "Equippable", "Class", "Class Type");
     const klasse = CLASSES.find((c) => norm(c.name) === norm(klasseRuw));
     const mwTier = Number(waarde(rij, "Masterwork Tier")) || 0;
     const dimTag = norm(waarde(rij, "Tag"));
@@ -201,8 +204,8 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
       // Zonder Id kunnen we niet netjes samenvoegen; dan maken we er zelf een
       // die bij een volgende export hetzelfde blijft.
       instanceId:
-        schoonId(waarde(rij, "Id")) ||
-        `dim:${schoonId(waarde(rij, "Hash")) || norm(name)}:${norm(waarde(rij, "Owner"))}`,
+        schoonId(waarde(rij, "Id", "Item Id", "Instance Id")) ||
+        `dim:${schoonId(waarde(rij, "Hash")) || norm(name)}:${norm(waarde(rij, "Owner", "Character", "Location"))}`,
       bungieHash: schoonId(waarde(rij, "Hash")) || null,
       platform,
       kind: soort,
@@ -211,8 +214,8 @@ export function mapDimRows(csvTekst, { platform, characters = [] } = {}) {
       element: soort === "wapen" && element ? element.name : "",
       rarity: rarity ? rarity.name : tier,
       charClass: soort === "armor" && klasse ? klasse.name : "",
-      power: Number(waarde(rij, "Power")) || null,
-      location: bepaalLocatie(waarde(rij, "Owner"), characters, platform),
+      power: Number(waarde(rij, "Power", "Power Level", "Light")) || null,
+      location: bepaalLocatie(waarde(rij, "Owner", "Character", "Location"), characters, platform),
       perks: soort === "wapen" ? perksUit(rij, kolommen) : "",
       notes: waarde(rij, "Notes").slice(0, 600),
       tags: [...new Set(tags)],
