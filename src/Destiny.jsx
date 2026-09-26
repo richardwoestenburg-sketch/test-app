@@ -9,6 +9,10 @@ import * as d from "./destiny.js";
 import * as b from "./bungie.js";
 import * as dim from "./dimCsv.js";
 
+// Wordt door Vite bij het bouwen ingevuld (zie vite.config.js); in een losse
+// dev-server bestaat hij niet, vandaar de terugval.
+const BUILD_TIME = typeof __BUILD_TIME__ === "string" ? __BUILD_TIME__ : "";
+
 const KEY_VIEW = "destiny-view-tab";
 const KEY_VIEW_PLATFORM = "destiny-view-platform";
 
@@ -273,6 +277,27 @@ export default function Destiny() {
   // bijna altijd de verklaring — dus zeggen we het erbij.
   const elders = (list) => (platform ? list.filter((x) => x.platform !== platform).length : 0);
   const anderPlatform = platform === "ps5" ? "Xbox" : "PS5";
+  const rapport = () =>
+    d.statusRapport({
+      items,
+      characters,
+      quests,
+      activities,
+      notes,
+      photos: photos.length,
+      versie: BUILD_TIME,
+      log: importLog,
+    });
+
+  const kopieerRapport = async () => {
+    try {
+      await navigator.clipboard.writeText(rapport());
+      setRapportGekopieerd(true);
+    } catch {
+      setRapportGekopieerd(false);
+    }
+  };
+
   const anderPlatformKaart = (list, woord = "dingen") =>
     !!platform && !onPlatform(list).length && elders(list) > 0 ? (
       <div className="dt-row dt-row-muted p-3">
@@ -702,6 +727,18 @@ export default function Destiny() {
 
       const itemResult = d.mergeItemsFromBungie(items, withPerks, s.slot, localIdFor);
       commitItems(itemResult.list);
+      // Vastleggen wát er binnenkwam en waar het heen ging; anders is een
+      // mislukte import later niet te onderscheiden van het verkeerde platform.
+      setImportLog(
+        d.noteImport({
+          bron: s.bron === "dim" ? "dim" : "bungie",
+          platform: s.slot,
+          items: itemResult.added,
+          updated: itemResult.updated,
+          chars: charResult.added + charResult.updated,
+          quests: s.questAantal || 0,
+        })
+      );
       setSync({
         ...s,
         phase: "klaar",
@@ -756,6 +793,8 @@ export default function Destiny() {
   // ---- Instellingen ------------------------------------------------------
   const [showSettings, setShowSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
+  const [importLog, setImportLog] = useState(() => d.loadImportLog());
+  const [rapportGekopieerd, setRapportGekopieerd] = useState(false);
   const [confirmWipe, setConfirmWipe] = useState(false);
   const fileRef = useRef(null);
 
@@ -1008,6 +1047,22 @@ export default function Destiny() {
       {showSettings && (
         <div className="dl-card p-4 mb-5 flex flex-col gap-3">
           <div className="text-xs uppercase dl-day-label opacity-60">Instellingen</div>
+
+          <div className="dt-row dt-row-muted p-3">
+            <div className="text-xs uppercase dl-day-label opacity-60 mb-1.5">
+              Wat staat er op dit toestel
+            </div>
+            <pre className="text-[11px] leading-relaxed whitespace-pre-wrap dl-mono opacity-80 m-0">
+              {rapport()}
+            </pre>
+            <button
+              onClick={kopieerRapport}
+              className="dl-btn-ghost px-3 py-2 text-sm mt-2 flex items-center gap-1.5"
+            >
+              <Copy size={14} /> {rapportGekopieerd ? "Gekopieerd" : "Kopieer dit overzicht"}
+            </button>
+          </div>
+
           {d.PLATFORMS.map((p) => (
             <Field key={p.id} label={`${p.name} — je naam in de game`}>
               <input
@@ -1395,14 +1450,15 @@ export default function Destiny() {
                   <p className="text-sm opacity-80 leading-relaxed">
                     {sync.bron === "dim"
                       ? sync.dimDiagnose?.reden ||
-                        `Ik las ${sync.dimDiagnose?.rijen ?? 0} regels, maar herkende daar geen wapens of armor in. ` +
-                          "Exporteer bij DIM de lijst met wapens of armor (niet die met ghosts of loadouts)."
+                        `Ik las ${sync.dimDiagnose?.rijen ?? 0} regels, maar er stond niets in met een naam. ` +
+                          "Exporteer bij DIM de lijst met wapens of armor."
                       : legeUitleg(sync.items.diagnose)}
                   </p>
                   {sync.bron === "dim" ? (
                     <p className="text-[11px] opacity-55 dl-mono leading-relaxed">
                       Gelezen: {sync.dimDiagnose?.rijen ?? 0} regels ·{" "}
-                      {sync.dimDiagnose?.overgeslagen ?? 0} geen wapen/armor ·{" "}
+                      {sync.dimDiagnose?.herkend ?? 0} herkend ·{" "}
+                      {sync.dimDiagnose?.overig ?? 0} onder Overig ·{" "}
                       {(sync.dimDiagnose?.kolommen || []).length} kolommen
                     </p>
                   ) : (

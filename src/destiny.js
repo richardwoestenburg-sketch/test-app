@@ -18,6 +18,7 @@ const KEY_NOTES = "destiny-notes-v1";
 const KEY_QUESTS = "destiny-quests-v1";
 const KEY_PROFILE = "destiny-profile-v1";
 const KEY_HISTORY = "destiny-questions-v1";
+const KEY_IMPORTLOG = "destiny-import-log-v1";
 
 function readJson(key, fallback) {
   try {
@@ -258,6 +259,62 @@ export function saveHistory(list) {
 }
 
 // Alles in één object — voor de Q&A, de statistieken en de back-up.
+// -- Importlogboek ---------------------------------------------------------
+// Wat er bij de laatste imports werkelijk is binnengekomen. Zonder dit is een
+// mislukte import niet te onderscheiden van "je kijkt op het verkeerde
+// platform" — en dat valt op een telefoon niet te achterhalen.
+
+export function loadImportLog() {
+  const list = readJson(KEY_IMPORTLOG, []);
+  return Array.isArray(list) ? list : [];
+}
+
+export function noteImport(entry) {
+  const list = [{ ...entry, at: Date.now() }, ...loadImportLog()].slice(0, 5);
+  writeJson(KEY_IMPORTLOG, list);
+  return list;
+}
+
+function kort(ts) {
+  const dt = new Date(ts);
+  if (Number.isNaN(dt.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(dt.getDate())}-${p(dt.getMonth() + 1)} ${p(dt.getHours())}:${p(dt.getMinutes())}`;
+}
+
+export function importLogRegel(e) {
+  if (!e) return "";
+  const bron = e.bron === "dim" ? "uit DIM" : "uit Destiny 2";
+  const stukken = [`${e.items || 0} nieuw`];
+  if (e.updated) stukken.push(`${e.updated} bijgewerkt`);
+  if (e.chars) stukken.push(`${e.chars} karakters`);
+  if (e.quests) stukken.push(`${e.quests} quests`);
+  return `${kort(e.at)} — ${bron} naar ${platformLabel(e.platform)}: ${stukken.join(", ")}`;
+}
+
+// Eén blok tekst dat precies zegt wat er op dit toestel staat. Bedoeld om te
+// lezen én te kopiëren, zodat je niet hoeft te raden waar je gegevens zijn.
+export function statusRapport({ items = [], characters = [], quests = [], activities = [], notes = [], photos = 0, versie = "", log = null }) {
+  const per = (p) => {
+    const tel = (list) => list.filter((x) => x.platform === p).length;
+    return `${platformLabel(p)}: ${tel(items)} dingen, ${tel(characters)} karakters, ${tel(quests)} quests, ${tel(activities)} activiteiten`;
+  };
+  const geen = items.filter((x) => x.platform !== "ps5" && x.platform !== "xbox").length;
+  const historie = Array.isArray(log) ? log : loadImportLog();
+  const regels = [
+    "Destiny-app — wat er op dit toestel staat",
+    versie ? `Appversie: ${versie}` : "",
+    ...PLATFORMS.map((p) => per(p.id)),
+    geen ? `Zonder platform: ${geen} dingen` : "",
+    `Notities: ${notes.length} · Foto's: ${photos}`,
+    historie.length
+      ? `Laatste import: ${importLogRegel(historie[0])}`
+      : "Nog nooit iets geïmporteerd.",
+    ...historie.slice(1).map((e) => `Daarvoor: ${importLogRegel(e)}`),
+  ];
+  return regels.filter(Boolean).join("\n");
+}
+
 export function loadAll() {
   return {
     items: loadItems(),
