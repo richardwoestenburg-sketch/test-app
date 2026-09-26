@@ -171,6 +171,9 @@ export default function Destiny() {
   }, []);
 
   const choose = (t) => {
+    // Het import-/koppelpaneel ligt over alle tabbladen heen. Zonder dit doet
+    // een tik op een tab zichtbaar niets zolang dat paneel openstaat.
+    setSync((s) => (s && s.phase !== "importeren" ? null : s));
     setTab(t);
     try { localStorage.setItem(KEY_VIEW, t); } catch {}
   };
@@ -583,6 +586,9 @@ export default function Destiny() {
       return;
     }
     setShowSettings(true);
+    // Terug van Bungie: het blok moet openstaan, anders land je op instellingen
+    // waar de uitslag van het inloggen weggeklapt zit.
+    setToonBungie(true);
     setBungieMsg("Bezig met inloggen bij Bungie…");
     b.completeLogin(pending)
       .then(() => {
@@ -854,6 +860,8 @@ export default function Destiny() {
 
   // ---- Instellingen ------------------------------------------------------
   const [showSettings, setShowSettings] = useState(false);
+  // Wie al ingelogd is bij Bungie gebruikt die route; dan staat hij open.
+  const [toonBungie, setToonBungie] = useState(() => b.isLoggedIn());
   const [settingsMsg, setSettingsMsg] = useState("");
   const [importLog, setImportLog] = useState(() => d.loadImportLog());
   // Het importpaneel verschijnt bovenaan de pagina, terwijl de knop die het
@@ -1257,8 +1265,24 @@ export default function Destiny() {
           </div>
 
           <div className="pt-3 border-t" style={{ borderColor: "#e6e9f2" }}>
-            <div className="text-xs uppercase dl-day-label opacity-60 mb-1">Bungie-koppeling</div>
-            <p className="text-[11px] opacity-60 leading-relaxed mb-3">
+            {/* Ingeklapt: deze route vraagt een eigen app-registratie bij Bungie en is
+                voor de meeste mensen niet nodig — de DIM-route hierboven wel. */}
+            <button
+              onClick={() => setToonBungie((v) => !v)}
+              className="text-xs uppercase dl-day-label opacity-60 flex items-center gap-1.5"
+              aria-expanded={toonBungie}
+            >
+              <Link2 size={13} /> Bungie-koppeling (geavanceerd) {toonBungie ? "▾" : "▸"}
+            </button>
+            {!toonBungie && (
+              <p className="text-[11px] opacity-50 leading-relaxed mt-1">
+                Rechtstreeks uit Destiny 2 ophalen. Vraagt een eigen app-registratie bij
+                Bungie; de DIM-route hierboven werkt zonder.
+              </p>
+            )}
+            {toonBungie && (
+            <>
+            <p className="text-[11px] opacity-60 leading-relaxed mb-3 mt-2">
               Haal je karakters en je kluis rechtstreeks uit Destiny 2 op, in plaats van
               alles met de hand in te voeren. Je eigen labels, notities en foto's blijven
               daarbij staan.
@@ -1439,6 +1463,8 @@ export default function Destiny() {
               Zo'n Bungie-sessie duurt een uur; daarna log je opnieuw in als je weer wilt
               ophalen. De app leest alleen — er wordt niets in je game gewijzigd.
             </p>
+            </>
+            )}
           </div>
         </div>
       )}
