@@ -269,6 +269,25 @@ export default function Destiny() {
     [quests, activities, platform]
   );
   const onPlatform = (list) => (platform ? list.filter((x) => x.platform === platform) : list);
+  // Staat er niets op het gekozen platform, maar wel op het andere? Dan is dat
+  // bijna altijd de verklaring — dus zeggen we het erbij.
+  const elders = (list) => (platform ? list.filter((x) => x.platform !== platform).length : 0);
+  const anderPlatform = platform === "ps5" ? "Xbox" : "PS5";
+  const anderPlatformKaart = (list, woord = "dingen") =>
+    !!platform && !onPlatform(list).length && elders(list) > 0 ? (
+      <div className="dt-row dt-row-muted p-3">
+        <p className="text-sm">
+          Niets op {d.platformLabel(platform)} — maar op {anderPlatform} staan {elders(list)}{" "}
+          {woord}.
+        </p>
+        <button
+          onClick={() => choosePlatform(platform === "ps5" ? "xbox" : "ps5")}
+          className="dl-btn-ghost px-3 py-2 text-sm mt-2"
+        >
+          Laat {anderPlatform} zien
+        </button>
+      </div>
+    ) : null;
   const s = d.stats(data, platform);
 
   // ---- Vragen ------------------------------------------------------------
@@ -1570,6 +1589,14 @@ export default function Destiny() {
             </>
           )}
 
+          {!!platform && !onPlatform(items).length && elders(items) > 0 && (
+            <p className="text-xs opacity-70 leading-relaxed mt-6">
+              Je kijkt naar {d.platformLabel(platform)} en daar staat nog niets. Op{" "}
+              {anderPlatform} staan {elders(items)} dingen — tik bovenin op {anderPlatform} of op
+              Beide.
+            </p>
+          )}
+
           {!items.length && !activities.length && (
             <p className="text-xs opacity-55 leading-relaxed mt-6">
               Nog niets opgeslagen. Zet eerst wat in je <strong>Kluis</strong> (wapens, armor)
@@ -1771,9 +1798,11 @@ export default function Destiny() {
           </div>
 
           {!visibleItems.length ? (
-            <p className="text-sm opacity-50">
-              {items.length ? "Niets gevonden met deze filters." : "Je kluis is nog leeg."}
-            </p>
+            anderPlatformKaart(items) || (
+              <p className="text-sm opacity-50">
+                {items.length ? "Niets gevonden met deze filters." : "Je kluis is nog leeg."}
+              </p>
+            )
           ) : (
             <>
               <div className="text-xs uppercase dl-day-label opacity-55 mb-2">
@@ -1858,10 +1887,12 @@ export default function Destiny() {
           )}
 
           {!onPlatform(characters).length ? (
-            <p className="text-sm opacity-50">
-              Nog geen karakters. Voeg je Titan, Hunter en Warlock toe — dan kun je spullen
-              "op een karakter" zetten in plaats van in de kluis.
-            </p>
+            anderPlatformKaart(characters, "karakters") || (
+              <p className="text-sm opacity-50">
+                Nog geen karakters. Voeg je Titan, Hunter en Warlock toe — dan kun je spullen
+                "op een karakter" zetten in plaats van in de kluis.
+              </p>
+            )
           ) : (
             <div className="flex flex-col gap-2">{renderCharRows(onPlatform(characters))}</div>
           )}
