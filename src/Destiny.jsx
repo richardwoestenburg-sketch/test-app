@@ -85,6 +85,22 @@ function emptyChar(platform) {
   return { id: null, platform: platform || "ps5", cls: "Titan", name: "", subclass: "", power: "", notes: "" };
 }
 
+// Een opgeslagen quest terug in het formulier; de stappen staan er los bij
+// zodat je "3 van 7" kunt bijwerken zonder met percentages te rekenen.
+function questNaarFormulier(q) {
+  return {
+    instanceId: q.instanceId,
+    platform: q.platform,
+    kindId: q.kindId || "quest",
+    name: q.name || "",
+    omschrijving: q.omschrijving || "",
+    gedaan: q.gedaan ?? "",
+    totaal: q.totaal ?? "",
+    verloopt: q.verloopt || "",
+    klaar: !!q.klaar,
+  };
+}
+
 function emptyActivity(platform) {
   return { id: null, platform: platform || "ps5", kind: "raid", name: "", status: "todo", notes: "" };
 }
@@ -281,6 +297,15 @@ export default function Destiny() {
   const questLijst = useMemo(
     () => d.questAdvies(quests, activities, platform || null),
     [quests, activities, platform]
+  );
+  // Quests die je op klaar zet verdwijnen uit het advies; hier kun je ze
+  // terugzien en terugzetten, anders zijn ze onbereikbaar.
+  const afgerondeQuests = useMemo(
+    () =>
+      quests.filter(
+        (q) => q.klaar && q.bron === "handmatig" && (!platform || q.platform === platform)
+      ),
+    [quests, platform]
   );
   const onPlatform = (list) => (platform ? list.filter((x) => x.platform === platform) : list);
   // Staat er niets op het gekozen platform, maar wel op het andere? Dan is dat
@@ -487,6 +512,8 @@ export default function Destiny() {
 
   // ---- Voortgang ---------------------------------------------------------
   const [actForm, setActForm] = useState(null);
+  const [questForm, setQuestForm] = useState(null);
+  const [toonAfgerond, setToonAfgerond] = useState(false);
 
   const saveAct = () => {
     const f = actForm;
@@ -496,6 +523,26 @@ export default function Destiny() {
     else commitActs([...activities, { ...clean, id: d.newId(), updatedAt: Date.now() }]);
     setActForm(null);
   };
+
+  const saveQuest = () => {
+    const f = questForm;
+    if (!f || !f.name.trim()) return;
+    const quest = d.questUitFormulier(f);
+    const bestaat = quests.some((q) => q.instanceId === quest.instanceId);
+    commitQuests(
+      bestaat ? quests.map((q) => (q.instanceId === quest.instanceId ? { ...q, ...quest } : q)) : [...quests, quest]
+    );
+    setQuestForm(null);
+  };
+
+  const removeQuest = (instanceId) => commitQuests(quests.filter((q) => q.instanceId !== instanceId));
+
+  const toggleQuestKlaar = (quest) =>
+    commitQuests(
+      quests.map((q) =>
+        q.instanceId === quest.instanceId ? { ...q, klaar: !q.klaar, updatedAt: Date.now() } : q
+      )
+    );
 
   const cycleStatus = (act) => {
     const order = ["todo", "bezig", "klaar"];
@@ -1069,12 +1116,27 @@ export default function Destiny() {
           <span className="dl-mono text-[11px] opacity-60 shrink-0">{q.percent}%</span>
         </div>
         <div className="text-[11px] opacity-60 dl-mono">
-          {[q.soort, d.platformLabel(q.platform)].filter(Boolean).join(" · ")}
+          {[q.soort, d.platformLabel(q.platform), q.bron === "handmatig" ? "zelf ingevoerd" : ""]
+            .filter(Boolean)
+            .join(" · ")}
         </div>
         <div className="dl-bar mt-1.5">
           <div className="dl-bar-fill" style={{ width: `${Math.min(100, q.percent)}%` }} />
         </div>
         <div className="text-[11px] opacity-75 mt-1.5">{redenen.join(" · ")}</div>
+        {q.bron === "handmatig" && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <button className="dt-chip" onClick={() => toggleQuestKlaar(q)}>
+              <span className="inline-flex items-center gap-1"><Check size={11} /> Klaar</span>
+            </button>
+            <button className="dt-chip" onClick={() => setQuestForm(questNaarFormulier(q))}>
+              <span className="inline-flex items-center gap-1"><Pencil size={11} /> Bewerken</span>
+            </button>
+            <button className="dt-chip" onClick={() => removeQuest(q.instanceId)}>
+              <span className="inline-flex items-center gap-1"><Trash2 size={11} /> Verwijderen</span>
+            </button>
+          </div>
+        )}
         {!!q.doelen?.length && (
           <div className="mt-1.5 flex flex-col gap-0.5">
             {q.doelen.map((o, i) => (
@@ -2135,12 +2197,113 @@ export default function Destiny() {
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setActForm(emptyActivity(platform || "ps5"))}
-              className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5 w-full mb-4"
-            >
-              <Plus size={15} /> Activiteit toevoegen
-            </button>
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setActForm(emptyActivity(platform || "ps5"))}
+                className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5 flex-1 min-w-0"
+              >
+                <Plus size={15} /> Activiteit
+              </button>
+              <button
+                onClick={() => setQuestForm(d.emptyQuest(platform || "ps5"))}
+                className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5 flex-1 min-w-0"
+              >
+                <Plus size={15} /> Quest
+              </button>
+            </div>
+          )}
+
+          {questForm && (
+            <div className="dl-card p-4 mb-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase dl-day-label opacity-60">
+                  {quests.some((q) => q.instanceId === questForm.instanceId) ? "Quest bewerken" : "Nieuwe quest"}
+                </span>
+                <button onClick={() => setQuestForm(null)} className="dl-btn-ghost p-1.5" aria-label="Sluiten">
+                  <X size={14} />
+                </button>
+              </div>
+              <Segment
+                options={d.PLATFORMS.map((p) => ({ id: p.id, name: p.short }))}
+                value={questForm.platform}
+                onChange={(v) => setQuestForm({ ...questForm, platform: v })}
+                label="Platform"
+              />
+              <Field label="Naam">
+                <input
+                  className="dl-input px-3 py-2 text-sm w-full"
+                  value={questForm.name}
+                  onChange={(e) => setQuestForm({ ...questForm, name: e.target.value })}
+                  placeholder="bijv. Wish-Keeper of Vex-bounty"
+                  autoFocus
+                />
+              </Field>
+              <Field label="Soort">
+                <select
+                  className="dt-select"
+                  value={questForm.kindId}
+                  onChange={(e) => setQuestForm({ ...questForm, kindId: e.target.value })}
+                >
+                  {d.QUEST_KINDS.map((k) => (
+                    <option key={k.id} value={k.id}>{k.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <div className="flex gap-2">
+                <Field label="Stappen gedaan">
+                  <input
+                    className="dl-input px-3 py-2 text-sm w-full"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={questForm.gedaan}
+                    onChange={(e) => setQuestForm({ ...questForm, gedaan: e.target.value })}
+                    placeholder="3"
+                  />
+                </Field>
+                <Field label="Stappen totaal">
+                  <input
+                    className="dl-input px-3 py-2 text-sm w-full"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={questForm.totaal}
+                    onChange={(e) => setQuestForm({ ...questForm, totaal: e.target.value })}
+                    placeholder="7"
+                  />
+                </Field>
+              </div>
+              <Field label="Verloopt (mag leeg)">
+                <input
+                  className="dl-input px-3 py-2 text-sm w-full"
+                  type="datetime-local"
+                  value={questForm.verloopt}
+                  onChange={(e) => setQuestForm({ ...questForm, verloopt: e.target.value })}
+                />
+              </Field>
+              <Field label="Notitie">
+                <textarea
+                  className="dl-input px-3 py-2 text-sm w-full"
+                  rows={2}
+                  value={questForm.omschrijving}
+                  onChange={(e) => setQuestForm({ ...questForm, omschrijving: e.target.value })}
+                  placeholder="bijv. hoort bij Last Wish · alleen de laatste stap nog"
+                />
+              </Field>
+              <button
+                onClick={saveQuest}
+                disabled={!questForm.name.trim()}
+                className="dl-btn-primary px-4 py-2.5 text-sm flex items-center justify-center gap-1.5"
+              >
+                <Check size={15} />{" "}
+                {quests.some((q) => q.instanceId === questForm.instanceId) ? "Wijziging opslaan" : "Toevoegen"}
+              </button>
+              <p className="text-[11px] opacity-55 leading-relaxed">
+                Het advies rangschikt op: verloopt binnen een dag, bijna klaar, levert iets
+                exotisch op, hoort bij een activiteit die nog op je lijst staat, en bounties.
+                Hoe meer je invult, hoe scherper het advies.
+              </p>
+            </div>
           )}
 
           {!!questLijst.length && (
@@ -2152,9 +2315,41 @@ export default function Destiny() {
                 </p>
               </div>
               <div className="text-xs uppercase dl-day-label opacity-55 mb-2">
-                Lopende quests uit de game ({questLijst.length})
+                Lopende quests ({questLijst.length})
               </div>
               <div className="flex flex-col gap-2">{renderQuestRows(questLijst)}</div>
+            </div>
+          )}
+
+          {!!afgerondeQuests.length && (
+            <div className="mb-6">
+              <button
+                onClick={() => setToonAfgerond((v) => !v)}
+                className="text-xs uppercase dl-day-label opacity-55 mb-2"
+                aria-expanded={toonAfgerond}
+              >
+                Afgeronde quests ({afgerondeQuests.length}) {toonAfgerond ? "▾" : "▸"}
+              </button>
+              {toonAfgerond && (
+                <div className="flex flex-col gap-2">
+                  {afgerondeQuests.map((q) => (
+                    <div key={q.instanceId} className="dt-row dt-row-muted p-3">
+                      <div className="text-sm font-semibold truncate opacity-70">{q.name}</div>
+                      <div className="text-[11px] opacity-55 dl-mono">
+                        {[q.soort, d.platformLabel(q.platform)].filter(Boolean).join(" · ")}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <button className="dt-chip" onClick={() => toggleQuestKlaar(q)}>
+                          <span className="inline-flex items-center gap-1"><RefreshCw size={11} /> Terugzetten</span>
+                        </button>
+                        <button className="dt-chip" onClick={() => removeQuest(q.instanceId)}>
+                          <span className="inline-flex items-center gap-1"><Trash2 size={11} /> Verwijderen</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

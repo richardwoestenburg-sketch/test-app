@@ -622,7 +622,9 @@ function emptyFields() {
 // te verdwijnen. Daarom vervangen we de hele set van dit platform, met behoud
 // van je eigen notitie per quest.
 export function mergeQuestsFromBungie(existing, incoming, platform) {
-  const anders = existing.filter((q) => q.platform !== platform);
+  // Quests die je zelf hebt ingevoerd blijven staan: een sync met Bungie
+  // vervangt alleen wat uit de game komt.
+  const anders = existing.filter((q) => q.platform !== platform || q.bron === "handmatig");
   const oudeNotities = new Map(existing.filter((q) => q.notes).map((q) => [q.instanceId, q.notes]));
   const verse = incoming.map((q) => ({
     ...q,
@@ -631,6 +633,58 @@ export function mergeQuestsFromBungie(existing, incoming, platform) {
     updatedAt: Date.now(),
   }));
   return { list: [...anders, ...verse], aantal: verse.length };
+}
+
+// Soorten quests die je zelf kunt invoeren. "exotic" telt mee in het advies,
+// "bounty" ook — zie questAdvies hieronder.
+export const QUEST_KINDS = [
+  { id: "quest", name: "Quest", soort: "Quest" },
+  { id: "exotic", name: "Exotic-quest", soort: "Exotic Quest", rarity: "Exotic" },
+  { id: "bounty", name: "Bounty", soort: "Bounty", isBounty: true },
+  { id: "seizoen", name: "Seizoensopdracht", soort: "Seizoen" },
+  { id: "catalyst", name: "Catalyst", soort: "Catalyst" },
+];
+
+export function emptyQuest(platform) {
+  return {
+    instanceId: `hand:${newId()}`,
+    platform: platform || "ps5",
+    bron: "handmatig",
+    kindId: "quest",
+    name: "",
+    omschrijving: "",
+    gedaan: "",
+    totaal: "",
+    verloopt: "",
+    klaar: false,
+  };
+}
+
+// Van formulier naar quest zoals de rest van de app hem kent. De stappen
+// ("3 van 7") worden een percentage, want daar rekent het advies mee.
+export function questUitFormulier(f) {
+  const soort = QUEST_KINDS.find((k) => k.id === f.kindId) || QUEST_KINDS[0];
+  const gedaan = Math.max(0, Number(f.gedaan) || 0);
+  const totaal = Math.max(0, Number(f.totaal) || 0);
+  const percent = totaal > 0 ? Math.min(100, Math.round((gedaan / totaal) * 100)) : 0;
+  return {
+    instanceId: f.instanceId,
+    platform: f.platform,
+    bron: "handmatig",
+    kindId: f.kindId,
+    name: String(f.name || "").trim().slice(0, 120),
+    omschrijving: String(f.omschrijving || "").trim().slice(0, 400),
+    soort: soort.soort,
+    rarity: soort.rarity || "",
+    isBounty: !!soort.isBounty,
+    gedaan: f.gedaan === "" ? "" : gedaan,
+    totaal: f.totaal === "" ? "" : totaal,
+    percent,
+    doelen: totaal > 0 ? [{ label: "Stappen", progress: gedaan, doel: totaal, klaar: gedaan >= totaal }] : [],
+    verloopt: f.verloopt || "",
+    klaar: !!f.klaar,
+    updatedAt: Date.now(),
+  };
 }
 
 // Advies: welke quest kun je het best doen? Alles hieronder komt uit je eigen
@@ -1067,7 +1121,7 @@ export function ask(question, data) {
         text: heeft
           ? "Al je opgehaalde quests staan op klaar. Haal ze opnieuw op voor de laatste stand."
           : "Er staan nog geen quests in de app. Een DIM-export bevat geen quests — alleen wapens en armor. " +
-            "Quests kunnen op dit moment alleen binnenkomen via de Bungie-koppeling (⚙️ → geavanceerd).",
+            "Zet ze er zelf bij via Voortgang → Quest, of haal ze op via de Bungie-koppeling (⚙️ → geavanceerd).",
       };
     }
     if (intent === "count") {
