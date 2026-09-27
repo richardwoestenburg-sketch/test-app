@@ -12,7 +12,7 @@ Doel: voor elk karakter een complete, direct in-game in te stellen mod-lijst gev
 **Beste input is een screenshot** (foto van de tv) van het Character-scherm en van een armor-stuk. Vraag daar als eerste om; het scheelt veel vragen. Lees eruit:
 - **Karakterscherm:** class (Hunter-cape/kap, Warlock-robe, Titan-mark), subclass-icoon linksboven, de 6 stats rechts, welke armor-stukken exotic (goud) zijn, wapens links, en de icoontjes onder de stats = actieve **set-bonussen** (2 en 4 stukken van dezelfde set). Adviseer set-stukken niet zomaar te wisselen, anders vervalt de bonus.
 - **Armor-detailscherm:** naam van de exotic + perk-tekst, **Energy x/10**, en de kosten van huidige mods (het getal rechtsboven op elk mod-icoon). Gebruik dit voor de energie-check.
-- **Gok niet welke stat bij welk icoon hoort.** De volgorde op het karakterscherm is niet bevestigd (een eerdere aanname bleek fout: de regel die Richard met Melee-mods verhoogde was de 2e, niet de 6e). Vraag Richard de cursor op het icoon te houden en de naam te noemen, of leid het af uit wat er verandert als hij een mod met een bekende naam plaatst.
+- Stats op het karakterscherm, van boven naar beneden: **Health, Melee, Grenade, Super, Class, Weapons** (door Richard bevestigd voor de bovenste twee; volgt dezelfde volgorde als de stat-balken op het armor-detailscherm). Twijfel je, vraag hem de cursor op het icoon te houden in plaats van te gokken.
 
 Vraag alleen wat ontbreekt (maximaal één korte vraagronde). Als Richard "maak voor al mijn karakters" zegt zonder details, maak dan voor elke class een sterke **algemene PvE-build** met de meest gangbare subclass en zeg welke aannames je deed.
 
