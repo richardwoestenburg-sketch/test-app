@@ -40,3 +40,10 @@ Achtergrondlijst als websearch niet lukt. Kosten en namen kunnen per seizoen wij
 
 ## Stat-mods (Armor 3.0)
 Stats: **Weapons, Health, Class, Grenade, Super, Melee.** Major-mod = +10, minor = +5. Boven 100 krijgt een stat extra effecten (bijv. meer schade/energie); tot 200 mogelijk.
+
+## Harmonic-mods
+Harmonic Siphon / Surge / Loader / Targeting / Scavenger nemen het element van je actieve subclass over. Handig als je vaak van subclass wisselt; werken alleen voor wapens van dat element (kinetic telt niet).
+
+## Exotic-voorbeelden (Hunter)
+- **Assassin's Cowl** (helm): powered melee-kills → onzichtbaar + heal. Melee-stat omhoog; Heavy Handed, Focusing Strike, Invigoration, Outreach. Arc: Combination Blow + Gambler's Dodge. Stasis: Withering Blade + Grim Harvest.
+- **Gyrfalcon's Hauberk** (borst): invis verlaten → Volatile Rounds. Void, Class-stat, Distribution/Outreach.
